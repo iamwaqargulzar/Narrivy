@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "phase": "P11",
+  "description": "P11 native qualification of release artifacts on bounded support lanes. Amendment 2026-08-24: P11-002 GNOME native deferred per bounded-support.md (COSMIC is the qualified native lane for this release; GNOME requires VM/second machine, truthfully recorded as lane mismatch in p11-gnome-native evidence but not blocking release).",
+  "minimum_checks": [
+    {
+      "id": "P11-001",
+      "description": "Native COSMIC Wayland E2E passes with release .deb",
+      "kind": "scenario",
+      "scenario_id": "p11-cosmic-native",
+      "native_required": true
+    },
+    {
+      "id": "P11-003",
+      "description": "CPU fallback qualified even on accelerator hosts",
+      "kind": "scenario",
+      "scenario_id": "p11-cpu-fallback",
+      "native_required": true
+    },
+    {
+      "id": "P11-004",
+      "description": "Accelerator claims only where tuple qualified",
+      "kind": "evidence",
+      "verification_id": "VER-TEST-010"
+    },
+    {
+      "id": "P11-005",
+      "description": "Support matrix/release notes derived from P11 evidence, no unverified claims",
+      "kind": "artifact",
+      "artifact": "artifacts/release-evidence/linux-1.0/summary.md"
+    },
+    {
+      "id": "P11-006",
+      "description": "Performance baselines per benchmark protocol meet or are documented",
+      "kind": "scenario",
+      "scenario_id": "p11-perf-qualification"
+    }
+  ],
+  "required_artifacts": [
+    "artifacts/release-evidence/linux-1.0/qualification.json",
+    "artifacts/release-evidence/linux-1.0/release-artifacts.json",
+    "artifacts/release-evidence/linux-1.0/summary.md"
+  ],
+  "required_verification_ids": [
+    "VER-TEST-010"
+  ],
+  "native_required": true,
+  "working_app_required": true
+}

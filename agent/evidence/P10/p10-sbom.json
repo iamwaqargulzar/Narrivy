@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-OPS-004",
+  "requirement_ids": [
+    "OPS-004"
+  ],
+  "phase": "P10",
+  "scenario_id": "p10-sbom",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p10-14ffd69",
+  "environment": {
+    "id": "cosmic-p10",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": "x86_64",
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": null
+  },
+  "command": "python3 tools/narrivy-qualify/p10_runner.py --scenario p10-sbom",
+  "scenario_hash": "51eef37f4472722c68a0e913e54f4b3c47963b249629f146b340dc5eb08a8fdd",
+  "started_at": "2026-08-26T06:44:52.478333+00:00",
+  "ended_at": "2026-08-26T06:44:52.632860+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "spdx.json_exists": true,
+    "spdx.json_size": 180766,
+    "spdx.json_sha256": "dc869aff657882ebb9c1966d7275c31715a9f68d98c3403a11630f7b7632fa54",
+    "spdx.json_json_valid": true,
+    "spdx_package_count": 458,
+    "inventory.json_exists": true,
+    "inventory.json_size": 77887,
+    "inventory.json_sha256": "af0f203e7673ca3b6993321726b2b3c5c89dbe732d0a782665b81e85b017813d",
+    "inventory.json_json_valid": true,
+    "inventory_count": 453,
+    "cargo_lock_hash_matches": true,
+    "notices_exists": true,
+    "notices_size": 1490
+  },
+  "artifact_hashes": {
+    "artifacts/sbom/spdx.json": "dc869aff657882ebb9c1966d7275c31715a9f68d98c3403a11630f7b7632fa54",
+    "artifacts/releases/narrivy_0.1.0_amd64.deb": "bc15dbf6a42a446bbb1d04f1a46edc77a69bf35f163affaffbd7eca2a1c1f3dc",
+    "artifacts/release-evidence/linux-1.0/release-artifacts.json": "9761b5408ea5e646092b41059ac43fb36ed4a1c7ac3337874b5428314ce1eec8"
+  },
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "spdx packages sample: ['narrivy', 'adler2', 'aho-corasick', 'alloc-no-stdlib', 'alloc-stdlib']",
+  "tester": "autonomous-agent",
+  "notes": "SBOM SPDX-2.3 validated, inventory matches Cargo.lock, notices present"
+}

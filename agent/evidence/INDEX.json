@@ -1,0 +1,291 @@
+{
+  "legacy_default": {
+    "disposition": "historical-quarantined",
+    "eligible_for_release": false,
+    "reason": "Schema-v1 evidence is retained as historical material but cannot support phase, requirement, or release pass claims."
+  },
+  "policy": "release-evidence-v2-required",
+  "qualified_evidence": [
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P0/VER-SEC-004.json",
+      "sha256": "44e4bb2d026a7a6406f0307a287001223e33b07429fdc4581bba452bdf9d8bf0"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P0/VER-TEST-001.json",
+      "sha256": "fcf8be55e1c111084d5f1c8d6ee37b80c1b9ea535d7d33d04809988b118767e1"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P0/VER-TEST-002.json",
+      "sha256": "34f06ebf4c7e3bf0291b4b4cfb70ac63a206111a8c09ee966d007a7998bdaa92"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P0/VER-TEST-008.json",
+      "sha256": "341b73d441512cfbb543f40c84a564ca7ed502ffbb960ce4aaf585e1bba98ce7"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P1/VER-FUN-005.json",
+      "sha256": "d558313214fd208bae2a4bc96b7a13bb3041dd68c24d127680037d7baddda365"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P1/VER-FUN-020.json",
+      "sha256": "6e17bcf8036b28eac4c8db1621ecc730684e13c5fc004b3fbbf335ee0f9557ea"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P1/VER-FUN-030.json",
+      "sha256": "4e7067694a89e9f50c727460cf33da9af45762fa522d1ac2847f9b1f3e535347"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P1/VER-OPS-006.json",
+      "sha256": "bf562426fbca67242c1dc5944789f0cf220e1f62af7867ffe310df7e27617246"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P1/VER-PORT-002.json",
+      "sha256": "ec67dd7bddb8939e0eb582c608e072ff0bbe5ecdf70151bfb82b1c8f3bd6e41b"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P1/VER-PORT-003.json",
+      "sha256": "5fad01508026100a9531a05db4cb3ac35b5f957526dd2a4e67cfbb8b7b87e244"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P1/VER-PORT-004.json",
+      "sha256": "d090c41f30e2bba82f1613095a66fdf13658a20f7c60283831d25ee332cb5438"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P1/VER-PORT-005.json",
+      "sha256": "704ad9305eccd34f1b3122bcf8673764a46ee76a6e01fa9ac6a7c273519c8bae"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P1/VER-PORT-008.json",
+      "sha256": "176fdf1384e5517dcd3031eb6c90db45e7209b4c9f593b4fb9807367df05cb12"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P1/VER-REL-001.json",
+      "sha256": "0b1ce2fcff9a2fd754cf4bbfb4d282ec3247d2ce53b5a212e977dd61c7bad527"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P1/VER-REL-007.json",
+      "sha256": "58521525f8dc86e9667927f8dd805d10a95daf4f9d7a1ca37e63040211f0b043"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P1/VER-SEC-005.json",
+      "sha256": "b34bdab60627a6609b9a75aa09e4f221f216b7714a06b8cf0756988d58d37eef"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P1/VER-TEST-003.json",
+      "sha256": "26b5d9daf3c46bc4474f7a71ae7736a2df865ee90f2e6c522cec749797567573"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P10/VER-OPS-004.json",
+      "sha256": "d6701bde5e4d9528f11cfa8caf63ab2afa7bce054fbdd26798c5098ac973397a"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P2/VER-FUN-004.json",
+      "sha256": "614cf4831a611ff6cdde619384a39f6c5f0f3bb6919d3880a8825cade320f393"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P2/VER-FUN-031.json",
+      "sha256": "c983bd4e3921e864bf81c93f23bea8957e08982304704b8c574323ba4a75ffa3"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P2/VER-REL-003.json",
+      "sha256": "9739960b5cea9ca10aacde038d7c022c96148f1bde4238785e25dbdc39a60c14"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P3/VER-UX-002.json",
+      "sha256": "b17c3e0ef35d81ffbe6d9da0bb4f1e8f130acc3e84da7b4ddcd4c96892b29a3a"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P3/VER-UX-003.json",
+      "sha256": "d7b0477ec45dc242453635e87d37130e094d9e4c4a5d1d1bcfe20d913578034b"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P3/VER-UX-007.json",
+      "sha256": "80c33bf4f831d731c29cb8cc2480304e1658f6122c5b3e8d71ecb4d776f51b56"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P3/VER-UX-008.json",
+      "sha256": "32b52fa185631d0810806470245cc79cab0f42c8835174f0facc07a5cd541b34"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P3/VER-UX-010.json",
+      "sha256": "13f109fcf2ff1afee06a465bfec56cfe55e0bf1317abe527bc750597d5c10044"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P5/VER-FUN-003.json",
+      "sha256": "841b27d97b5a1682974701e9efff74f4948af46818ec3a0ce28796fdd1ec05c9"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P5/VER-PERF-005.json",
+      "sha256": "c4d4a2bb8e70d0e9ffbb0731e1cd9fc93fa9d44ef190e49879f3129fb73cc984"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P5/VER-PERF-007.json",
+      "sha256": "c61ba1acf6e076becedeadcb15a874284baad3dac53af98d0256195105f1c081"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P5/VER-PERF-008.json",
+      "sha256": "300bbeb23f8ef91488ae462d592868ec4eea2cee2bd4aeceb95125ea008a3292"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P5/VER-SEC-007.json",
+      "sha256": "80f6fd7313950c0e5a5730bd1abf6b269b053fb0edff5455cc1271c46f84284a"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P5/VER-TEST-005.json",
+      "sha256": "1f76edcd66673cb0e61b6950d1d6a037825ed7f4d6c1469ae7122cd6d121cdf0"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P6/VER-OPS-001.json",
+      "sha256": "949afc2d6fee0e7e0f0177706828cfae9bb78f63b9206348754a016eaea8ced0"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P6/VER-REL-008.json",
+      "sha256": "ef3a050995b20aa3c47c6804b7969b7b13f73c63ff57dcd208795a4232c2f355"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P7/VER-FUN-021.json",
+      "sha256": "7e3df783598f726844507349e0bd6ba82fcd84a9cd730487bb6b3b40b121d968"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P7/VER-FUN-027.json",
+      "sha256": "43dce7733af8b63757dc36ee4fd4e9073d379a5f0627e006a1c0b97744804268"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P7/VER-FUN-032.json",
+      "sha256": "7c800a895f5cff7ca631d26beb7860c126c3d91d09ac828432c4586036b1f000"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P7/VER-FUN-033.json",
+      "sha256": "2ef67a5f96291f7c049f97d6d53bd116b42d9755d755959e9f48f6610d28c0f3"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P7/VER-UX-009.json",
+      "sha256": "43056281e6dce1007131406e7f6565d82e99b3976eecfed02886a9b464497b93"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P7/VER-UX-011.json",
+      "sha256": "bf5d7829f2a0123485fb7f40d05b888cf7cda80d80bff0fc549c3d7622b5a814"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P8/VER-FUN-041.json",
+      "sha256": "96f5b3364f9196a4f0d1c906f39c9905c10023d86400a05f2a7b692413f4f287"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P8/VER-FUN-064.json",
+      "sha256": "605a40cfbb7d63e3912d38a57d887261b4f9667e239c03558d27397fd411f151"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P8/VER-PRIV-001.json",
+      "sha256": "3236cbee8000e0d7e5af2c11982ee7a3219962fbade433e70f72dca11d452000"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P8/VER-PRIV-002.json",
+      "sha256": "9dce7d48abc213cd0ea135b8f4fc241be81d6b29ec1e5d695ccdd5aeb7f81b98"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P8/VER-PRIV-003.json",
+      "sha256": "1bb5f32fcbd26651aee2ad0edcbd728b3e18fff622dbda697e7fdf64136630c8"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P8/VER-PRIV-004.json",
+      "sha256": "f87bef4c8f4d6f6a4e18bdc7d1966a0fe5c2dc1fc7477650e39407733550f0d0"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P8/VER-PRIV-005.json",
+      "sha256": "d3d50043c01f937f31d01ba0e7554eda9e9f7c58cf2db85c30bb417aced1394e"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P8/VER-PRIV-006.json",
+      "sha256": "12196fb73f1dac59f57bbc14e80e53dc5e52bdd22fb60f385fe7ea2a25950c49"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P8/VER-PRIV-007.json",
+      "sha256": "bca678fa4364ecbc1657121c7ad10c8106135881c310605b4356728e6905b522"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P9/VER-ACC-002.json",
+      "sha256": "97941a9781bfb0e91a350eb0e1a2890646e87c2c3ab47de24b69fc97ec73c74e"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P9/VER-ACC-003.json",
+      "sha256": "4dbd6b432c265f639fe610b1678c71c34828a533e2ecf019e3f12c2684f12871"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P9/VER-ACC-004.json",
+      "sha256": "051810b80bb5dda1772935d21f9f1dde5e905107f3ef68f7b713ede7f41b6165"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P9/VER-ACC-006.json",
+      "sha256": "104232c76daaa3b4f0a42ec42e2ad3dc04ada27e62e58b476adf8ba19693bf97"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P9/VER-ACC-007.json",
+      "sha256": "8641a969b55ca25b88f2f59ad323d310347f9569d56546ecc4a1ce35c1bf25c8"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P9/VER-SEC-001.json",
+      "sha256": "756241d9d5adc172071be9be7b4fc021d73ce73527faf6dab51a338f86f3e09f"
+    },
+    {
+      "disposition": "qualified",
+      "path": "agent/evidence/P9/VER-SEC-003.json",
+      "sha256": "93eee3aeb757fb000f383f788baf0bc78fd981edbf4d8cbc761118165892f04c"
+    }
+  ],
+  "schema_version": 1
+}

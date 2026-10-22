@@ -1,0 +1,42 @@
+**/target/
+**/node_modules/
+**/dist/
+**/.vite/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
+!.env.example
+/cache/
+/models/
+/runtime-data/
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# salvage code archive (reference only; narrivy-v0.4 + handy-npu)
+/code/*
+!/code/README.md
+agent/external-review-*.md
+
+# Generated installation packages and intermediate, unqualified run artifacts
+# stay on disk but outside source history. Tracked release evidence under
+# artifacts/release-evidence/ and artifacts/sbom/ is deliberately NOT ignored.
+/artifacts/releases/
+/artifacts/candidates/
+/artifacts/deepseek-runs/
+/artifacts/model-evaluation-current.json
+/artifacts/model-evaluations/
+/artifacts/native-smoke/
+/artifacts/parallel-delivery-009/
+/artifacts/parallel-desktop-008/
+/artifacts/release-006/
+/artifacts/release-007/
+/artifacts/release-011/
+/artifacts/release-013/
+/artifacts/release-015/
+
+/artifacts/grok-runs/

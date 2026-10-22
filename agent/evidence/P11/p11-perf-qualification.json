@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-P11-PERF",
+  "requirement_ids": [
+    "TEST-010"
+  ],
+  "phase": "P11",
+  "scenario_id": "p11-perf-qualification",
+  "scenario_hash": "c941aadd539d4a2c422366ebb595ad797f7fda8df5010e952b0d380f98ee5a62",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p11-14ffd69",
+  "environment": {
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "session": "wayland",
+    "id": "cosmic-native",
+    "desktop": "COSMIC"
+  },
+  "command": "python3 tools/narrivy-qualify/p11_runner.py --scenario p11-perf-qualification",
+  "started_at": "2026-08-26T07:32:28.000049+00:00",
+  "ended_at": "2026-08-26T07:32:28.049443+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "detail": "perf baseline vs P6, must not regress >10%",
+    "exit": 2
+  },
+  "artifact_hashes": {},
+  "diagnostic_excerpt": "perf baseline vs P6, must not regress >10%"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "p9-perf-regression",
+  "phase": "P9",
+  "kind": "performance",
+  "scenario": "performance regression vs P6 baselines: p50/p95, failure rate, concurrency",
+  "native_required": true,
+  "requirement_ids": [
+    "PERF-010"
+  ],
+  "verification_id": "VER-PERF-010"
+}

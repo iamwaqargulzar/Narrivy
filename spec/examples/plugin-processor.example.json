@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "id": "org.narrivy.example.clean-processor",
+  "version": "0.1.0",
+  "api": {"major": 1, "min_minor": 0},
+  "kind": "processor",
+  "execution": "wasm-wasi",
+  "publisher": {"name": "Narrivy Example", "key_id": null},
+  "artifact": {
+    "entry": "module/clean_processor.wasm",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "signature": null
+  },
+  "permissions": ["transcript.read"],
+  "network_allowlist": []
+}

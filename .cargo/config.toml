@@ -1,0 +1,8 @@
+[build]
+incremental = true
+
+[term]
+color = "auto"
+
+[net]
+git-fetch-with-cli = true

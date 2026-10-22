@@ -1,0 +1,12 @@
+{
+  "id": "p4-audio-policy",
+  "phase": "P4",
+  "kind": "e2e",
+  "scenario": "leave zero-mutation + duck journaled with clean restoration",
+  "native_required": false,
+  "requirement_ids": [
+    "FUN-007",
+    "REL-005"
+  ],
+  "verification_id": "VER-FUN-007"
+}

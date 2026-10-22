@@ -1,0 +1,474 @@
+{
+  "artifact_hashes": {
+    "crates/narrivy-history/src/context_adapter.rs": "98d9e114e6f8386332fc46efff5680bcfc82c5a7b2ea1bb9a420863397a7d188",
+    "crates/narrivy-pipeline/src/lib.rs": "a3cca28edff669236f9ce64d8e401e7703eb4943fc637230ea8578c3f4165d84",
+    "scripts/record_controlled_integration_evidence.py": "068087f29048a38d6c2094cb89bc24f9db689f21c0d9b419e1bacd45794877eb"
+  },
+  "build_id": "source-bd6adec3bae2",
+  "command": "python3 scripts/record_controlled_integration_evidence.py",
+  "ended_at": "2026-09-28T02:08:53.846520+00:00",
+  "environment": {
+    "cpu": "x86_64",
+    "desktop": "not-applicable",
+    "device_details": null,
+    "display_scale": null,
+    "gpu": null,
+    "id": "controlled-integration",
+    "input_backend": null,
+    "kernel": "7.2.2-popos",
+    "lane_available": true,
+    "microphone": null,
+    "native_or_vm": "controlled",
+    "npu": null,
+    "os": "Linux",
+    "os_version": "7.2.2-popos",
+    "qualification_lane": "controlled-integration",
+    "session": "controlled"
+  },
+  "evidence_type": "integration",
+  "execution": {
+    "child_failures_ignored": false,
+    "environment_class": "controlled",
+    "lane_available": true,
+    "substitutions": []
+  },
+  "exit_code": 0,
+  "git_commit": "bd6adec3bae2e8f07006e04be199884ecc28e53a",
+  "git_dirty": false,
+  "metrics": {
+    "gates": {
+      "architecture_failures": 0,
+      "secrets": {
+        "files_scanned": 1152
+      },
+      "traceability": {
+        "requirements_mapped": 136
+      }
+    },
+    "proofs": {
+      "atomic_pipeline_toggle": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "set_enabled_toggles_are_reflected_in_list"
+        ]
+      },
+      "backend_failure": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "inbox_fallback_writes_atomically_and_validates_filename",
+          "copied_only_is_never_reported_as_delivered"
+        ]
+      },
+      "bounded_fallback": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "all_rungs_exhausted_yields_failed",
+          "missing_inbox_dir_lets_router_end_failed"
+        ]
+      },
+      "broad_input_privilege_default_off": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "uinput_skipped_by_default_even_when_configured_available",
+          "default_config_is_least_privilege"
+        ]
+      },
+      "capability_gated_hold": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "legacy_plan_requires_remote_processing_still_works"
+        ]
+      },
+      "capability_ranked_delivery": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "fake_backend_routing_order_follows_ladder",
+          "uinput_opt_in_sits_between_wtype_and_clipboard"
+        ]
+      },
+      "cloud_boundary_visible": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "CapturePolicyRendering.test.tsx"
+        ]
+      },
+      "command_palette": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "opens with Ctrl+K, filters, executes on Enter, closes on Escape"
+        ]
+      },
+      "content_redaction": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "delivered_speech_and_word_content_is_redacted"
+        ]
+      },
+      "context_policy_gate": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "history_off_returns_none_no_leakage",
+          "noop_context_returns_empty_snapshot_when_allowed"
+        ]
+      },
+      "declared_and_grant_required": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "host_cannot_grant_an_undeclared_permission"
+        ]
+      },
+      "denied_operation_no_payload": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "gated_channel_consults_gate_before_inner_sink"
+        ]
+      },
+      "deterministic_correction": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "correction_is_deterministic",
+          "variants_track_raw_corrected_delivered_and_classify"
+        ]
+      },
+      "durable_inbox_recovery": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "startup_recovery_moves_only_complete_unsent_results_to_inbox_once",
+          "startup_recovery_failure_keeps_the_result_recoverable"
+        ]
+      },
+      "fail_closed_gates": {
+        "executed": 4,
+        "expected": 4,
+        "tests": [
+          "test_semantic_failures_cannot_mark_a_requirement_passed",
+          "test_native_and_package_substitutions_fail_closed_in_every_validator",
+          "test_all_legacy_entry_points_and_imports_cannot_write",
+          "test_index_registration_and_hash_are_enforced_by_all_validators"
+        ]
+      },
+      "immutable_registry_integrity": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "registry_and_direct_store_reject_unsafe_identity_components"
+        ]
+      },
+      "inbox_terminal_sink": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "inbox_fallback_writes_atomically_and_validates_filename"
+        ]
+      },
+      "independent_remote_permissions": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "remote_denied_by_default_even_when_stage_requests_it"
+        ]
+      },
+      "lean_and_advanced_paths": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "AppRendersAllScreens.test.tsx"
+        ]
+      },
+      "local_default": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "privacy_is_allowed_true_when_no_zones"
+        ]
+      },
+      "manifest_permission_vocabulary": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "module_permissions_require_declaration_and_host_grant"
+        ]
+      },
+      "navigation_and_deferred_honesty": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "AppRendersAllScreens.test.tsx",
+          "DeferredFeaturesAbsent.test.tsx"
+        ]
+      },
+      "network_default_deny": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "module_network_access_is_denied_by_default"
+        ]
+      },
+      "one_step_undo": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "reverts displayed clean output to the raw variant on Undo"
+        ]
+      },
+      "perf008_cache_cleanup": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "cleanup_removes_losers_and_protects_selected_pinned_fallback"
+        ]
+      },
+      "pipeline_addressed_bindings": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "load_round_trips_definitions_exactly",
+          "normalize_binding_canonicalizes_case_and_order"
+        ]
+      },
+      "privacy_zone_precedence": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "privacy_zone_deny_overrides_allow",
+          "history_off_overrides_even_matching_zone"
+        ]
+      },
+      "progressive_disclosure": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "SettingsComputeTruth.test.tsx"
+        ]
+      },
+      "raw_clean_builtins": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "builtin_defs_validate_and_clean_has_semantic_guard_but_no_llm"
+        ]
+      },
+      "raw_recovery_and_guard": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "only_exact_wtype_inbox_recovery_reports_can_reach_inbox_recovered"
+        ]
+      },
+      "retention_controls": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "privacy_history_retention_7d_prunes_expired"
+        ]
+      },
+      "safe_import_export": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "load_rejects_future_schema_and_nonexistent_dir",
+          "save_writes_per_pipeline_files_and_index"
+        ]
+      },
+      "service_boundary_precedes_invocation": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "daemon_enforces_module_permissions_before_invocation"
+        ]
+      },
+      "spoken_aliases": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "alias_basic_expansion",
+          "alias_case_insensitive"
+        ]
+      },
+      "toggle_hold_kind_isolation": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "other_singleton_slot_duplicated_is_rejected"
+        ]
+      },
+      "unicode_multiline_verbatim": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "unicode_multiline_and_5k_fixtures_pass_through_verbatim"
+        ]
+      }
+    },
+    "suites": {
+      "core": {
+        "command": "cargo test -p narrivy-core --locked",
+        "exit_code": 0,
+        "stderr_lines": 5,
+        "stdout_lines": 145
+      },
+      "daemon": {
+        "command": "cargo test -p narrivyd --locked",
+        "exit_code": 0,
+        "stderr_lines": 11,
+        "stdout_lines": 791
+      },
+      "dependency-boundary": {
+        "command": "python3 scripts/verify_dependency_boundaries.py",
+        "exit_code": 0,
+        "stderr_lines": 0,
+        "stdout_lines": 1
+      },
+      "desktop-build": {
+        "command": "npm run build --prefix apps/narrivy-desktop",
+        "exit_code": 0,
+        "stderr_lines": 2,
+        "stdout_lines": 9
+      },
+      "desktop-tests": {
+        "command": "npm test --prefix apps/narrivy-desktop -- --run --reporter=verbose",
+        "exit_code": 0,
+        "stderr_lines": 2,
+        "stdout_lines": 122
+      },
+      "diagnostics": {
+        "command": "cargo test -p narrivy-diagnostics --locked",
+        "exit_code": 0,
+        "stderr_lines": 3,
+        "stdout_lines": 45
+      },
+      "governance": {
+        "command": "python3 -m unittest discover -s tests/governance -v",
+        "exit_code": 0,
+        "stderr_lines": 188,
+        "stdout_lines": 0
+      },
+      "history": {
+        "command": "cargo test -p narrivy-history --locked",
+        "exit_code": 0,
+        "stderr_lines": 3,
+        "stdout_lines": 44
+      },
+      "log-redaction": {
+        "command": "python3 scripts/check_log_redaction.py",
+        "exit_code": 0,
+        "stderr_lines": 0,
+        "stdout_lines": 1
+      },
+      "model-cache": {
+        "command": "cargo test -p narrivy-model-manager --test p5_model_cache --locked",
+        "exit_code": 0,
+        "stderr_lines": 2,
+        "stdout_lines": 36
+      },
+      "pipeline": {
+        "command": "cargo test -p narrivy-pipeline --locked",
+        "exit_code": 0,
+        "stderr_lines": 4,
+        "stdout_lines": 67
+      },
+      "platform-linux": {
+        "command": "cargo test -p narrivy-platform-linux --locked -- --test-threads=1",
+        "exit_code": 0,
+        "stderr_lines": 3,
+        "stdout_lines": 282
+      },
+      "policy": {
+        "command": "cargo test -p narrivy-policy --locked",
+        "exit_code": 0,
+        "stderr_lines": 3,
+        "stdout_lines": 25
+      },
+      "secrets": {
+        "command": "python3 scripts/verify_secrets.py",
+        "exit_code": 0,
+        "stderr_lines": 0,
+        "stdout_lines": 5
+      },
+      "source-boundary": {
+        "command": "python3 scripts/verify-boundaries.py",
+        "exit_code": 0,
+        "stderr_lines": 0,
+        "stdout_lines": 1
+      },
+      "supply-chain": {
+        "command": "cargo deny --offline check",
+        "exit_code": 0,
+        "stderr_lines": 795,
+        "stdout_lines": 1
+      },
+      "traceability": {
+        "command": "python3 scripts/verify_traceability.py",
+        "exit_code": 0,
+        "stderr_lines": 0,
+        "stdout_lines": 1
+      }
+    },
+    "supply_chain": {
+      "advisories": true,
+      "bans": true,
+      "licenses": true,
+      "sources": true
+    }
+  },
+  "notes": "Shared clean-worktree controlled qualification. Every suite assertion is measured by that suite's own exit code, and every semantic claim is measured by the named tests that passed in this same run (see metrics.proofs). No native platform or release-package claim.",
+  "pass": true,
+  "phase": "P8",
+  "procedure": {
+    "assertions": [
+      {
+        "id": "history-suite",
+        "measurement": {
+          "comparator": "eq",
+          "expected": 0,
+          "metric": "suites.history.exit_code"
+        },
+        "result": "pass"
+      },
+      {
+        "id": "pipeline-suite",
+        "measurement": {
+          "comparator": "eq",
+          "expected": 0,
+          "metric": "suites.pipeline.exit_code"
+        },
+        "result": "pass"
+      },
+      {
+        "id": "independent-remote-permissions-proven",
+        "measurement": {
+          "comparator": "eq",
+          "expected": 1,
+          "metric": "proofs.independent_remote_permissions.executed"
+        },
+        "result": "pass"
+      }
+    ],
+    "id": "controlled-priv-007-v1",
+    "profile_id": "controlled-integration-v1"
+  },
+  "requirement_ids": [
+    "PRIV-007"
+  ],
+  "result": "pass",
+  "scenario_hash": "068087f29048a38d6c2094cb89bc24f9db689f21c0d9b419e1bacd45794877eb",
+  "scenario_id": "controlled-priv-007-v1",
+  "scenario_version": "1",
+  "schema_version": 3,
+  "started_at": "2026-09-28T02:07:05.092076+00:00",
+  "verification_id": "VER-PRIV-007"
+}

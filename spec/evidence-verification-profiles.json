@@ -1,0 +1,3310 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "id": "unit-contract-v1",
+      "verification_layers": [
+        "unit/contract",
+        "ci/architecture",
+        "compile/architecture"
+      ],
+      "permitted_evidence_types": [
+        "unit"
+      ],
+      "permitted_substitutions": [],
+      "execution_environment": "controlled",
+      "artifact_binding": "forbidden",
+      "native_platform_required": false,
+      "behavioral_runner_required": false,
+      "qualifiable": true
+    },
+    {
+      "id": "controlled-integration-v1",
+      "verification_layers": [
+        "asr/quality-hardening",
+        "integration/acceptance",
+        "policy/integration",
+        "security/integration",
+        "ui-acceptance"
+      ],
+      "permitted_evidence_types": [
+        "integration"
+      ],
+      "permitted_substitutions": [],
+      "execution_environment": "controlled",
+      "artifact_binding": "forbidden",
+      "native_platform_required": false,
+      "behavioral_runner_required": false,
+      "qualifiable": true
+    },
+    {
+      "id": "native-behavior-v1",
+      "verification_layers": [
+        "asr/device-qualification",
+        "e2e/manual",
+        "failure/e2e",
+        "failure/linux-audio",
+        "hardening/security/accessibility",
+        "linux-audio",
+        "linux-integration",
+        "manual+e2e",
+        "manual+release-e2e",
+        "performance/reliability"
+      ],
+      "permitted_evidence_types": [
+        "native-platform",
+        "package-artifact",
+        "manual"
+      ],
+      "permitted_substitutions": [],
+      "execution_environment": "native-platform",
+      "artifact_binding": "required",
+      "native_platform_required": true,
+      "behavioral_runner_required": true,
+      "qualifiable": true
+    },
+    {
+      "id": "package-artifact-v1",
+      "verification_layers": [
+        "packaging/release"
+      ],
+      "permitted_evidence_types": [
+        "package-artifact"
+      ],
+      "permitted_substitutions": [],
+      "execution_environment": "release-package",
+      "artifact_binding": "required",
+      "native_platform_required": false,
+      "behavioral_runner_required": true,
+      "qualifiable": true
+    },
+    {
+      "id": "roadmap-not-qualifiable-v1",
+      "verification_layers": [
+        "roadmap"
+      ],
+      "permitted_evidence_types": [
+        "unit"
+      ],
+      "permitted_substitutions": [],
+      "execution_environment": "controlled",
+      "artifact_binding": "forbidden",
+      "native_platform_required": false,
+      "behavioral_runner_required": false,
+      "qualifiable": false
+    }
+  ],
+  "procedures": [
+    {
+      "id": "cosmic-physical-mic-local-asr-inbox-v1",
+      "verification_id": "VER-TEST-009",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_cosmic_vertical_slice_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "agent/evidence/P6/VER-TEST-009.json",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_cosmic_vertical_slice_evidence.py",
+        "sha256": "cf8791cb5232c97ae9ae33b37f40852b78044fa6fda20bda1b5ac3d61ef97b27",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "physical-microphone-capture",
+        "local-asr-known-phrase",
+        "clean-pipeline-completed",
+        "inbox-fallback-delivered",
+        "transcript-absent-from-ordinary-logs",
+        "daemon-clean-shutdown",
+        "transient-state-removed"
+      ]
+    },
+    {
+      "id": "ubuntu-deb-install-runtime-remove-v1",
+      "verification_id": "VER-OPS-002",
+      "profile_id": "package-artifact-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_package_lifecycle_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "agent/evidence/P10/VER-OPS-002.json"
+      ],
+      "runner": {
+        "path": "scripts/record_package_lifecycle_evidence.py",
+        "sha256": "66b43deff886b0c80a4496d72232852ece2c7ef969356cf3411e2066e27b2b51",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-clean-package-bound",
+        "apt-install-passed",
+        "installed-paths-passed",
+        "offline-model-provisioned",
+        "configured-pipeline-ready",
+        "bounded-daemon-restart-passed",
+        "package-remove-purge-passed",
+        "model-preservation-policy-passed",
+        "owned-container-removed"
+      ]
+    },
+    {
+      "id": "packaged-cpu-final-only-capability-v1",
+      "verification_id": "VER-PERF-005",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_cpu_performance_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "agent/evidence/P5/VER-PERF-005.json",
+        "agent/evidence/P5/VER-PERF-007.json"
+      ],
+      "runner": {
+        "path": "scripts/record_cpu_performance_evidence.py",
+        "sha256": "4e50488d17f60a1a24730bc6f6b7b318555784d106b39e048720ede6e2525029",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "cpu-backend-enforced",
+          "measurement": {
+            "metric": "backend",
+            "comparator": "eq",
+            "expected": "cpu"
+          }
+        },
+        {
+          "id": "streaming-capability-observed",
+          "measurement": {
+            "metric": "worker_capabilities.streaming",
+            "comparator": "is_false"
+          }
+        },
+        {
+          "id": "partial-target-not-applicable",
+          "measurement": {
+            "metric": "timestamps_supported",
+            "comparator": "is_false"
+          }
+        },
+        {
+          "id": "known-phrase-final-passed",
+          "measurement": {
+            "metric": "fragment_matched",
+            "comparator": "is_true"
+          }
+        }
+      ]
+    },
+    {
+      "id": "packaged-cpu-residency-states-v1",
+      "verification_id": "VER-PERF-007",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_cpu_performance_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "agent/evidence/P5/VER-PERF-005.json",
+        "agent/evidence/P5/VER-PERF-007.json"
+      ],
+      "runner": {
+        "path": "scripts/record_cpu_performance_evidence.py",
+        "sha256": "4e50488d17f60a1a24730bc6f6b7b318555784d106b39e048720ede6e2525029",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "cpu-backend-enforced",
+          "measurement": {
+            "metric": "backend",
+            "comparator": "eq",
+            "expected": "cpu"
+          }
+        },
+        {
+          "id": "cold-observed",
+          "measurement": {
+            "metric": "cold_worker_ready.n",
+            "comparator": "eq",
+            "expected": 1
+          }
+        },
+        {
+          "id": "warm-observed",
+          "measurement": {
+            "metric": "warm_worker_ready.n",
+            "comparator": "eq",
+            "expected": 10
+          }
+        },
+        {
+          "id": "hot-observed",
+          "measurement": {
+            "metric": "hot_decode.n",
+            "comparator": "eq",
+            "expected": 100
+          }
+        },
+        {
+          "id": "sample-policy-completed",
+          "measurement": {
+            "metric": "hot_warmups_discarded",
+            "comparator": "eq",
+            "expected": 5
+          }
+        },
+        {
+          "id": "known-phrase-final-passed",
+          "measurement": {
+            "metric": "fragment_matched",
+            "comparator": "is_true"
+          }
+        }
+      ]
+    },
+    {
+      "id": "unit-contract-fun-005-v1",
+      "verification_id": "VER-FUN-005",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_unit_contract_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "core-contract-suite",
+          "measurement": {
+            "metric": "suites.core.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "transcript-variants-preserved",
+          "measurement": {
+            "metric": "proofs.transcript_variants.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "unit-contract-fun-020-v1",
+      "verification_id": "VER-FUN-020",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_unit_contract_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "pipeline-contract-suite",
+          "measurement": {
+            "metric": "suites.pipeline.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "declarative-modes-proven",
+          "measurement": {
+            "metric": "proofs.declarative_modes.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "unit-contract-rel-001-v1",
+      "verification_id": "VER-REL-001",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_unit_contract_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "core-contract-suite",
+          "measurement": {
+            "metric": "suites.core.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "session-state-machine-proven",
+          "measurement": {
+            "metric": "proofs.session_state_machine.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "unit-contract-rel-007-v1",
+      "verification_id": "VER-REL-007",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_unit_contract_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "core-contract-suite",
+          "measurement": {
+            "metric": "suites.core.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "worker-shutdown-contract-proven",
+          "measurement": {
+            "metric": "proofs.worker_shutdown_contract.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "unit-contract-port-003-v1",
+      "verification_id": "VER-PORT-003",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_unit_contract_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "desktop-boundary-suite",
+          "measurement": {
+            "metric": "suites.desktop-boundary.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "daemon-client-contract-proven",
+          "measurement": {
+            "metric": "proofs.daemon_client_contract.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "unit-contract-port-004-v1",
+      "verification_id": "VER-PORT-004",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_unit_contract_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "ipc-contract-suite",
+          "measurement": {
+            "metric": "suites.ipc.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "transport-hidden-from-domain",
+          "measurement": {
+            "metric": "suites.dependency-boundary.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "unit-contract-port-005-v1",
+      "verification_id": "VER-PORT-005",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_unit_contract_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "policy-contract-suite",
+          "measurement": {
+            "metric": "suites.policy.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "capability-driven-policy-proven",
+          "measurement": {
+            "metric": "proofs.capability_driven_policy.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "unit-contract-test-003-v1",
+      "verification_id": "VER-TEST-003",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_unit_contract_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "core-contract-suite",
+          "measurement": {
+            "metric": "suites.core.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "pipeline-contract-suite",
+          "measurement": {
+            "metric": "suites.pipeline.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "ipc-contract-suite",
+          "measurement": {
+            "metric": "suites.ipc.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "policy-contract-suite",
+          "measurement": {
+            "metric": "suites.policy.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "daemon-contract-suite",
+          "measurement": {
+            "metric": "suites.daemon-e2e.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "traceability-verified",
+          "measurement": {
+            "metric": "suites.traceability.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "unit-contract-ops-006-v1",
+      "verification_id": "VER-OPS-006",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_unit_contract_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "core-contract-suite",
+          "measurement": {
+            "metric": "suites.core.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "migration-recovery-proven",
+          "measurement": {
+            "metric": "proofs.migration_recovery.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "unit-contract-fun-030-v1",
+      "verification_id": "VER-FUN-030",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_unit_contract_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "pipeline-contract-suite",
+          "measurement": {
+            "metric": "suites.pipeline.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "versioned-pipeline-store-proven",
+          "measurement": {
+            "metric": "proofs.versioned_pipeline_store.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "unit-contract-port-008-v1",
+      "verification_id": "VER-PORT-008",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_unit_contract_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "pipeline-contract-suite",
+          "measurement": {
+            "metric": "suites.pipeline.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "dependency-boundary-suite",
+          "measurement": {
+            "metric": "suites.dependency-boundary.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "resource-identity-separation-proven",
+          "measurement": {
+            "metric": "proofs.resource_identity_separation.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-port-002-v1",
+      "verification_id": "VER-PORT-002",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "core-suite",
+          "measurement": {
+            "metric": "suites.core.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "source-boundary-suite",
+          "measurement": {
+            "metric": "suites.source-boundary.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "os-api-boundary-proven",
+          "measurement": {
+            "metric": "suites.source-boundary.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-test-001-v1",
+      "verification_id": "VER-TEST-001",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "traceability-suite",
+          "measurement": {
+            "metric": "suites.traceability.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "release-requirement-mapping-proven",
+          "measurement": {
+            "metric": "gates.traceability.requirements_mapped",
+            "comparator": "ge",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-test-002-v1",
+      "verification_id": "VER-TEST-002",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "source-boundary-suite",
+          "measurement": {
+            "metric": "suites.source-boundary.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "dependency-boundary-suite",
+          "measurement": {
+            "metric": "suites.dependency-boundary.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "architecture-gates-proven",
+          "measurement": {
+            "metric": "gates.architecture_failures",
+            "comparator": "eq",
+            "expected": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-test-008-v1",
+      "verification_id": "VER-TEST-008",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "governance-suite",
+          "measurement": {
+            "metric": "suites.governance.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "fail-closed-gates-proven",
+          "measurement": {
+            "metric": "proofs.fail_closed_gates.executed",
+            "comparator": "eq",
+            "expected": 4
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-fun-021-v1",
+      "verification_id": "VER-FUN-021",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "pipeline-suite",
+          "measurement": {
+            "metric": "suites.pipeline.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "daemon-suite",
+          "measurement": {
+            "metric": "suites.daemon.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "raw-clean-builtins-proven",
+          "measurement": {
+            "metric": "proofs.raw_clean_builtins.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-fun-027-v1",
+      "verification_id": "VER-FUN-027",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "core-suite",
+          "measurement": {
+            "metric": "suites.core.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "daemon-suite",
+          "measurement": {
+            "metric": "suites.daemon.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "deterministic-correction-proven",
+          "measurement": {
+            "metric": "proofs.deterministic_correction.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-fun-032-v1",
+      "verification_id": "VER-FUN-032",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "core-suite",
+          "measurement": {
+            "metric": "suites.core.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "pipeline-suite",
+          "measurement": {
+            "metric": "suites.pipeline.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "raw-recovery-and-guard-proven",
+          "measurement": {
+            "metric": "proofs.raw_recovery_and_guard.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-fun-033-v1",
+      "verification_id": "VER-FUN-033",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "pipeline-suite",
+          "measurement": {
+            "metric": "suites.pipeline.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "desktop-suite",
+          "measurement": {
+            "metric": "suites.desktop-tests.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "lean-and-advanced-paths-proven",
+          "measurement": {
+            "metric": "proofs.lean_and_advanced_paths.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-fun-041-v1",
+      "verification_id": "VER-FUN-041",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "history-suite",
+          "measurement": {
+            "metric": "suites.history.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "spoken-aliases-proven",
+          "measurement": {
+            "metric": "proofs.spoken_aliases.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-fun-064-v1",
+      "verification_id": "VER-FUN-064",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "history-suite",
+          "measurement": {
+            "metric": "suites.history.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "context-policy-gate-proven",
+          "measurement": {
+            "metric": "proofs.context_policy_gate.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-priv-001-v1",
+      "verification_id": "VER-PRIV-001",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "policy-suite",
+          "measurement": {
+            "metric": "suites.policy.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "history-suite",
+          "measurement": {
+            "metric": "suites.history.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "local-default-proven",
+          "measurement": {
+            "metric": "proofs.local_default.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-priv-002-v1",
+      "verification_id": "VER-PRIV-002",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "history-suite",
+          "measurement": {
+            "metric": "suites.history.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "retention-controls-proven",
+          "measurement": {
+            "metric": "proofs.retention_controls.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-priv-003-v1",
+      "verification_id": "VER-PRIV-003",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "history-suite",
+          "measurement": {
+            "metric": "suites.history.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "privacy-zone-precedence-proven",
+          "measurement": {
+            "metric": "proofs.privacy_zone_precedence.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-priv-004-v1",
+      "verification_id": "VER-PRIV-004",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "policy-suite",
+          "measurement": {
+            "metric": "suites.policy.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "desktop-suite",
+          "measurement": {
+            "metric": "suites.desktop-tests.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "cloud-boundary-visible-proven",
+          "measurement": {
+            "metric": "proofs.cloud_boundary_visible.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-priv-005-v1",
+      "verification_id": "VER-PRIV-005",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "secrets-suite",
+          "measurement": {
+            "metric": "suites.secrets.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "regular-config-secret-exclusion-proven",
+          "measurement": {
+            "metric": "gates.secrets.files_scanned",
+            "comparator": "ge",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-priv-006-v1",
+      "verification_id": "VER-PRIV-006",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "log-redaction-suite",
+          "measurement": {
+            "metric": "suites.log-redaction.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "diagnostics-suite",
+          "measurement": {
+            "metric": "suites.diagnostics.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "content-redaction-proven",
+          "measurement": {
+            "metric": "proofs.content_redaction.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-priv-007-v1",
+      "verification_id": "VER-PRIV-007",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "history-suite",
+          "measurement": {
+            "metric": "suites.history.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "pipeline-suite",
+          "measurement": {
+            "metric": "suites.pipeline.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "independent-remote-permissions-proven",
+          "measurement": {
+            "metric": "proofs.independent_remote_permissions.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-ux-002-v1",
+      "verification_id": "VER-UX-002",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "desktop-suite",
+          "measurement": {
+            "metric": "suites.desktop-tests.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "navigation-and-deferred-honesty-proven",
+          "measurement": {
+            "metric": "proofs.navigation_and_deferred_honesty.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-ux-003-v1",
+      "verification_id": "VER-UX-003",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "desktop-suite",
+          "measurement": {
+            "metric": "suites.desktop-tests.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "progressive-disclosure-proven",
+          "measurement": {
+            "metric": "proofs.progressive_disclosure.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-ux-008-v1",
+      "verification_id": "VER-UX-008",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "desktop-suite",
+          "measurement": {
+            "metric": "suites.desktop-tests.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "command-palette-proven",
+          "measurement": {
+            "metric": "proofs.command_palette.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-ux-009-v1",
+      "verification_id": "VER-UX-009",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "core-suite",
+          "measurement": {
+            "metric": "suites.core.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "desktop-suite",
+          "measurement": {
+            "metric": "suites.desktop-tests.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "one-step-undo-proven",
+          "measurement": {
+            "metric": "proofs.one_step_undo.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-ux-011-v1",
+      "verification_id": "VER-UX-011",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "pipeline-suite",
+          "measurement": {
+            "metric": "suites.pipeline.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "desktop-suite",
+          "measurement": {
+            "metric": "suites.desktop-tests.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "safe-import-export-proven",
+          "measurement": {
+            "metric": "proofs.safe_import_export.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-sec-007-v1",
+      "verification_id": "VER-SEC-007",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "model-cache-suite",
+          "measurement": {
+            "metric": "suites.model-cache.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "immutable-registry-integrity-proven",
+          "measurement": {
+            "metric": "proofs.immutable_registry_integrity.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-ipc-endpoint-hardening-v1",
+      "verification_id": "VER-SEC-005",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_hardening_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb"
+      ],
+      "runner": {
+        "path": "scripts/record_native_hardening_evidence.py",
+        "sha256": "500b3c7919f293ab105b154f717d36ecb5a1752a5b593ea3e36a8019864a8ed1",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "exact-package-source-bound",
+          "measurement": {
+            "metric": "package.worker_identity_verified",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "runtime-directory-mode-0700",
+          "measurement": {
+            "metric": "endpoint.runtime_mode_bits",
+            "comparator": "eq",
+            "expected": 448
+          }
+        },
+        {
+          "id": "socket-mode-0600",
+          "measurement": {
+            "metric": "endpoint.socket_mode_bits",
+            "comparator": "eq",
+            "expected": 384
+          }
+        },
+        {
+          "id": "endpoint-owned-by-current-user",
+          "measurement": {
+            "metric": "endpoint.runtime_owner_uid_matches",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "kernel-peer-validation-round-trip",
+          "measurement": {
+            "metric": "endpoint.authenticated_status_round_trip",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "daemon-clean-shutdown",
+          "measurement": {
+            "metric": "endpoint.daemon_exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-support-report-redaction-v1",
+      "verification_id": "VER-REL-008",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_hardening_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb"
+      ],
+      "runner": {
+        "path": "scripts/record_native_hardening_evidence.py",
+        "sha256": "500b3c7919f293ab105b154f717d36ecb5a1752a5b593ea3e36a8019864a8ed1",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "exact-package-source-bound",
+          "measurement": {
+            "metric": "package.worker_identity_verified",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "support-report-default-redaction",
+          "measurement": {
+            "metric": "canaries.diagnostics_absent",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "transcript-audio-context-canaries-absent",
+          "measurement": {
+            "metric": "canaries.daemon_log_absent",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "safe-diagnostic-fields-preserved",
+          "measurement": {
+            "metric": "doctor.reported_sections",
+            "comparator": "len_ge",
+            "expected": 9
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-nondestructive-doctor-v1",
+      "verification_id": "VER-OPS-001",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_hardening_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb"
+      ],
+      "runner": {
+        "path": "scripts/record_native_hardening_evidence.py",
+        "sha256": "500b3c7919f293ab105b154f717d36ecb5a1752a5b593ea3e36a8019864a8ed1",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "exact-package-source-bound",
+          "measurement": {
+            "metric": "package.worker_identity_verified",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "native-capabilities-reported",
+          "measurement": {
+            "metric": "doctor.reported_sections",
+            "comparator": "len_ge",
+            "expected": 9
+          }
+        },
+        {
+          "id": "actionable-remediation-reported",
+          "measurement": {
+            "metric": "doctor.remediation_count",
+            "comparator": "ge",
+            "expected": 1
+          }
+        },
+        {
+          "id": "content-canaries-absent",
+          "measurement": {
+            "metric": "canaries.doctor_stdout_absent",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "home-path-redacted",
+          "measurement": {
+            "metric": "doctor.absolute_home_path_absent",
+            "comparator": "is_true"
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-atspi-semantics-v1",
+      "verification_id": "VER-ACC-002",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_accessibility_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb"
+      ],
+      "runner": {
+        "path": "scripts/record_native_accessibility_evidence.py",
+        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "exact-package-source-bound",
+          "measurement": {
+            "metric": "package.desktop_identity_verified",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "native-wayland-webview",
+          "measurement": {
+            "metric": "native_marker.gdk_display_type",
+            "comparator": "eq",
+            "expected": "GdkWaylandDisplay"
+          }
+        },
+        {
+          "id": "atspi-application-exposed",
+          "measurement": {
+            "metric": "atspi.application_nodes",
+            "comparator": "ge",
+            "expected": 2
+          }
+        },
+        {
+          "id": "named-landmarks-and-headings",
+          "measurement": {
+            "metric": "atspi.named_landmarks",
+            "comparator": "ge",
+            "expected": 1
+          }
+        },
+        {
+          "id": "named-interactive-controls",
+          "measurement": {
+            "metric": "atspi.unnamed_main_controls",
+            "comparator": "eq",
+            "expected": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-critical-state-redundancy-v1",
+      "verification_id": "VER-ACC-006",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_accessibility_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb"
+      ],
+      "runner": {
+        "path": "scripts/record_native_accessibility_evidence.py",
+        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "exact-package-source-bound",
+          "measurement": {
+            "metric": "package.desktop_identity_verified",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "daemon-error-text-exposed",
+          "measurement": {
+            "metric": "atspi.named_headings",
+            "comparator": "ge",
+            "expected": 1
+          }
+        },
+        {
+          "id": "recovery-action-exposed",
+          "measurement": {
+            "metric": "atspi.error_recovery_actions",
+            "comparator": "len_eq",
+            "expected": 2
+          }
+        },
+        {
+          "id": "active-screen-semantic-state",
+          "measurement": {
+            "metric": "atspi.named_headings",
+            "comparator": "ge",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-actionable-error-v1",
+      "verification_id": "VER-UX-007",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_accessibility_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb"
+      ],
+      "runner": {
+        "path": "scripts/record_native_accessibility_evidence.py",
+        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "exact-package-source-bound",
+          "measurement": {
+            "metric": "package.desktop_identity_verified",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "daemon-unavailable-message-exposed",
+          "measurement": {
+            "metric": "atspi.named_headings",
+            "comparator": "ge",
+            "expected": 1
+          }
+        },
+        {
+          "id": "retry-action-exposed",
+          "measurement": {
+            "metric": "atspi.error_recovery_actions",
+            "comparator": "contains",
+            "expected": [
+              "Retry"
+            ]
+          }
+        },
+        {
+          "id": "dismiss-action-exposed",
+          "measurement": {
+            "metric": "atspi.error_recovery_actions",
+            "comparator": "contains",
+            "expected": [
+              "Dismiss notification"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-individual-diagnostics-v1",
+      "verification_id": "VER-UX-010",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_accessibility_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb"
+      ],
+      "runner": {
+        "path": "scripts/record_native_accessibility_evidence.py",
+        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "exact-package-source-bound",
+          "measurement": {
+            "metric": "package.desktop_identity_verified",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "diagnostics-screen-reachable",
+          "measurement": {
+            "metric": "atspi.diagnostics_named_nodes",
+            "comparator": "ge",
+            "expected": 1
+          }
+        },
+        {
+          "id": "microphone-check-action",
+          "measurement": {
+            "metric": "atspi.diagnostic_actions",
+            "comparator": "contains",
+            "expected": [
+              "Run Microphone check"
+            ]
+          }
+        },
+        {
+          "id": "text-delivery-check-action",
+          "measurement": {
+            "metric": "atspi.diagnostic_actions",
+            "comparator": "contains",
+            "expected": [
+              "Run Text delivery check"
+            ]
+          }
+        },
+        {
+          "id": "shortcuts-check-action",
+          "measurement": {
+            "metric": "atspi.diagnostic_actions",
+            "comparator": "contains",
+            "expected": [
+              "Run Shortcuts check"
+            ]
+          }
+        },
+        {
+          "id": "theme-store-check-action",
+          "measurement": {
+            "metric": "atspi.diagnostic_actions",
+            "comparator": "contains",
+            "expected": [
+              "Run Theme store check"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-first-ui-dictation-v1",
+      "verification_id": "VER-UX-001",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_ui_dictation_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_ui_dictation_evidence.py",
+        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "native-wayland-webview",
+        "atspi-start-and-stop",
+        "first-dictation-without-runtime-jargon",
+        "physical-microphone-capture",
+        "local-asr-known-phrase",
+        "inbox-result-delivered",
+        "transcript-absent-from-ordinary-logs"
+      ]
+    },
+    {
+      "id": "native-useful-overlay-state-v1",
+      "verification_id": "VER-UX-005",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_ui_dictation_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_ui_dictation_evidence.py",
+        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "native-wayland-webview",
+        "listening-overlay-observed",
+        "processing-churn-suppressed",
+        "terminal-overlay-hidden",
+        "overlay-non-focusable-contract"
+      ]
+    },
+    {
+      "id": "native-keyboard-operation-v1",
+      "verification_id": "VER-ACC-001",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_accessibility_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb"
+      ],
+      "runner": {
+        "path": "scripts/record_native_accessibility_evidence.py",
+        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "exact-package-source-bound",
+          "measurement": {
+            "metric": "package.desktop_identity_verified",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "wayland-keyboard-events",
+          "measurement": {
+            "metric": "keyboard_lane.available",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "onboarding-keyboard-action",
+          "measurement": {
+            "metric": "keyboard_lane.atspi.keyboard_onboarding_action",
+            "comparator": "eq",
+            "expected": "Skip setup"
+          }
+        },
+        {
+          "id": "navigation-focus-order",
+          "measurement": {
+            "metric": "keyboard_lane.atspi.keyboard_navigation_order",
+            "comparator": "len_eq",
+            "expected": 10
+          }
+        },
+        {
+          "id": "command-palette-escape",
+          "measurement": {
+            "metric": "keyboard_lane.atspi.command_palette_escape_closed",
+            "comparator": "is_true"
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-reduced-motion-contract-v1",
+      "verification_id": "VER-ACC-003",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_accessibility_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb"
+      ],
+      "runner": {
+        "path": "scripts/record_native_accessibility_evidence.py",
+        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "exact-package-source-bound",
+          "measurement": {
+            "metric": "package.desktop_identity_verified",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "reduced-motion-media-query",
+          "measurement": {
+            "metric": "theme.reduced_motion.media_query_blocks",
+            "comparator": "ge",
+            "expected": 1
+          }
+        },
+        {
+          "id": "nonessential-animation-disabled",
+          "measurement": {
+            "metric": "theme.reduced_motion.animation_disabled",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "native-ui-healthy",
+          "measurement": {
+            "metric": "native.desktop_exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-two-hundred-percent-scale-v1",
+      "verification_id": "VER-ACC-004",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_accessibility_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb"
+      ],
+      "runner": {
+        "path": "scripts/record_native_accessibility_evidence.py",
+        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "exact-package-source-bound",
+          "measurement": {
+            "metric": "package.desktop_identity_verified",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "webkit-zoom-two-hundred-percent",
+          "measurement": {
+            "metric": "native_marker.zoom_level",
+            "comparator": "eq",
+            "expected": 2
+          }
+        },
+        {
+          "id": "root-relative-type-tokens",
+          "measurement": {
+            "metric": "frontend_contracts.contract_files.A11yHardening.test.tsx",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "primary-actions-remain-reachable",
+          "measurement": {
+            "metric": "atspi.zoomed_welcome_extent.height",
+            "comparator": "ge",
+            "expected": 50
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-contrast-focus-v1",
+      "verification_id": "VER-ACC-005",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_accessibility_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb"
+      ],
+      "runner": {
+        "path": "scripts/record_native_accessibility_evidence.py",
+        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "exact-package-source-bound",
+          "measurement": {
+            "metric": "package.desktop_identity_verified",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "increased-contrast-palette",
+          "measurement": {
+            "metric": "frontend_contracts.contract_files.A11yHardening.test.tsx",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "forced-colors-focus-ring",
+          "measurement": {
+            "metric": "atspi.named_buttons",
+            "comparator": "ge",
+            "expected": 1
+          }
+        },
+        {
+          "id": "native-keyboard-focus-visible",
+          "measurement": {
+            "metric": "keyboard_lane.atspi.keyboard_navigation_order",
+            "comparator": "len_ge",
+            "expected": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-hands-free-defaults-v1",
+      "verification_id": "VER-ACC-007",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_accessibility_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb"
+      ],
+      "runner": {
+        "path": "scripts/record_native_accessibility_evidence.py",
+        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "exact-package-source-bound",
+          "measurement": {
+            "metric": "package.desktop_identity_verified",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "hands-free-remains-roadmap",
+          "measurement": {
+            "metric": "hands_free_defaults.status",
+            "comparator": "eq",
+            "expected": "roadmap"
+          }
+        },
+        {
+          "id": "network-default-deny",
+          "measurement": {
+            "metric": "native_marker.network_default",
+            "comparator": "eq",
+            "expected": "deny"
+          }
+        },
+        {
+          "id": "explicit-onboarding-and-dictation-actions",
+          "measurement": {
+            "metric": "atspi.onboarding_actions",
+            "comparator": "len_eq",
+            "expected": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-nonblocking-microphone-capture-v1",
+      "verification_id": "VER-FUN-002",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_ui_dictation_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_ui_dictation_evidence.py",
+        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "physical-microphone-capture",
+        "ui-operable-during-capture",
+        "known-phrase-final-passed"
+      ]
+    },
+    {
+      "id": "native-inbox-fallback-v1",
+      "verification_id": "VER-FUN-009",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_ui_dictation_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_ui_dictation_evidence.py",
+        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "no-external-writable-target",
+        "inbox-result-delivered",
+        "known-phrase-final-passed"
+      ]
+    },
+    {
+      "id": "native-overlay-focus-safety-v1",
+      "verification_id": "VER-UX-004",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_ui_dictation_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_ui_dictation_evidence.py",
+        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "native-wayland-webview",
+        "listening-overlay-observed",
+        "overlay-non-focusable-observed",
+        "dictation-completed"
+      ]
+    },
+    {
+      "id": "native-local-processing-visibility-v1",
+      "verification_id": "VER-UX-006",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_ui_dictation_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_ui_dictation_evidence.py",
+        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "native-wayland-webview",
+        "local-processing-mode-visible",
+        "processing-state-observed"
+      ]
+    },
+    {
+      "id": "native-accessibility-acceptance-suite-v1",
+      "verification_id": "VER-TEST-007",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_accessibility_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb"
+      ],
+      "runner": {
+        "path": "scripts/record_native_accessibility_evidence.py",
+        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "exact-package-source-bound",
+          "measurement": {
+            "metric": "package.desktop_identity_verified",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "keyboard-only-operation",
+          "measurement": {
+            "metric": "keyboard_lane.available",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "focus-order-and-recovery",
+          "measurement": {
+            "metric": "keyboard_lane.atspi.keyboard_diagnostics_order",
+            "comparator": "len_ge",
+            "expected": 6
+          }
+        },
+        {
+          "id": "atspi-semantics",
+          "measurement": {
+            "metric": "frontend_contracts.contract_files.A11yLandmarks.test.tsx",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "two-hundred-percent-scale",
+          "measurement": {
+            "metric": "native_marker.zoom_level",
+            "comparator": "eq",
+            "expected": 2
+          }
+        },
+        {
+          "id": "contrast-modes",
+          "measurement": {
+            "metric": "frontend_contracts.contract_files.A11yHardening.test.tsx",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "reduced-motion",
+          "measurement": {
+            "metric": "theme.reduced_motion.media_query_blocks",
+            "comparator": "ge",
+            "expected": 1
+          }
+        },
+        {
+          "id": "actionable-error-recovery",
+          "measurement": {
+            "metric": "atspi.error_recovery_actions",
+            "comparator": "contains",
+            "expected": [
+              "Retry"
+            ]
+          }
+        },
+        {
+          "id": "assistive-technology-check",
+          "measurement": {
+            "metric": "atspi.semantic_roles",
+            "comparator": "contains",
+            "expected": [
+              "heading"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "packaged-cpu-streaming-capability-v1",
+      "verification_id": "VER-FUN-003",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_cpu_performance_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "agent/evidence/P5/VER-PERF-005.json",
+        "agent/evidence/P5/VER-PERF-007.json"
+      ],
+      "runner": {
+        "path": "scripts/record_cpu_performance_evidence.py",
+        "sha256": "4e50488d17f60a1a24730bc6f6b7b318555784d106b39e048720ede6e2525029",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "cpu-backend-enforced",
+          "measurement": {
+            "metric": "backend",
+            "comparator": "eq",
+            "expected": "cpu"
+          }
+        },
+        {
+          "id": "streaming-capability-observed",
+          "measurement": {
+            "metric": "worker_capabilities.streaming",
+            "comparator": "is_false"
+          }
+        },
+        {
+          "id": "conditional-streaming-respected",
+          "measurement": {
+            "metric": "streaming_supported",
+            "comparator": "is_false"
+          }
+        },
+        {
+          "id": "known-phrase-final-passed",
+          "measurement": {
+            "metric": "fragment_matched",
+            "comparator": "is_true"
+          }
+        }
+      ]
+    },
+    {
+      "id": "packaged-cpu-device-qualification-v1",
+      "verification_id": "VER-TEST-005",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_cpu_performance_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "agent/evidence/P5/VER-PERF-005.json",
+        "agent/evidence/P5/VER-PERF-007.json"
+      ],
+      "runner": {
+        "path": "scripts/record_cpu_performance_evidence.py",
+        "sha256": "4e50488d17f60a1a24730bc6f6b7b318555784d106b39e048720ede6e2525029",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "cpu-backend-enforced",
+          "measurement": {
+            "metric": "backend",
+            "comparator": "eq",
+            "expected": "cpu"
+          }
+        },
+        {
+          "id": "known-phrase-correctness",
+          "measurement": {
+            "metric": "transcript_utf8_bytes",
+            "comparator": "ge",
+            "expected": 1
+          }
+        },
+        {
+          "id": "streaming-and-final-behavior-recorded",
+          "measurement": {
+            "metric": "cold_decode.n",
+            "comparator": "eq",
+            "expected": 1
+          }
+        },
+        {
+          "id": "timestamps-capability-recorded",
+          "measurement": {
+            "metric": "timestamps_supported",
+            "comparator": "is_false"
+          }
+        },
+        {
+          "id": "cold-warm-hot-recorded",
+          "measurement": {
+            "metric": "cold_worker_ready.n",
+            "comparator": "eq",
+            "expected": 1
+          }
+        },
+        {
+          "id": "failure-and-fallback-recorded",
+          "measurement": {
+            "metric": "failure_rate",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "quality-and-performance-baseline-recorded",
+          "measurement": {
+            "metric": "hot_decode.p95_ms",
+            "comparator": "ge",
+            "expected": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-pipewire-preroll-v1",
+      "verification_id": "VER-FUN-006",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "scripts/record_native_audio_policy_evidence.py",
+        "target/debug/examples/p4_capture_probe",
+        "target/debug/examples/p4_policy_helper"
+      ],
+      "runner": {
+        "path": "scripts/record_native_audio_policy_evidence.py",
+        "sha256": "4f45575c69c276917ffa04ce774fe2a35a61070a68822aeaef3756a6e8070793",
+        "argv_index": 0
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "live-pipewire-capture",
+        "preroll-preserved",
+        "first-syllable-not-clipped"
+      ]
+    },
+    {
+      "id": "native-audio-policy-v1",
+      "verification_id": "VER-FUN-007",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "scripts/record_native_audio_policy_evidence.py",
+        "target/debug/examples/p4_capture_probe",
+        "target/debug/examples/p4_policy_helper"
+      ],
+      "runner": {
+        "path": "scripts/record_native_audio_policy_evidence.py",
+        "sha256": "4f45575c69c276917ffa04ce774fe2a35a61070a68822aeaef3756a6e8070793",
+        "argv_index": 0
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "leave-policy-passed",
+        "duck-policy-passed",
+        "clean-restoration-passed"
+      ]
+    },
+    {
+      "id": "native-microphone-hotplug-v1",
+      "verification_id": "VER-FUN-011",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "scripts/record_native_audio_policy_evidence.py",
+        "target/debug/examples/p4_capture_probe",
+        "target/debug/examples/p4_policy_helper"
+      ],
+      "runner": {
+        "path": "scripts/record_native_audio_policy_evidence.py",
+        "sha256": "4f45575c69c276917ffa04ce774fe2a35a61070a68822aeaef3756a6e8070793",
+        "argv_index": 0
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "deterministic-ranking",
+        "explicit-override",
+        "hotplug-observed",
+        "bounded-recovery"
+      ]
+    },
+    {
+      "id": "native-new-stream-policy-inheritance-v1",
+      "verification_id": "VER-FUN-012",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "scripts/record_native_audio_policy_evidence.py",
+        "target/debug/examples/p4_capture_probe",
+        "target/debug/examples/p4_policy_helper"
+      ],
+      "runner": {
+        "path": "scripts/record_native_audio_policy_evidence.py",
+        "sha256": "4f45575c69c276917ffa04ce774fe2a35a61070a68822aeaef3756a6e8070793",
+        "argv_index": 0
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "active-policy-applied",
+        "new-stream-inherited",
+        "polling-race-absent"
+      ]
+    },
+    {
+      "id": "native-audio-clean-restoration-v1",
+      "verification_id": "VER-REL-005",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "scripts/record_native_audio_policy_evidence.py",
+        "target/debug/examples/p4_capture_probe",
+        "target/debug/examples/p4_policy_helper"
+      ],
+      "runner": {
+        "path": "scripts/record_native_audio_policy_evidence.py",
+        "sha256": "4f45575c69c276917ffa04ce774fe2a35a61070a68822aeaef3756a6e8070793",
+        "argv_index": 0
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "state-snapshotted",
+        "clean-exit-restored",
+        "bounded-restoration"
+      ]
+    },
+    {
+      "id": "native-audio-forced-kill-restoration-v1",
+      "verification_id": "VER-REL-009",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "scripts/record_native_audio_policy_evidence.py",
+        "target/debug/examples/p4_capture_probe",
+        "target/debug/examples/p4_policy_helper"
+      ],
+      "runner": {
+        "path": "scripts/record_native_audio_policy_evidence.py",
+        "sha256": "4f45575c69c276917ffa04ce774fe2a35a61070a68822aeaef3756a6e8070793",
+        "argv_index": 0
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "restoration-journal-written",
+        "dead-owner-detected",
+        "forced-kill-restored"
+      ]
+    },
+    {
+      "id": "native-realtime-capture-contract-v1",
+      "verification_id": "VER-PERF-006",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "scripts/record_native_audio_policy_evidence.py",
+        "target/debug/examples/p4_capture_probe",
+        "target/debug/examples/p4_policy_helper"
+      ],
+      "runner": {
+        "path": "scripts/record_native_audio_policy_evidence.py",
+        "sha256": "4f45575c69c276917ffa04ce774fe2a35a61070a68822aeaef3756a6e8070793",
+        "argv_index": 0
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "capture-hot-path-no-file-io",
+        "capture-hot-path-no-model-inference",
+        "live-pipewire-path-exercised"
+      ]
+    },
+    {
+      "id": "controlled-sec-004-v1",
+      "verification_id": "VER-SEC-004",
+      "profile_id": "unit-contract-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "runner": {
+        "path": "scripts/record_controlled_integration_evidence.py",
+        "sha256": "74214c49f2d6237fd8d06c3e6b59d03494b4c880c4ec9a0254bef222a247b816",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "supply-chain-suite",
+          "measurement": {
+            "metric": "suites.supply-chain.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "advisory-gate-passed",
+          "measurement": {
+            "metric": "supply_chain.advisories",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "license-gate-passed",
+          "measurement": {
+            "metric": "supply_chain.licenses",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "source-gate-passed",
+          "measurement": {
+            "metric": "supply_chain.sources",
+            "comparator": "is_true"
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-cancel-without-stale-output-v1",
+      "verification_id": "VER-FUN-010",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_ui_dictation_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_ui_dictation_evidence.py",
+        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "native-session-cancelled",
+        "cancelled-session-became-idle",
+        "cancelled-session-produced-no-inbox-output"
+      ]
+    },
+    {
+      "id": "native-overlay-failure-isolation-v1",
+      "verification_id": "VER-REL-002",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_ui_dictation_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_ui_dictation_evidence.py",
+        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "listening-overlay-observed",
+        "desktop-terminated-during-capture",
+        "daemon-remained-active",
+        "post-overlay-failure-session-committed"
+      ]
+    },
+    {
+      "id": "native-warm-capture-ready-latency-v1",
+      "verification_id": "VER-PERF-003",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_ui_dictation_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_ui_dictation_evidence.py",
+        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "monotonic-stage-trace",
+        "warm-capture-ready-under-50ms"
+      ]
+    },
+    {
+      "id": "native-visible-listening-feedback-latency-v1",
+      "verification_id": "VER-PERF-004",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_ui_dictation_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_ui_dictation_evidence.py",
+        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "native-wayland-webview",
+        "visible-listening-feedback-under-100ms"
+      ]
+    },
+    {
+      "id": "native-startup-unsent-recovery-v1",
+      "verification_id": "VER-FUN-008",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_ui_dictation_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_ui_dictation_evidence.py",
+        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "durable-committed-result-survived-restart",
+        "startup-reconciled-result-to-inbox",
+        "recovery-replay-was-idempotent-by-transaction"
+      ]
+    },
+    {
+      "id": "native-active-journal-restart-recovery-v1",
+      "verification_id": "VER-REL-006",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_ui_dictation_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_ui_dictation_evidence.py",
+        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "actual-session-journal-used",
+        "committed-state-failure-injected",
+        "restart-produced-terminal-inbox-recovered-state"
+      ]
+    },
+    {
+      "id": "controlled-fun-004-v1",
+      "verification_id": "VER-FUN-004",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "platform-linux-suite",
+          "measurement": {
+            "metric": "suites.platform-linux.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "daemon-suite",
+          "measurement": {
+            "metric": "suites.daemon.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "capability-ranked-delivery-proven",
+          "measurement": {
+            "metric": "proofs.capability_ranked_delivery.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        },
+        {
+          "id": "bounded-fallback-proven",
+          "measurement": {
+            "metric": "proofs.bounded_fallback.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        },
+        {
+          "id": "unicode-multiline-verbatim-proven",
+          "measurement": {
+            "metric": "proofs.unicode_multiline_verbatim.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        },
+        {
+          "id": "inbox-terminal-sink-proven",
+          "measurement": {
+            "metric": "proofs.inbox_terminal_sink.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        },
+        {
+          "id": "broad-input-privilege-default-off-proven",
+          "measurement": {
+            "metric": "proofs.broad_input_privilege_default_off.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-rel-003-v1",
+      "verification_id": "VER-REL-003",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "platform-linux-suite",
+          "measurement": {
+            "metric": "suites.platform-linux.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "daemon-suite",
+          "measurement": {
+            "metric": "suites.daemon.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "backend-failure-proven",
+          "measurement": {
+            "metric": "proofs.backend_failure.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        },
+        {
+          "id": "bounded-fallback-proven",
+          "measurement": {
+            "metric": "proofs.bounded_fallback.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        },
+        {
+          "id": "durable-inbox-recovery-proven",
+          "measurement": {
+            "metric": "proofs.durable_inbox_recovery.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-failure-injection-matrix-v1",
+      "verification_id": "VER-TEST-006",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_ui_dictation_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_ui_dictation_evidence.py",
+        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "native-client-loss-during-capture",
+        "daemon-survived-client-loss",
+        "post-client-loss-session-committed",
+        "delivery-failure-injection-suite",
+        "capture-source-loss-injection-suite",
+        "corrupt-model-cache-injection-suite",
+        "interrupted-session-recovery-suite"
+      ]
+    },
+    {
+      "id": "controlled-perf-008-v1",
+      "verification_id": "VER-PERF-008",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "model-cache-suite",
+          "measurement": {
+            "metric": "suites.model-cache.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "staging-cleanup-proven",
+          "measurement": {
+            "metric": "proofs.perf008_cache_cleanup.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        },
+        {
+          "id": "benchmark-loser-cleanup-proven",
+          "measurement": {
+            "metric": "proofs.perf008_cache_cleanup.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        },
+        {
+          "id": "source-selected-pinned-fallback-preservation-proven",
+          "measurement": {
+            "metric": "proofs.perf008_cache_cleanup.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        },
+        {
+          "id": "dry-run-proven",
+          "measurement": {
+            "metric": "proofs.perf008_cache_cleanup.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        },
+        {
+          "id": "idempotent-replay-proven",
+          "measurement": {
+            "metric": "proofs.perf008_cache_cleanup.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-fun-031-v1",
+      "verification_id": "VER-FUN-031",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "pipeline-suite",
+          "measurement": {
+            "metric": "suites.pipeline.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "platform-linux-suite",
+          "measurement": {
+            "metric": "suites.platform-linux.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "daemon-suite",
+          "measurement": {
+            "metric": "suites.daemon.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "pipeline-addressed-bindings-proven",
+          "measurement": {
+            "metric": "proofs.pipeline_addressed_bindings.executed",
+            "comparator": "eq",
+            "expected": 2
+          }
+        },
+        {
+          "id": "toggle-hold-kind-isolation-proven",
+          "measurement": {
+            "metric": "proofs.toggle_hold_kind_isolation.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        },
+        {
+          "id": "capability-gated-hold-proven",
+          "measurement": {
+            "metric": "proofs.capability_gated_hold.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        },
+        {
+          "id": "atomic-pipeline-toggle-proven",
+          "measurement": {
+            "metric": "proofs.atomic_pipeline_toggle.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-sec-001-v1",
+      "verification_id": "VER-SEC-001",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "policy-suite",
+          "measurement": {
+            "metric": "suites.policy.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "core-suite",
+          "measurement": {
+            "metric": "suites.core.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "daemon-suite",
+          "measurement": {
+            "metric": "suites.daemon.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "manifest-permission-vocabulary-proven",
+          "measurement": {
+            "metric": "proofs.manifest_permission_vocabulary.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        },
+        {
+          "id": "declared-and-granted-required-proven",
+          "measurement": {
+            "metric": "proofs.declared_and_grant_required.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        },
+        {
+          "id": "service-boundary-precedes-invocation-proven",
+          "measurement": {
+            "metric": "proofs.service_boundary_precedes_invocation.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "controlled-sec-003-v1",
+      "verification_id": "VER-SEC-003",
+      "profile_id": "controlled-integration-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_controlled_integration_evidence.py"
+      ],
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "policy-suite",
+          "measurement": {
+            "metric": "suites.policy.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "core-suite",
+          "measurement": {
+            "metric": "suites.core.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "daemon-suite",
+          "measurement": {
+            "metric": "suites.daemon.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
+          "id": "network-default-deny-proven",
+          "measurement": {
+            "metric": "proofs.network_default_deny.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        },
+        {
+          "id": "undeclared-network-grant-rejected-proven",
+          "measurement": {
+            "metric": "proofs.declared_and_grant_required.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        },
+        {
+          "id": "denied-operation-receives-no-payload-proven",
+          "measurement": {
+            "metric": "proofs.denied_operation_no_payload.executed",
+            "comparator": "eq",
+            "expected": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-model-manifest-integrity-v1",
+      "verification_id": "VER-SEC-002",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_ui_dictation_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_ui_dictation_evidence.py",
+        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "embedded-runtime-and-model-checksums-matched",
+        "unpinned-model-activation-rejected",
+        "tampered-model-rejected-and-staging-cleaned",
+        "verified-model-used-by-local-asr"
+      ]
+    },
+    {
+      "id": "native-context-aware-recognition-v1",
+      "verification_id": "VER-FUN-028",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_recognition_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "agent/evidence/P5/VER-FUN-028.json",
+        "agent/evidence/P5/VER-FUN-029.json",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_recognition_evidence.py",
+        "sha256": "a024c10b39f2928360a081f3ea4255ca55d3bf8af1d99cf80cd82db730c45aed",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "context-bias-capability-advertised",
+        "bounded-context-hint-admitted",
+        "physical-microphone-known-phrase-passed",
+        "ordinary-logs-content-free"
+      ]
+    },
+    {
+      "id": "native-capability-driven-language-settings-v1",
+      "verification_id": "VER-FUN-029",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_recognition_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "agent/evidence/P5/VER-FUN-028.json",
+        "agent/evidence/P5/VER-FUN-029.json",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_recognition_evidence.py",
+        "sha256": "a024c10b39f2928360a081f3ea4255ca55d3bf8af1d99cf80cd82db730c45aed",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "model-language-capabilities-advertised",
+        "explicit-supported-language-admitted",
+        "language-script-translation-locale-kept-distinct",
+        "unsupported-combinations-rejected-before-capture",
+        "desktop-controls-source-bound"
+      ]
+    },
+    {
+      "id": "native-hotkey-feedback-latency-v1",
+      "verification_id": "VER-PERF-002",
+      "profile_id": "native-behavior-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_native_ui_dictation_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "tests/fixtures/jfk16.wav",
+        "--confirm-audible-playback"
+      ],
+      "runner": {
+        "path": "scripts/record_native_ui_dictation_evidence.py",
+        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-package-source-bound",
+        "native-wayland-webview",
+        "hotkey-feedback-under-30ms"
+      ]
+    },
+    {
+      "id": "ubuntu-deb-upgrade-rollback-v1",
+      "verification_id": "VER-OPS-003",
+      "profile_id": "package-artifact-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_package_upgrade_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "artifacts/releases/narrivy-previous-amd64.deb"
+      ],
+      "runner": {
+        "path": "scripts/record_package_upgrade_evidence.py",
+        "sha256": "5cd138587aa336e57600c72e2fc12564b4eecea9cebd0a55c28852a7c009fb11",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        "exact-clean-package-bound",
+        "previous-version-installed",
+        "current-version-upgrade-passed",
+        "user-xdg-data-preserved-after-upgrade",
+        "explicit-package-rollback-passed",
+        "user-xdg-data-preserved-after-rollback",
+        "current-version-reupgrade-passed",
+        "remove-and-purge-removed-program-files",
+        "remove-and-purge-preserved-user-xdg-data",
+        "owned-container-removed"
+      ]
+    },
+    {
+      "id": "exact-package-supply-chain-v1",
+      "verification_id": "VER-OPS-004",
+      "profile_id": "package-artifact-v1",
+      "command_argv": [
+        "python3",
+        "scripts/record_supply_chain_evidence.py",
+        "artifacts/releases/narrivy-linux-amd64.deb",
+        "artifacts/candidates/linux-1.0-supply-chain"
+      ],
+      "runner": {
+        "path": "scripts/record_supply_chain_evidence.py",
+        "sha256": "eef9a79fec3f87887896ac072dd5214010e5c85fcab989a65446d61dba227579",
+        "argv_index": 1
+      },
+      "permitted_substitutions": [],
+      "required_assertions": [
+        {
+          "id": "exact-clean-package-bound",
+          "measurement": {
+            "metric": "checks.source_commit_match",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "package-checksum-manifest-matched",
+          "measurement": {
+            "metric": "checks.manifest_checksum_match",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "spdx-dependency-license-inventory-present",
+          "measurement": {
+            "metric": "spdx_relationships",
+            "comparator": "ge",
+            "expected": 1
+          }
+        },
+        {
+          "id": "spdx-package-checksums-verified",
+          "measurement": {
+            "metric": "checksummed_dependency_count",
+            "comparator": "ge",
+            "expected": 1
+          }
+        },
+        {
+          "id": "in-toto-subject-matched",
+          "measurement": {
+            "metric": "checks.in_toto_subject_matched",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "immutable-build-identity-matched",
+          "measurement": {
+            "metric": "checks.immutable_build_identity_matched",
+            "comparator": "is_true"
+          }
+        },
+        {
+          "id": "signing-state-truthful",
+          "measurement": {
+            "metric": "signing_status",
+            "comparator": "eq",
+            "expected": "not-supported"
+          }
+        }
+      ]
+    }
+  ]
+}

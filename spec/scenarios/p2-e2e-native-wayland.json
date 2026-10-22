@@ -1,0 +1,13 @@
+{
+  "id": "p2-e2e-native-wayland",
+  "phase": "P2",
+  "kind": "e2e",
+  "scenario": "trigger\u2192mic\u2192real ASR\u2192delivery on native COSMIC Wayland",
+  "native_required": true,
+  "requirement_ids": [
+    "FUN-001",
+    "FUN-004",
+    "TEST-004"
+  ],
+  "verification_id": "VER-TEST-004"
+}

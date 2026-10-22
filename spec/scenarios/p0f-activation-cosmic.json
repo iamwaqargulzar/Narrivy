@@ -1,0 +1,15 @@
+{
+  "id": "p0f-activation-cosmic",
+  "phase": "P0F",
+  "kind": "activation",
+  "desktop": "COSMIC",
+  "session": "wayland",
+  "checks": [
+    "toggle",
+    "ptt_key_release",
+    "repeat_50",
+    "restart",
+    "permission"
+  ],
+  "native_required": true
+}

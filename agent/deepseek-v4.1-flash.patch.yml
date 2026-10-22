@@ -1,0 +1,30 @@
+# Repository-local DeepSeek Harness worker selection.
+# Applied after the user's profile so autonomous Narrivy tasks do not inherit
+# an unrelated interactive-session model choice.
+- id: agent-default-model
+  config:
+    provider: opencode-go
+    model: deepseek-v4.1-flash
+    reasoningEffort: max
+- id: settings
+  disabled: true
+- id: llm-pi-ai
+  config:
+    providers:
+      opencode-go:
+        reasoning: max
+        apiKeyEnv: OPENCODE_GO_API_KEY
+        api: openai-responses
+        baseURL: https://opencode.ai/zen/go/v1
+        models:
+          - id: deepseek-v4.1-flash
+            name: DeepSeek V4.1 Flash
+            contextWindow: 1000000
+            maxTokens: 384000
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              low: low
+              high: high
+              max: max

@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-TEST-009",
+  "requirement_ids": [
+    "FUN-001",
+    "FUN-004",
+    "FUN-008",
+    "TEST-009"
+  ],
+  "phase": "P6",
+  "scenario_id": "p6-e2e-beta",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p6-14ffd69",
+  "environment": {
+    "id": "cosmic-p6",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": "x86_64",
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": null
+  },
+  "command": "python3 tools/narrivy-qualify/p6_runner.py --scenario p6-e2e-beta",
+  "scenario_hash": "f2bcc98de4f66bb229bad0fc6eafb84c5d67d12abf0930ade6bf07814e4424bf",
+  "started_at": "2026-08-26T06:44:15.953062+00:00",
+  "ended_at": "2026-08-26T06:44:18.388632+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "capabilities": [
+      "mock.asr",
+      "null.delivery"
+    ],
+    "daemon_build": "0.0.0",
+    "protocol_minor": 1,
+    "capability_checks": {
+      "mic": {
+        "available": true,
+        "detail": "pw-record at /usr/bin/pw-record",
+        "id": "mic"
+      },
+      "theme-store": {
+        "available": false,
+        "detail": "config dir missing or not writable",
+        "id": "theme-store"
+      },
+      "delivery": {
+        "available": true,
+        "detail": "wtype present",
+        "id": "delivery"
+      }
+    },
+    "events_seen": [
+      {
+        "state": "preparing",
+        "seq": 1,
+        "tx": "tx-1787726657150-7297"
+      },
+      {
+        "state": "listening",
+        "seq": 2,
+        "tx": "tx-1787726657150-7297"
+      },
+      {
+        "state": "finalizing_audio",
+        "seq": 3,
+        "tx": "tx-1787726657150-7297"
+      },
+      {
+        "state": "transcribing",
+        "seq": 4,
+        "tx": "tx-1787726657150-7297"
+      },
+      {
+        "state": "transforming",
+        "seq": 5,
+        "tx": "tx-1787726657150-7297"
+      },
+      {
+        "state": "delivering",
+        "seq": 6,
+        "tx": "tx-1787726657150-7297"
+      },
+      {
+        "state": "committed",
+        "seq": 7,
+        "tx": "tx-1787726657150-7297"
+      }
+    ],
+    "history_rows": 1,
+    "delivered_text_sha256": "e2aa681ea43e18d7ec443bb8c3db95bb8ea0b04fb8bbce33091a008b8284b204",
+    "delivered_matches_deterministic_correction": true,
+    "log_leak_hits": 0,
+    "mic_check_detail": "pw-record at /usr/bin/pw-record",
+    "additive_stage_timings_observed_live": {
+      "listening_entered": 1787726657270982,
+      "request_received": 1787726657270947
+    },
+    "cancel_lane": {
+      "states_seen": [
+        "listening",
+        "listening",
+        "listening",
+        "listening",
+        "listening",
+        "listening",
+        "listening",
+        "listening"
+      ],
+      "stale_outputs": 0,
+      "cancelled_journal_entries": 1
+    },
+    "inbox_fallback_lane": {
+      "states_seen": [],
+      "recoverable_committed_rows": 1,
+      "terminal_delivered_count": 0
+    },
+    "environment_identification": {
+      "os": "Pop!_OS Pop!_OS 24.04 LTS (7.0.11-76070011-generic)",
+      "session": "wayland",
+      "desktop": "COSMIC",
+      "microphone": "pw-record at /usr/bin/pw-record",
+      "model": "asr-mock deterministic fixture (real-GGUF qualified at P5, see agent/evidence/P5)",
+      "runtime": "narrivyd debug build, default features (0.0.0)",
+      "device": "no audio device claimed: synthetic sine fixture lane",
+      "target_app": "null sink + journal observation (external insertion owner-present at P11)"
+    }
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "delivered sha ok=True; live stage_timings keys=['listening_entered', 'request_received']; stale_outputs=0; log_leak_hits=0",
+  "tester": "autonomous-agent",
+  "notes": "Integrated beta walkthrough on REAL transport: narrivyd binary + python wire client across a real 0600 unix socket (framing+handshake per crates/narrivy-ipc). Trigger/delivery honesty: activation is manual-over-IPC (portal route library-proven); delivery observed via journal/history exactly as P2."
+}

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "id": "narrivy/parakeet-unified-en-0.6b-gguf-q8-0",
+  "revision": "2026-09-30.1",
+  "display_name": "Parakeet Unified EN 0.6B (GGUF, Q8_0, 8-bit, streaming)",
+  "source": {
+    "provider": "huggingface",
+    "locator": "handy-computer/parakeet-unified-en-0.6b-gguf",
+    "immutable_revision": "7e948f21b7bdbac698d3318db9d350f1096f3b6c",
+    "publisher": "handy-computer"
+  },
+  "engine": {
+    "id": "asr.transcribe-cpp",
+    "min_version": "0.2.3",
+    "max_version": null
+  },
+  "format": {
+    "family": "parakeet",
+    "precision": "Q8_0",
+    "conversion_recipe": null
+  },
+  "tasks": [
+    "transcribe"
+  ],
+  "languages": [
+    "en"
+  ],
+  "files": [
+    {
+      "path": "parakeet-unified-en-0.6b-Q8_0.gguf",
+      "sha256": "4b50b6dd862bf6e346929aaf4f5eaacec003bfa3f56462d6c874b41ef2f38795",
+      "size_bytes": 731357568,
+      "optional_signature": null
+    }
+  ],
+  "devices": [
+    "CPU",
+    "GPU"
+  ],
+  "runtime_constraints": {
+    "notes": "Quantization: Q8_0 (8-bit). Streams text while you speak. May run on CPU, GPU; a device is used only after this exact model, runtime, driver and device pass qualification on the user's computer."
+  },
+  "license": {
+    "spdx_or_name": "CC-BY-4.0",
+    "source": "https://huggingface.co/handy-computer/parakeet-unified-en-0.6b-gguf",
+    "redistribution": "allowed",
+    "notice": "Parakeet Unified EN 0.6B by NVIDIA, licensed CC-BY-4.0; GGUF conversion by handy-computer. Redistributed unmodified. Attribution is required."
+  }
+}

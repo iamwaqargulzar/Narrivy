@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-P3-SHELL-LAUNCH",
+  "requirement_ids": [
+    "UX-002"
+  ],
+  "phase": "P3",
+  "scenario_id": "p3-shell-launch",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p3-14ffd69",
+  "environment": {
+    "id": "cosmic-native-wayland",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland"
+  },
+  "command": "python3 tools/narrivy-qualify/p3_runner.py --shell-launch",
+  "scenario_hash": "7a4001eba04b995671703b526c7453199085a11ef5962dd4ebd068bacb2e7584",
+  "artifact_hashes": {},
+  "started_at": "2026-08-26T06:42:51.473816+00:00",
+  "ended_at": "2026-08-26T06:43:02.246719+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "labels": [
+      "main",
+      "overlay"
+    ],
+    "overlay_focusable": false,
+    "overlay_always_on_top": true,
+    "overlay_skip_taskbar": true,
+    "overlay_runtime_registered": true,
+    "capabilities": [
+      "mock.asr",
+      "null.delivery"
+    ],
+    "app_alive_after_8s": true,
+    "app_alive_after_16s_total": true
+  },
+  "diagnostic_excerpt": "real daemon + real shell launched; overlay non-focus-stealing verified from resolved config + runtime registration",
+  "notes": "real daemon + real shell launched; overlay non-focus-stealing verified from resolved config + runtime registration",
+  "tester": "autonomous-agent"
+}

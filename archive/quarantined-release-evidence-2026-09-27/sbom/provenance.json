@@ -1,0 +1,26 @@
+{
+  "_type": "https://in-toto.io/Statement/v0.1",
+  "predicateType": "https://slsa.dev/provenance/v0.2",
+  "predicate": {
+    "builder": {
+      "id": "ghcr.io/narrivy/builder:stub",
+      "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000000000",
+      "os": "Ubuntu 22.04.5 LTS",
+      "toolchain": "rustc 1.97.1 (8bab26f4f 2026-07-14) + cargo 1.97.1 (c980f4866 2026-06-30) + Tauri 2.6.3 + WebKitGTK 4.1",
+      "cargo_lock_hash": "0729c30409dab842ae1d40fe752815c528844afb8fb7fedb8b03c242821bea37"
+    },
+    "buildType": "https://narrivy.local/build/deb/reproducible",
+    "invocation": {
+      "configSource": {},
+      "parameters": {"version": "0.1.0", "source_date_epoch": "1787726497"}
+    },
+    "metadata": {
+      "buildStartedOn": "2026-08-26T06:41:37Z",
+      "completeness": {"parameters": true, "environment": true, "materials": true},
+      "reproducible": true
+    },
+    "materials": [
+      {"uri": "git+https://narrivy.local/narrivy@43566ebea4f82fc30bce82fc555e314a1da63daa", "digest": {"sha1": "43566ebea4f82fc30bce82fc555e314a1da63daa", "sha256": "0729c30409dab842ae1d40fe752815c528844afb8fb7fedb8b03c242821bea37"}}
+    ]
+  }
+}

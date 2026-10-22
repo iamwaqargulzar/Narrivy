@@ -1,0 +1,12 @@
+{
+  "id": "p10-provenance",
+  "phase": "P10",
+  "kind": "supply-chain",
+  "scenario": "provenance generation with builder identity immutable baseline, checksums, build-info.json embedded, release-artifacts.json recorded",
+  "native_required": false,
+  "requirement_ids": [
+    "OPS-004",
+    "OPS-005"
+  ],
+  "verification_id": "VER-OPS-004"
+}

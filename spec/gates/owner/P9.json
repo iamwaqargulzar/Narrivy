@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "phase": "P9",
+  "description": "P9 hardening via failure/security/accessibility/performance.",
+  "minimum_checks": [
+    {
+      "id": "P9-001",
+      "description": "Pipeline concurrency where beneficial",
+      "kind": "evidence",
+      "verification_id": "VER-PERF-010"
+    },
+    {
+      "id": "P9-002",
+      "description": "Failure injection: daemon/client loss without transcript loss",
+      "kind": "scenario",
+      "scenario_id": "p9-daemon-loss"
+    },
+    {
+      "id": "P9-003",
+      "description": "Security: plugin deny-by-default, archive traversal blocked",
+      "kind": "scenario",
+      "scenario_id": "p9-security-hardening"
+    },
+    {
+      "id": "P9-004",
+      "description": "Accessibility core path: keyboard, screen-reader, HiDPI, reduced motion",
+      "kind": "scenario",
+      "scenario_id": "p9-a11y-core"
+    },
+    {
+      "id": "P9-005",
+      "description": "Performance regressions checked vs P6 baselines",
+      "kind": "scenario",
+      "scenario_id": "p9-perf-regression"
+    }
+  ],
+  "required_artifacts": [],
+  "required_verification_ids": [
+    "VER-PERF-010",
+    "VER-SEC-001",
+    "VER-SEC-003",
+    "VER-SEC-006",
+    "VER-ACC-001",
+    "VER-ACC-002",
+    "VER-ACC-003",
+    "VER-ACC-004",
+    "VER-ACC-005",
+    "VER-ACC-006",
+    "VER-ACC-007",
+    "VER-TEST-006",
+    "VER-TEST-007"
+  ],
+  "native_required": true,
+  "working_app_required": true
+}

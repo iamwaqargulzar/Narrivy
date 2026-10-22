@@ -1,0 +1,25 @@
+{
+  "id": "p8-dictionary-alias",
+  "phase": "P8",
+  "kind": "integration",
+  "scenario": "Add alias 'my company'\u2192'Acme Corp' -> expand dictation text -> verify stored history row has expanded text (FUN-041 dictionary essentials, no learning/memory)",
+  "native_required": false,
+  "requirement_ids": [
+    "FUN-041"
+  ],
+  "verification_id": "VER-FUN-041",
+  "steps": [
+    "create Dictionary, add_alias('my company','Acme Corp')",
+    "expand dictation text 'I work at my company today' -> expect 'I work at Acme Corp today' (case-insensitive whole-word)",
+    "persist dictionary.json with schema_version 1 and reload round-trip",
+    "simulate storing history row with expanded text and verify persistence",
+    "remove_alias and verify expansion reverts"
+  ],
+  "checks": [
+    "alias_basic_expansion",
+    "case_insensitive",
+    "word_boundary",
+    "persistence_round_trip_schema_version_1",
+    "remove_alias"
+  ]
+}

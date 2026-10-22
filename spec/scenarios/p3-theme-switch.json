@@ -1,0 +1,11 @@
+{
+  "id": "p3-theme-switch",
+  "phase": "P3",
+  "kind": "e2e",
+  "scenario": "Theme System/Light/Dark persists across launches; theme-store capability available",
+  "native_required": true,
+  "requirement_ids": [
+    "UX-002"
+  ],
+  "verification_id": "VER-P3-THEME-SWITCH"
+}

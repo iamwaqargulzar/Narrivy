@@ -1,0 +1,12 @@
+{
+  "id": "p7-export-import",
+  "phase": "P7",
+  "kind": "integration",
+  "scenario": "pipeline export/import round-trip via bridge commands with unknown-slot tamper rejection and secrets-exclusion assertion",
+  "requirement_ids": [
+    "FUN-033",
+    "UX-011",
+    "UX-009"
+  ],
+  "verification_id": "VER-UX-011"
+}

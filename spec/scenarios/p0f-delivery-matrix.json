@@ -1,0 +1,29 @@
+{
+  "id": "p0f-delivery-matrix",
+  "phase": "P0F",
+  "kind": "delivery",
+  "targets": [
+    "native-wayland",
+    "browser",
+    "electron",
+    "terminal",
+    "xwayland"
+  ],
+  "fixtures": [
+    "ascii",
+    "accented",
+    "urdu-arabic",
+    "cjk",
+    "emoji",
+    "multiline",
+    "large_5k"
+  ],
+  "checks": [
+    "permission_model",
+    "unicode",
+    "multiline",
+    "fallback",
+    "clipboard_preserve"
+  ],
+  "native_required": false
+}

@@ -1,0 +1,11 @@
+{
+  "id": "p9-daemon-loss",
+  "phase": "P9",
+  "kind": "failure",
+  "scenario": "daemon/client loss without transcript loss (SIGKILL mid-migration + WAL replay, hash chain sealed)",
+  "native_required": true,
+  "requirement_ids": [
+    "TEST-006"
+  ],
+  "verification_id": "VER-TEST-006"
+}

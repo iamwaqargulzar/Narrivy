@@ -1,0 +1,195 @@
+{
+  "artifact_hashes": {
+    "crates/narrivy-core/src/session.rs": "ce55a8430dfdec09715b3035c445e4de1283ee76e5d54eb0aa63dafe3e0b4e1a",
+    "scripts/record_unit_contract_evidence.py": "84069b561a41af61e83f2c2fc2e3dea765f2a2e6e612ff43e3326fe46c357032"
+  },
+  "build_id": "source-93d1484e1edc",
+  "command": "python3 scripts/record_unit_contract_evidence.py",
+  "ended_at": "2026-09-28T01:52:07.739941+00:00",
+  "environment": {
+    "cpu": "x86_64",
+    "desktop": "not-applicable",
+    "device_details": null,
+    "display_scale": null,
+    "gpu": null,
+    "id": "controlled-unit-contract",
+    "input_backend": null,
+    "kernel": "7.2.2-popos",
+    "lane_available": true,
+    "microphone": null,
+    "native_or_vm": "controlled",
+    "npu": null,
+    "os": "Linux",
+    "os_version": "7.2.2-popos",
+    "qualification_lane": "controlled-unit-contract",
+    "session": "controlled"
+  },
+  "evidence_type": "unit",
+  "execution": {
+    "child_failures_ignored": false,
+    "environment_class": "controlled",
+    "lane_available": true,
+    "substitutions": []
+  },
+  "exit_code": 0,
+  "git_commit": "93d1484e1edc11bc95645c705e83aefa107994ed",
+  "git_dirty": false,
+  "metrics": {
+    "proofs": {
+      "capability_driven_policy": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "data_class_default_deny_until_explicitly_listed"
+        ]
+      },
+      "daemon_client_contract": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "ipc_handshake_accepts_matching_versions",
+          "ipc_envelope_version_skew_detected_on_decode"
+        ]
+      },
+      "declarative_modes": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "full_legal_dictation_chain_validates"
+        ]
+      },
+      "migration_recovery": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "migration_interrupted_by_failure_recovers_on_next_open"
+        ]
+      },
+      "resource_identity_separation": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "resource_identity_has_no_url_field_on_the_wire"
+        ]
+      },
+      "session_state_machine": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "test_state_machine_all_100_two_step_sequences_corruption_free",
+          "test_state_machine_exhaustive_two_step_illegal_rejected"
+        ]
+      },
+      "transcript_variants": {
+        "executed": 1,
+        "expected": 1,
+        "tests": [
+          "variants_track_raw_corrected_delivered_and_classify"
+        ]
+      },
+      "versioned_pipeline_store": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "update_requires_exact_version_bump",
+          "version_compare_zero_pads_components"
+        ]
+      },
+      "worker_shutdown_contract": {
+        "executed": 2,
+        "expected": 2,
+        "tests": [
+          "admitted_worker_is_cancelled_and_joined_by_shutdown",
+          "shutdown_all_joins_bounded"
+        ]
+      }
+    },
+    "suites": {
+      "core": {
+        "command": "cargo test -p narrivy-core --locked",
+        "exit_code": 0,
+        "stderr_lines": 5,
+        "stdout_lines": 145
+      },
+      "daemon-e2e": {
+        "command": "cargo test -p narrivyd --test e2e_mock_dictation --locked",
+        "exit_code": 0,
+        "stderr_lines": 2,
+        "stdout_lines": 149
+      },
+      "dependency-boundary": {
+        "command": "python3 scripts/verify_dependency_boundaries.py",
+        "exit_code": 0,
+        "stderr_lines": 0,
+        "stdout_lines": 1
+      },
+      "desktop-boundary": {
+        "command": "python3 -m unittest tests.governance.test_desktop_gtk_migration",
+        "exit_code": 0,
+        "stderr_lines": 5,
+        "stdout_lines": 0
+      },
+      "ipc": {
+        "command": "cargo test -p narrivy-ipc --locked",
+        "exit_code": 0,
+        "stderr_lines": 3,
+        "stdout_lines": 46
+      },
+      "pipeline": {
+        "command": "cargo test -p narrivy-pipeline --locked",
+        "exit_code": 0,
+        "stderr_lines": 4,
+        "stdout_lines": 67
+      },
+      "policy": {
+        "command": "cargo test -p narrivy-policy --locked",
+        "exit_code": 0,
+        "stderr_lines": 3,
+        "stdout_lines": 25
+      },
+      "traceability": {
+        "command": "python3 scripts/verify_traceability.py",
+        "exit_code": 0,
+        "stderr_lines": 0,
+        "stdout_lines": 1
+      }
+    }
+  },
+  "notes": "Controlled source-contract qualification. Every suite assertion is measured by that suite's own exit code and every semantic claim by the named tests that passed in this same run (see metrics.proofs). All shared suites completed in one clean-worktree run; this record makes no native platform claim.",
+  "pass": true,
+  "phase": "P1",
+  "procedure": {
+    "assertions": [
+      {
+        "id": "core-contract-suite",
+        "measurement": {
+          "comparator": "eq",
+          "expected": 0,
+          "metric": "suites.core.exit_code"
+        },
+        "result": "pass"
+      },
+      {
+        "id": "session-state-machine-proven",
+        "measurement": {
+          "comparator": "eq",
+          "expected": 2,
+          "metric": "proofs.session_state_machine.executed"
+        },
+        "result": "pass"
+      }
+    ],
+    "id": "unit-contract-rel-001-v1",
+    "profile_id": "unit-contract-v1"
+  },
+  "requirement_ids": [
+    "REL-001"
+  ],
+  "result": "pass",
+  "scenario_hash": "84069b561a41af61e83f2c2fc2e3dea765f2a2e6e612ff43e3326fe46c357032",
+  "scenario_id": "unit-contract-rel-001-v1",
+  "scenario_version": "1",
+  "schema_version": 3,
+  "started_at": "2026-09-28T01:52:03.441207+00:00",
+  "verification_id": "VER-REL-001"
+}

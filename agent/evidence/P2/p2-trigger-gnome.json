@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-P2-GNOME-LANE-DEFERRED",
+  "requirement_ids": [
+    "FUN-001"
+  ],
+  "phase": "P2",
+  "scenario_id": "p2-trigger-gnome",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p2-14ffd69",
+  "environment": {
+    "id": "cosmic-native-wayland",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": null,
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": "in-process synthesized silence (no device claimed)"
+  },
+  "command": "python3 tools/narrivy-qualify/p2_runner.py --scenario p2-trigger-gnome",
+  "scenario_hash": "f3849be0216f8713fceb644c864f1f556fd43cd610dbf48a8f7b64452746ea27",
+  "started_at": "2026-08-26T06:42:43.201885+00:00",
+  "ended_at": "2026-08-26T06:42:43.201899+00:00",
+  "exit_code": 3,
+  "result": "fail",
+  "pass": false,
+  "metrics": {
+    "lane_check": "scenario requires desktop lane GNOME but this session is COSMIC; cross-lane simulation is forbidden \u2014 GNOME qualification is deferred to P11 per owner decision 2026-08-22 (agent/BLOCKERS.md B-HW-003)"
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "scenario requires desktop lane GNOME but this session is COSMIC; cross-lane simulation is forbidden \u2014 GNOME qualification is deferred to P11 per owner decision 2026-08-22 (agent/BLOCKERS.md B-HW-003)",
+  "tester": "autonomous-agent",
+  "notes": "scenario requires desktop lane GNOME but this session is COSMIC; cross-lane simulation is forbidden \u2014 GNOME qualification is deferred to P11 per owner decision 2026-08-22 (agent/BLOCKERS.md B-HW-003) GNOME lane deferred to P11 release qualification per owner decision 2026-08-22; this record truthfully fails off-lane instead of simulating."
+}

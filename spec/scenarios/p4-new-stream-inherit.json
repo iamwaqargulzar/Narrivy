@@ -1,0 +1,11 @@
+{
+  "id": "p4-new-stream-inherit",
+  "phase": "P4",
+  "kind": "e2e",
+  "scenario": "Playback streams appearing during active duck inherit policy within 2s (no polling race)",
+  "native_required": false,
+  "requirement_ids": [
+    "FUN-012"
+  ],
+  "verification_id": "VER-FUN-012"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "p5-asr-cpu-correctness",
+  "phase": "P5",
+  "kind": "e2e",
+  "scenario": "CPU qualification lane: real sidecar decode of jfk16.wav matches known-good transcript fragment and records a PASS qualification tuple",
+  "requirement_ids": [
+    "TEST-005"
+  ],
+  "verification_id": "VER-TEST-005"
+}

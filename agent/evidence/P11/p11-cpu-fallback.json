@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-P11-CPU-FALLBACK",
+  "requirement_ids": [
+    "TEST-010"
+  ],
+  "phase": "P11",
+  "scenario_id": "p11-cpu-fallback",
+  "scenario_hash": "b8b047e05793d73a2b759582aa9403f6db117d3823259aa52561cb9753c79cca",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p11-14ffd69",
+  "environment": {
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "session": "wayland",
+    "id": "cosmic-native",
+    "desktop": "COSMIC"
+  },
+  "command": "python3 tools/narrivy-qualify/p11_runner.py --scenario p11-cpu-fallback",
+  "started_at": "2026-08-26T07:32:16.129666+00:00",
+  "ended_at": "2026-08-26T07:32:27.951268+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "detail": "CPU fallback via p5 hardware failover proxy",
+    "exit": 0
+  },
+  "artifact_hashes": {},
+  "diagnostic_excerpt": "CPU fallback via p5 hardware failover proxy"
+}

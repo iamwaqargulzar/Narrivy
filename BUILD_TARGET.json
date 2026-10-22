@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "project": "Narrivy",
+  "product_target": "linux-1.0",
+  "target_phase": "P11",
+  "auto_advance": true,
+  "stop_after_target": true,
+  "primary_platforms": [
+    "Pop!_OS / COSMIC / Wayland (exact qualified lane recorded at P11)"
+  ],
+  "compatibility_targets": [
+    "XWayland applications on the Pop!_OS COSMIC reference session"
+  ],
+  "post_release_targets": [
+    "Ubuntu / GNOME / Wayland (first post-release lane, after the Pop!_OS release is properly tested)",
+    "additional Linux desktops/distributions",
+    "Windows",
+    "macOS",
+    "AMD accelerator qualification (Ryzen XDNA NPU / Vulkan)",
+    "advanced voice/meetings",
+    "ecosystem/companions"
+  ],
+  "quality_profile": "release-grade",
+  "network_default": "deny-unless-policy-allows",
+  "local_processing_default": true,
+  "release_gate": "python3 scripts/release_gate.py --target linux-1.0"
+}

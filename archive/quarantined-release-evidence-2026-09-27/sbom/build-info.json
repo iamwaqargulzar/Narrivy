@@ -1,0 +1,22 @@
+{
+  "version": "0.1.0",
+  "commit": "43566ebea4f82fc30bce82fc555e314a1da63daa",
+  "commit_short": "43566eb",
+  "build_id": "0.1.0-43566eb",
+  "rustc_version": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "cargo_version": "cargo 1.97.1 (c980f4866 2026-06-30)",
+  "cargo_lock_hash": "0729c30409dab842ae1d40fe752815c528844afb8fb7fedb8b03c242821bea37",
+  "source_date_epoch": "1787726497",
+  "builder": {
+    "os": "Ubuntu 22.04.5 LTS",
+    "image": "ghcr.io/narrivy/builder:stub",
+    "image_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000000000",
+    "toolchain": "rustc 1.97.1 (8bab26f4f 2026-07-14) + cargo 1.97.1 (c980f4866 2026-06-30) + Tauri 2.6.3 + WebKitGTK 4.1",
+    "cargo_lock_hash": "0729c30409dab842ae1d40fe752815c528844afb8fb7fedb8b03c242821bea37"
+  },
+  "artifacts": {
+    "sbom": "artifacts/sbom/spdx.json",
+    "provenance": "artifacts/sbom/provenance.json",
+    "inventory": "artifacts/sbom/inventory.json"
+  }
+}

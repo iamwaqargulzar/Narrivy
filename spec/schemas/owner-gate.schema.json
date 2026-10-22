@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://narrivy.local/schema/owner-gate-v1.json",
+  "title": "Narrivy Owner Gate Minimum",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "phase",
+    "description",
+    "minimum_checks",
+    "required_artifacts",
+    "required_verification_ids"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "phase": {
+      "type": "string",
+      "pattern": "^P0F$|^P[0-9]+$|^P11$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "minimum_checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description",
+          "kind"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "command",
+              "artifact",
+              "evidence",
+              "scenario",
+              "manual",
+              "schema",
+              "env"
+            ]
+          },
+          "command": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "artifact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "verification_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scenario_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "native_required": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "required_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "required_verification_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "native_required": {
+      "type": "boolean"
+    },
+    "working_app_required": {
+      "type": "boolean"
+    }
+  }
+}

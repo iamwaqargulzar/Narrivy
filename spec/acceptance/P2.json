@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "phase": "P2",
+  "implemented": true,
+  "primary_requirements": [
+    "FUN-001",
+    "FUN-004",
+    "FUN-009",
+    "FUN-010",
+    "FUN-013",
+    "FUN-031",
+    "REL-002",
+    "REL-003",
+    "TEST-004"
+  ],
+  "required_artifacts": [],
+  "commands": [
+    "python3 scripts/verify_traceability.py",
+    "python3 tools/narrivy-qualify/p2_runner.py --e2e-native-wayland",
+    "python3 tools/narrivy-qualify/p2_runner.py --inbox-fallback",
+    "python3 tools/narrivy-qualify/p2_runner.py --cancel-race",
+    "python3 tools/narrivy-qualify/p2_runner.py --cpu-fallback"
+  ],
+  "smoke_commands": [
+    "python3 tools/narrivy-qualify/p2_runner.py --e2e-native-wayland"
+  ]
+}

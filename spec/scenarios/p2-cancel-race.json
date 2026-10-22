@@ -1,0 +1,10 @@
+{
+  "id": "p2-cancel-race",
+  "phase": "P2",
+  "kind": "e2e",
+  "scenario": "cancel during session yields no stale delivered output",
+  "requirement_ids": [
+    "FUN-010"
+  ],
+  "verification_id": "VER-FUN-010"
+}

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://narrivy.local/schema/linux-qualification-v3.json",
+  "title": "Narrivy Linux 1.0 Qualification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "build_identity", "git_commit", "git_dirty", "environments",
+    "cpu_fallback_pass", "accessibility_pass", "privacy_security_pass", "target_matrix", "performance"
+  ],
+  "properties": {
+    "schema_version": {"const": 3},
+    "build_identity": {"type": "string", "minLength": 7, "maxLength": 200},
+    "git_commit": {"type": "string", "pattern": "^(?:[a-f0-9]{7,40}|unknown)$"},
+    "git_dirty": {"type": "boolean"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "environments": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["kind","os","os_version","kernel","desktop","session","native_or_vm","cpu","microphone","package_type","e2e_pass","evidence","git_commit","package_sha256"],
+        "properties": {
+          "kind": {"enum": ["cosmic-wayland","gnome-wayland","other"]},
+          "os": {"type": "string", "minLength": 1},
+          "os_version": {"type": "string", "minLength": 1},
+          "kernel": {"type": "string", "minLength": 1},
+          "desktop": {"type": "string", "minLength": 1},
+          "session": {"type": "string", "minLength": 1},
+          "native_or_vm": {"enum": ["native","vm"]},
+          "cpu": {"type": "string", "minLength": 1},
+          "gpu_npu": {"type": ["string","null"]},
+          "microphone": {"type": "string", "minLength": 1},
+          "display_scale": {"type": ["string","null"]},
+          "package_type": {"enum": ["deb"]},
+          "package_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "e2e_pass": {"type": "boolean"},
+          "evidence": {"type": "string", "minLength": 1},
+          "git_commit": {"type": "string", "pattern": "^(?:[a-f0-9]{7,40}|unknown)$"},
+          "scenario_hash": {"type": ["string","null"], "pattern": "^[a-f0-9]{64}$"}
+        }
+      }
+    },
+    "cpu_fallback_pass": {"type": "boolean"},
+    "accessibility_pass": {"type": "boolean"},
+    "privacy_security_pass": {"type": "boolean"},
+    "accelerator_claims": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["device","device_class","runtime","driver","model","quant","pass","evidence","git_commit"],
+        "properties": {
+          "device": {"type": "string", "minLength": 1},
+          "device_class": {"enum": ["npu","dgpu","igpu"]},
+          "runtime": {"type": "string", "minLength": 1},
+          "driver": {"type": "string", "minLength": 1},
+          "model": {"type": "string", "minLength": 1},
+          "quant": {"type": ["string","null"]},
+          "pass": {"type": "boolean"},
+          "evidence": {"type": "string", "minLength": 1},
+          "git_commit": {"type": "string", "pattern": "^(?:[a-f0-9]{7,40}|unknown)$"}
+        }
+      }
+    },
+    "target_matrix": {
+      "type": "array", "minItems": 8,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["class","environment_kind","result","delivery_outcome","evidence"],
+        "properties": {
+          "class": {"enum": ["gtk","qt","firefox","chromium","electron","terminal","libreoffice","xwayland"]},
+          "environment_kind": {"enum": ["cosmic-wayland","gnome-wayland"]},
+          "result": {"enum": ["supported","degraded","unsupported"]},
+          "delivery_outcome": {"type": "string", "minLength": 1, "maxLength": 300},
+          "evidence": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "performance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["protocol","pass","evidence","metrics"],
+      "properties": {
+        "protocol": {"const": "docs/maintainers/qualification/performance-benchmark-protocol.md"},
+        "pass": {"type": "boolean"},
+        "evidence": {"type": "string", "minLength": 1},
+        "metrics": {
+          "type": "object", "minProperties": 1,
+          "additionalProperties": {
+            "type": "object", "additionalProperties": false,
+            "required": ["p50_ms","p95_ms"],
+            "properties": {
+              "p50_ms": {"type": "number", "minimum": 0},
+              "p95_ms": {"type": "number", "minimum": 0}
+            }
+          }
+        }
+      }
+    },
+    "metrics": {"type": ["object","null"]},
+    "notes": {"type": ["string","null"]}
+  }
+}

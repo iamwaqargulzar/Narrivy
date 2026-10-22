@@ -1,0 +1,12 @@
+{
+  "id": "p6-journal-recovery",
+  "phase": "P6",
+  "kind": "reliability",
+  "scenario": "daemon SIGKILL with pending journal tx mid-session; daemon B surfaces recoverable entry and recovery action completes",
+  "native_required": true,
+  "requirement_ids": [
+    "REL-006",
+    "FUN-008"
+  ],
+  "verification_id": "VER-REL-006"
+}

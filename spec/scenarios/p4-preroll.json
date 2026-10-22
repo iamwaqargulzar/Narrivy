@@ -1,0 +1,11 @@
+{
+  "id": "p4-preroll",
+  "phase": "P4",
+  "kind": "e2e",
+  "scenario": "Pre-roll ring preserves pre-session audio energy; no clipped first syllable",
+  "native_required": false,
+  "requirement_ids": [
+    "FUN-006"
+  ],
+  "verification_id": "VER-FUN-006"
+}

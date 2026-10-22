@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "phase": "P10",
+  "description": "P10 packaging with reproducible builder baselines.",
+  "minimum_checks": [
+    {
+      "id": "P10-001",
+      "description": ".deb installs on clean target and runs real dictation",
+      "kind": "scenario",
+      "scenario_id": "p10-deb-install",
+      "native_required": true
+    },
+    {
+      "id": "P10-003",
+      "description": "Upgrade and uninstall preserve/remove per policy",
+      "kind": "scenario",
+      "scenario_id": "p10-upgrade-uninstall"
+    },
+    {
+      "id": "P10-004",
+      "description": "Checksums, SBOM, inventory, build identity recorded",
+      "kind": "artifact",
+      "artifact": "artifacts/release-evidence/linux-1.0/release-artifacts.json"
+    },
+    {
+      "id": "P10-005",
+      "description": "Builder baseline digest recorded (immutable)",
+      "kind": "evidence",
+      "verification_id": "VER-OPS-004"
+    }
+  ],
+  "required_artifacts": [],
+  "required_verification_ids": [
+    "VER-OPS-002",
+    "VER-OPS-003",
+    "VER-OPS-004",
+    "VER-OPS-005"
+  ],
+  "native_required": true,
+  "working_app_required": true
+}

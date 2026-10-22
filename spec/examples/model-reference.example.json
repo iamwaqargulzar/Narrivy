@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "id": "example/whisper-reference",
+  "revision": "EXAMPLE-IMMUTABLE-REVISION",
+  "display_name": "Example Whisper Reference",
+  "source": {"provider":"huggingface","locator":"publisher/model","immutable_revision":"EXAMPLE-COMMIT","publisher":"Example Publisher"},
+  "engine": {"id":"asr-openvino","min_version":"RESOLVE-IN-P3","max_version":null},
+  "format": {"family":"whisper","precision":"example","conversion_recipe":"tools/reference-models/README.md"},
+  "tasks": ["transcribe"],
+  "languages": ["multilingual"],
+  "files": [{"path":"model/example.bin","sha256":"0000000000000000000000000000000000000000000000000000000000000000","size_bytes":1,"optional_signature":null}],
+  "devices": ["CPU"],
+  "memory": {"ram_estimate_bytes":0,"accelerator_estimate_bytes":0},
+  "runtime_constraints": {"os":["linux"],"architectures":["x86_64"],"notes":"Template only; never qualify or distribute this placeholder."},
+  "license": {"spdx_or_name":"EXAMPLE-ONLY","source":"https://example.invalid/license","redistribution":"unknown","notice":"Replace every placeholder with verified P3 metadata before catalog use."}
+}

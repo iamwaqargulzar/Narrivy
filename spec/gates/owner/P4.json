@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "phase": "P4",
+  "description": "P4 audio reliability with crash-safe restoration.",
+  "minimum_checks": [
+    {
+      "id": "P4-001",
+      "description": "Pre-roll fixture prevents clipped first syllable",
+      "kind": "scenario",
+      "scenario_id": "p4-preroll"
+    },
+    {
+      "id": "P4-002",
+      "description": "Mic ranking/override/hotplug deterministic",
+      "kind": "scenario",
+      "scenario_id": "p4-mic-hotplug"
+    },
+    {
+      "id": "P4-003",
+      "description": "Leave + at least one crash-safe duck/pause with journal",
+      "kind": "scenario",
+      "scenario_id": "p4-audio-policy"
+    },
+    {
+      "id": "P4-004",
+      "description": "New stream during session inherits policy without race",
+      "kind": "scenario",
+      "scenario_id": "p4-new-stream-inherit"
+    },
+    {
+      "id": "P4-005",
+      "description": "Forced-kill restoration test where platform claims support",
+      "kind": "scenario",
+      "scenario_id": "p4-forced-kill-restore",
+      "native_required": true
+    },
+    {
+      "id": "P4-006",
+      "description": "No inference on audio real-time thread",
+      "kind": "evidence",
+      "verification_id": "VER-PERF-006"
+    }
+  ],
+  "required_artifacts": [],
+  "required_verification_ids": [
+    "VER-FUN-002",
+    "VER-FUN-006",
+    "VER-FUN-007",
+    "VER-FUN-011",
+    "VER-FUN-012",
+    "VER-PERF-006",
+    "VER-REL-004",
+    "VER-REL-005",
+    "VER-REL-009"
+  ],
+  "native_required": true,
+  "working_app_required": true
+}

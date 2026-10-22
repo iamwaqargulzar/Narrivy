@@ -1,0 +1,27 @@
+[package]
+name = "transcribe-sys"
+version = "0.0.0"
+edition = "2024"
+publish = false
+build = "build.rs"
+# Declares sole ownership of the native `transcribecpp` symbols in a dependency
+# graph. The library itself is NEVER vendored or linked unless the parent
+# crate's `runtime` feature is on AND TRANSCRIBE_CPP_ROOT points at a built,
+# license-cleared transcribe.cpp installation (see ../BUILD-NOTES.md).
+links = "transcribecpp"
+
+# Local lint table instead of `[lints] workspace = true`: this crate isolates
+# the unavoidable FFI `unsafe` for the whole binding per AGENTS.md ("Isolate
+# unavoidable FFI unsafe inside the specific adapter/engine crate"). Every
+# other entry mirrors the workspace policy so behavior stays identical.
+[lints.rust]
+unsafe_code = "allow"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "deny"
+
+[dependencies]
+# Intentionally dependency-free: raw + minimal safe FFI surface only.

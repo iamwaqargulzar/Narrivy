@@ -1,0 +1,174 @@
+{
+  "artifacts": [
+    {
+      "path": "artifacts/releases/narrivy_0.1.0_amd64.deb",
+      "sha256": "bc15dbf6a42a446bbb1d04f1a46edc77a69bf35f163affaffbd7eca2a1c1f3dc"
+    }
+  ],
+  "blockers": [
+    "54 of 93 release-gated requirements are not passed: ACC-001, ACC-005, FUN-001, FUN-002, FUN-004, FUN-006, FUN-007, FUN-008, FUN-009, FUN-010, FUN-011, FUN-012, FUN-013, FUN-028, FUN-029, FUN-031, FUN-033, FUN-041, FUN-064, OPS-002, OPS-003, OPS-005, OPS-006, PERF-001, PERF-002, PERF-003, PERF-004, PERF-005, PERF-006, PERF-008, PERF-009, PERF-010, PORT-005, PORT-006, PRIV-003, PRIV-004, PRIV-007, REL-002, REL-003, REL-004, REL-005, REL-006, REL-009, TEST-004, TEST-006, TEST-007, TEST-009, TEST-010, UX-001, UX-003, UX-004, UX-005, UX-006, UX-011",
+    "3 release-gated requirement(s) with primary_phase=P10 are not passed: OPS-002, OPS-003, OPS-005",
+    "declared required artifacts are absent from the worktree, so no artifact hash can be reported: artifacts/release-evidence/linux-1.0/release-artifacts.json, artifacts/sbom/spdx.json, artifacts/sbom/provenance.json",
+    "the phase gate `python3 scripts/phase_gate.py --phase P10` exits 1; this report is not a pass"
+  ],
+  "build_id": "1.3+gitb1e16ce3-dirty",
+  "deviations": "No hand-entered total survives: every count, id list, evidence figure, commit and gate result in this report is recomputed from spec/requirements-traceability.csv, agent/evidence/INDEX.json, the on-disk evidence tree and the live worktree. Two consequences are deliberate. First, only declared artifacts under artifacts/ are hashed into this snapshot, because a phase report is a point-in-time record and pinning a mutable working-tree document would make the report stale on every unrelated edit; every other declared artifact is inventoried in metrics instead. Second, started_at=2026-08-26T06:44:49.791256Z is derived from the earliest timestamp in this phase's on-disk evidence records, and ended_at is this report's generation time, so the window records when evidence began to exist rather than asserting continuous work.",
+  "ended_at": "2026-09-28T06:07:27Z",
+  "environment": {
+    "cpu": "Intel(R) Core(TM) Ultra 9 288V",
+    "desktop": "COSMIC",
+    "kernel": "7.2.2-popos",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "24.04 LTS",
+    "session": "wayland"
+  },
+  "gate_command": "python3 scripts/phase_gate.py --phase P10",
+  "gate_exit_code": 1,
+  "gate_transcript_hash": "7a155c0319a6d685ae8dc17cf8d4ae91159b2e59a4010821b3a598bb4d975917",
+  "git_dirty": true,
+  "git_end_commit": "b1e16ce316e32ffe314b6f443d46d4c65e536d7b",
+  "git_start_commit": "9c038601431ae923356af3f2fc49862a9e0273c6",
+  "metrics": {
+    "build_id_source": "BUILD-PACK-VERSION plus the live git HEAD short hash, suffixed with -dirty when the worktree is dirty",
+    "evidence_index_policy": "release-evidence-v2-required",
+    "evidence_on_disk_not_registered": 91,
+    "evidence_records_on_disk": 147,
+    "evidence_registered_hash_mismatches": 0,
+    "evidence_registered_in_index": 56,
+    "evidence_registered_missing_on_disk": 0,
+    "evidence_schema_version_counts": {
+      "1": 91,
+      "2": 15,
+      "3": 41
+    },
+    "git_dirty": true,
+    "git_end_commit": "b1e16ce316e32ffe314b6f443d46d4c65e536d7b",
+    "measured_evidence_records_registered": 41,
+    "phase_evidence_records": 10,
+    "phase_primary_release_gated_blocked": 3,
+    "phase_primary_release_gated_passed": 1,
+    "phase_primary_release_gated_requirements": 4,
+    "phase_primary_requirement_ids": [
+      "OPS-002",
+      "OPS-003",
+      "OPS-004",
+      "OPS-005"
+    ],
+    "phase_secondary_requirement_ids": [
+      "SEC-007"
+    ],
+    "release_gated_blocked_requirement_ids": [
+      "ACC-001",
+      "ACC-005",
+      "FUN-001",
+      "FUN-002",
+      "FUN-004",
+      "FUN-006",
+      "FUN-007",
+      "FUN-008",
+      "FUN-009",
+      "FUN-010",
+      "FUN-011",
+      "FUN-012",
+      "FUN-013",
+      "FUN-028",
+      "FUN-029",
+      "FUN-031",
+      "FUN-033",
+      "FUN-041",
+      "FUN-064",
+      "OPS-002",
+      "OPS-003",
+      "OPS-005",
+      "OPS-006",
+      "PERF-001",
+      "PERF-002",
+      "PERF-003",
+      "PERF-004",
+      "PERF-005",
+      "PERF-006",
+      "PERF-008",
+      "PERF-009",
+      "PERF-010",
+      "PORT-005",
+      "PORT-006",
+      "PRIV-003",
+      "PRIV-004",
+      "PRIV-007",
+      "REL-002",
+      "REL-003",
+      "REL-004",
+      "REL-005",
+      "REL-006",
+      "REL-009",
+      "TEST-004",
+      "TEST-006",
+      "TEST-007",
+      "TEST-009",
+      "TEST-010",
+      "UX-001",
+      "UX-003",
+      "UX-004",
+      "UX-005",
+      "UX-006",
+      "UX-011"
+    ],
+    "release_gated_passed_evidence_unreadable": [],
+    "release_gated_requirements_blocked": 54,
+    "release_gated_requirements_passed": 39,
+    "release_gated_requirements_passed_with_measured_evidence": 25,
+    "release_gated_requirements_total": 93,
+    "report_generated_at": "2026-09-28T06:07:27Z",
+    "required_artifacts_declared": 4,
+    "required_artifacts_hashed": [
+      "artifacts/releases/narrivy_0.1.0_amd64.deb"
+    ],
+    "required_artifacts_missing": [
+      "artifacts/release-evidence/linux-1.0/release-artifacts.json",
+      "artifacts/sbom/spdx.json",
+      "artifacts/sbom/provenance.json"
+    ],
+    "required_artifacts_present": 1,
+    "required_artifacts_present_but_not_hashed": [],
+    "roadmap_requirements_total": 43,
+    "started_at_source": "earliest timestamp in this phase's on-disk evidence records",
+    "traceability_requirements_total": 136,
+    "traceability_status_counts": {
+      "blocked": 54,
+      "passed": 39,
+      "roadmap": 43
+    }
+  },
+  "phase": "P10",
+  "requirements": [
+    {
+      "evidence": "agent/evidence/P10/VER-OPS-002.json",
+      "requirement_id": "OPS-002",
+      "status": "blocked",
+      "verification_id": "VER-OPS-002"
+    },
+    {
+      "evidence": "agent/evidence/P10/VER-OPS-003.json",
+      "requirement_id": "OPS-003",
+      "status": "blocked",
+      "verification_id": "VER-OPS-003"
+    },
+    {
+      "evidence": "agent/evidence/P10/VER-OPS-004.json",
+      "requirement_id": "OPS-004",
+      "status": "passed",
+      "verification_id": "VER-OPS-004"
+    },
+    {
+      "evidence": "agent/evidence/P10/VER-OPS-005.json",
+      "requirement_id": "OPS-005",
+      "status": "blocked",
+      "verification_id": "VER-OPS-005"
+    }
+  ],
+  "schema_version": 1,
+  "started_at": "2026-08-26T06:44:49.791256Z",
+  "status": "in_progress",
+  "summary": "Derived by scripts/generate_phase_report.py from spec/requirements-traceability.csv, agent/evidence/INDEX.json and live repository state. Release-gated requirements: 39 passed and 54 not passed of 93 (136 traceability rows in total, 43 of them post-1.0 roadmap). This phase owns 4 release-gated requirement(s) as primary phase, of which 1 are passed. Evidence on disk: 147 records (schema versions v1: 91, v2: 15, v3: 41), 56 registered in the authoritative index, 41 of them schema-v3 measured records. Zero of the 39 passed requirements are currently backed by a schema-v3 measured record, so the passed count is what the traceability CSV declares, not a statement that those records still satisfy the measured-assertion rule. Gate `python3 scripts/phase_gate.py --phase P10` exited 1 at commit b1e16ce (dirty=true), so this report's status is `in_progress`."
+}

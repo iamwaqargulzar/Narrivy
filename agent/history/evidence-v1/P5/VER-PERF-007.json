@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-PERF-007",
+  "requirement_ids": [
+    "PERF-007"
+  ],
+  "phase": "P5",
+  "scenario_id": "p5-residency-states",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p5-14ffd69",
+  "environment": {
+    "id": "p5-host-native",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "npu": "Lunar Lake NPU @ /dev/accel/accel0 (OpenVINO runtime NOT provisioned)"
+  },
+  "command": "cargo test -p narrivy-model-manager -- residency_hot_warm_cold",
+  "scenario_hash": null,
+  "started_at": "2026-08-24T01:41:10.453935+00:00",
+  "ended_at": "2026-08-24T01:41:10.453952+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "output_tail": "     Running tests/p5_model_cache.rs (target/debug/deps/p5_model_cache-9dfc912f478987e7) |    Doc-tests narrivy_model_manager",
+    "semantics": "Cold=installed-not-loaded; Warm=loaded-recently(metadata kept); Hot=in-use handle; invalidation key=sha256(model)+runtime+backend+tool_version; any change demotes to Cold; corrupt residency file degrades to empty without blocking"
+  },
+  "diagnostic_excerpt": "     Running tests/p5_model_cache.rs (target/debug/deps/p5_model_cache-9dfc912f478987e7) |    Doc-tests narrivy_model_manager",
+  "notes": "residency.rs::residency_hot_warm_cold_with_invalidation exercises promote/demote/invalidation + corrupt-file recovery",
+  "tester": "autonomous-agent",
+  "artifact_hashes": {}
+}

@@ -1,0 +1,209 @@
+/* Narrivy design tokens — premium monochrome.
+ * Near-black and soft grays with one accent the user picks: Mono (white on
+ * dark, ink on light), Blue or Gold. State colours stay semantic: coral while
+ * listening, green when text landed, amber when something needs attention.
+ * Dark is the first-run palette; light is complete, not a reduced variant. */
+:root,
+html.dark {
+  color-scheme: dark;
+
+  /* Spacing: 4px rhythm. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Type. Inter for everything, Instrument Serif only for the Home greeting.
+     Both are bundled with the app (OFL-1.1) so every OS renders the same
+     type; the system stacks are only fallbacks. Technical values use Inter
+     with tabular figures rather than a monospace face.
+     Every size and weight in the app comes from the scale below. */
+  --font-family: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+
+  --fs-xs: 12px;      /* labels, timestamps, badges */
+  --fs-sm: 13px;      /* secondary text */
+  --fs-md: 14px;      /* body */
+  --fs-lg: 16px;      /* section and card titles, dictated text */
+  --fs-xl: 20px;      /* brand, dialog titles */
+  --fs-2xl: 28px;     /* screen titles, large figures */
+  --fs-display: 44px; /* the greeting */
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  --font-ui: var(--fw-regular) var(--fs-md) / 1.55 var(--font-family);
+  --font-small: var(--fw-regular) var(--fs-xs) / 1.45 var(--font-family);
+
+  /* Surfaces. */
+  --bg: #0a0a0a;
+  --rail: #0d0d0d;
+  --surface: #141414;
+  --surface-raised: #1a1a1a;
+  --surface-muted: #111111;
+  --surface-hover: #1f1f1f;
+  --surface-sunken: #0e0e0e;
+
+  /* Content. */
+  --text: #ededed;
+  --text-strong: #ffffff;
+  --muted: #9a9a9a;
+  --muted-strong: #c4c4c4;
+  --faint: #5f5f5f;
+
+  /* Lines. */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Accent (Mono by default: white on dark). */
+  --accent: #f2f2f2;
+  --accent-strong: #ffffff;
+  --accent-contrast: #0a0a0a;
+  --accent-soft: color-mix(in srgb, var(--accent) 10%, transparent);
+  --accent-border: color-mix(in srgb, var(--accent) 32%, transparent);
+
+  /* State. */
+  --live: #ff6b5e;
+  --live-soft: rgba(255, 107, 94, 0.14);
+  --ok: #4ad295;
+  --ok-soft: rgba(74, 210, 149, 0.12);
+  --warn: #f0b24a;
+  --warn-soft: rgba(240, 178, 74, 0.12);
+  --err: #ff7a74;
+  --err-soft: rgba(255, 122, 116, 0.12);
+  --rec-dot: var(--live);
+
+  /* Orb follows the accent. */
+  --orb-idle-a: var(--accent);
+  --orb-idle-b: color-mix(in srgb, var(--accent) 40%, #6b6b6b);
+  --orb-core: #111111;
+  --orb-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+
+  /* Depth. */
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-float: 0 24px 70px rgba(0, 0, 0, 0.6);
+
+  /* Shape. */
+  --radius-sm: 8px;
+  --radius: 10px;
+  --radius-card: 16px;
+  --radius-lg: 20px;
+
+  /* Motion. */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur: 180ms;
+  --dur-slow: 320ms;
+
+  --focus-ring: 2px solid var(--accent-strong);
+  --home-accent: var(--accent);
+  --home-ok: var(--ok);
+}
+
+html.light {
+  color-scheme: light;
+  --bg: #f6f5f2;
+  --rail: #fbfaf8;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-muted: #f7f6f3;
+  --surface-hover: #f0efeb;
+  --surface-sunken: #f4f3ef;
+  --text: #1c1c1c;
+  --text-strong: #0a0a0a;
+  --muted: #6b6b6b;
+  --muted-strong: #3f3f3f;
+  --faint: #a3a3a3;
+  --border: rgba(10, 10, 10, 0.08);
+  --border-strong: rgba(10, 10, 10, 0.15);
+  --accent: #111111;
+  --accent-strong: #000000;
+  --accent-contrast: #ffffff;
+  --live: #e0463a;
+  --live-soft: rgba(224, 70, 58, 0.09);
+  --ok: #1e9e62;
+  --ok-soft: #e8f6ee;
+  --warn: #a4680f;
+  --warn-soft: #fbf1df;
+  --err: #c2392f;
+  --err-soft: #fdecea;
+  --orb-core: #ffffff;
+  --orb-idle-b: color-mix(in srgb, var(--accent) 40%, #bdbdbd);
+  --orb-shadow: 0 14px 36px rgba(10, 10, 10, 0.12);
+  --shadow-card: 0 1px 2px rgba(10, 10, 10, 0.04);
+  --shadow-float: 0 24px 70px rgba(10, 10, 10, 0.16);
+}
+
+/* Accent choices. Mono is the base above. */
+html.dark[data-accent='blue'],
+html:not(.light)[data-accent='blue'] {
+  --accent: #5b93ff;
+  --accent-strong: #80abff;
+  --accent-contrast: #ffffff;
+}
+html.light[data-accent='blue'] {
+  --accent: #2459e0;
+  --accent-strong: #1b47bd;
+  --accent-contrast: #ffffff;
+}
+html.dark[data-accent='gold'],
+html:not(.light)[data-accent='gold'] {
+  --accent: #d6b46a;
+  --accent-strong: #e7c985;
+  --accent-contrast: #141005;
+}
+html.light[data-accent='gold'] {
+  --accent: #9a7428;
+  --accent-strong: #7f5f1f;
+  --accent-contrast: #ffffff;
+}
+
+@media (prefers-contrast: more) {
+  :root,
+  html.dark {
+    --bg: #000000;
+    --rail: #000000;
+    --surface: #000000;
+    --surface-raised: #000000;
+    --text: #ffffff;
+    --muted: #e6e6e6;
+    --muted-strong: #ffffff;
+    --border: #ffffff;
+    --border-strong: #ffffff;
+  }
+
+  html.light {
+    --bg: #ffffff;
+    --rail: #ffffff;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --text: #000000;
+    --muted: #292929;
+    --muted-strong: #000000;
+    --border: #000000;
+    --border-strong: #000000;
+  }
+}
+
+@media (forced-colors: active) {
+  :focus-visible { outline: 2px solid Highlight; }
+}
+
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

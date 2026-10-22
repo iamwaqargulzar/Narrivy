@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "phase": "P6",
+  "description": "P6 beta with performance baselines that later phases preserve.",
+  "minimum_checks": [
+    {
+      "id": "P6-001",
+      "description": "E2E dictation beta on native lane (trigger\u2192mic\u2192ASR\u2192processing\u2192delivery/Inbox)",
+      "kind": "scenario",
+      "scenario_id": "p6-e2e-beta",
+      "native_required": true
+    },
+    {
+      "id": "P6-002",
+      "description": "Performance measured per benchmark protocol (hotkey\u2192ack/capture-ready, speech\u2192partial, release\u2192raw/committed, committed\u2192delivered) with p50/p95",
+      "kind": "scenario",
+      "scenario_id": "p6-perf-baseline"
+    },
+    {
+      "id": "P6-003",
+      "description": "Active session journal recoverable after crash",
+      "kind": "scenario",
+      "scenario_id": "p6-journal-recovery"
+    },
+    {
+      "id": "P6-004",
+      "description": "Support report redacts content",
+      "kind": "evidence",
+      "verification_id": "VER-REL-008"
+    },
+    {
+      "id": "P6-005",
+      "description": "Doctor reports capabilities without content",
+      "kind": "command",
+      "command": "python3 scripts/doctor.py --json"
+    }
+  ],
+  "required_artifacts": [],
+  "required_verification_ids": [
+    "VER-FUN-008",
+    "VER-PERF-001",
+    "VER-PERF-002",
+    "VER-PERF-003",
+    "VER-PERF-004",
+    "VER-REL-006",
+    "VER-REL-008",
+    "VER-TEST-009",
+    "VER-OPS-001"
+  ],
+  "native_required": true,
+  "working_app_required": true
+}

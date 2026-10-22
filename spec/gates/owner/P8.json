@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "phase": "P8",
+  "description": "P8 privacy/history/dictionary essentials only.",
+  "minimum_checks": [
+    {
+      "id": "P8-001",
+      "description": "Local processing default, cloud data declared",
+      "kind": "evidence",
+      "verification_id": "VER-PRIV-001"
+    },
+    {
+      "id": "P8-002",
+      "description": "History can be disabled without fragility",
+      "kind": "scenario",
+      "scenario_id": "p8-history-disable"
+    },
+    {
+      "id": "P8-003",
+      "description": "Privacy Zones override Mode/Profile",
+      "kind": "scenario",
+      "scenario_id": "p8-privacy-zones"
+    },
+    {
+      "id": "P8-004",
+      "description": "Secrets not in regular config",
+      "kind": "command",
+      "command": "python3 scripts/verify_secrets.py"
+    },
+    {
+      "id": "P8-005",
+      "description": "Logs redact content",
+      "kind": "command",
+      "command": "python3 scripts/check_log_redaction.py"
+    },
+    {
+      "id": "P8-006",
+      "description": "Remote transcript and context permissions are independently enforced",
+      "kind": "evidence",
+      "verification_id": "VER-PRIV-007"
+    }
+  ],
+  "required_artifacts": [],
+  "required_verification_ids": [
+    "VER-FUN-041",
+    "VER-FUN-064",
+    "VER-PRIV-001",
+    "VER-PRIV-002",
+    "VER-PRIV-003",
+    "VER-PRIV-004",
+    "VER-PRIV-005",
+    "VER-PRIV-006",
+    "VER-PRIV-007"
+  ],
+  "native_required": false,
+  "working_app_required": true
+}

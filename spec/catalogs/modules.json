@@ -1,0 +1,534 @@
+{
+  "schema_version": 1,
+  "modules": [
+    {
+      "id": "linux-global-shortcut",
+      "capability": "activation.global-hotkey",
+      "engine": "narrivy-platform",
+      "runtime": "native",
+      "status": "linux-1.0",
+      "description": "Capability-driven global toggle/PTT trigger adapter"
+    },
+    {
+      "id": "linux-x11-hotkey",
+      "capability": "activation.global-hotkey",
+      "engine": "narrivy-platform",
+      "runtime": "native",
+      "status": "fallback",
+      "description": "X11/XWayland-specific fallback where appropriate"
+    },
+    {
+      "id": "sherpa-kws",
+      "capability": "activation.wake-word",
+      "engine": "sherpa-onnx",
+      "runtime": "onnxruntime",
+      "status": "roadmap",
+      "description": "Optional keyword/wake phrase trigger"
+    },
+    {
+      "id": "pipewire-capture",
+      "capability": "audio.capture",
+      "engine": "narrivy-platform",
+      "runtime": "native",
+      "status": "linux-1.0",
+      "description": "PipeWire microphone capture"
+    },
+    {
+      "id": "native-audio-normalizer",
+      "capability": "audio.normalize",
+      "engine": "narrivy-core",
+      "runtime": "native",
+      "status": "linux-1.0",
+      "description": "Canonical sample/channel/level preparation"
+    },
+    {
+      "id": "narrivy-lite-dsp",
+      "capability": "audio.dsp",
+      "engine": "narrivy-core",
+      "runtime": "native",
+      "status": "linux-1.0",
+      "description": "Tiny built-in DSP conditioning"
+    },
+    {
+      "id": "speexdsp",
+      "capability": "audio.dsp",
+      "engine": "speexdsp",
+      "runtime": "native",
+      "status": "candidate",
+      "description": "Classical low-resource DSP candidate"
+    },
+    {
+      "id": "rnnoise",
+      "capability": "audio.denoise",
+      "engine": "rnnoise",
+      "runtime": "native",
+      "status": "candidate",
+      "description": "Tiny neural denoise"
+    },
+    {
+      "id": "gtcrn",
+      "capability": "audio.denoise",
+      "engine": "gtcrn",
+      "runtime": "onnxruntime",
+      "status": "candidate",
+      "description": "Lightweight streaming denoise"
+    },
+    {
+      "id": "deepfilternet",
+      "capability": "audio.denoise",
+      "engine": "deepfilternet",
+      "runtime": "native",
+      "status": "optional",
+      "description": "High-quality denoise"
+    },
+    {
+      "id": "dpdfnet",
+      "capability": "audio.denoise",
+      "engine": "dpdfnet",
+      "runtime": "onnxruntime",
+      "status": "optional",
+      "description": "Streaming denoise"
+    },
+    {
+      "id": "webrtc-ns",
+      "capability": "audio.denoise",
+      "engine": "webrtc-apm",
+      "runtime": "native",
+      "status": "optional",
+      "description": "WebRTC noise suppression"
+    },
+    {
+      "id": "openvino-denoise",
+      "capability": "audio.denoise",
+      "engine": "deepfilternet",
+      "runtime": "openvino",
+      "status": "optional",
+      "description": "OpenVINO-accelerated enhancement binding"
+    },
+    {
+      "id": "webrtc-aec3",
+      "capability": "audio.aec",
+      "engine": "webrtc-apm",
+      "runtime": "native",
+      "status": "optional",
+      "description": "Acoustic echo cancellation using playback reference"
+    },
+    {
+      "id": "pipewire-aec",
+      "capability": "audio.aec",
+      "engine": "pipewire",
+      "runtime": "native",
+      "status": "optional",
+      "description": "PipeWire echo-cancel integration"
+    },
+    {
+      "id": "webrtc-agc",
+      "capability": "audio.agc",
+      "engine": "webrtc-apm",
+      "runtime": "native",
+      "status": "optional",
+      "description": "WebRTC automatic gain control"
+    },
+    {
+      "id": "native-agc",
+      "capability": "audio.agc",
+      "engine": "narrivy-core",
+      "runtime": "native",
+      "status": "candidate",
+      "description": "Conservative native gain/limiter stage"
+    },
+    {
+      "id": "odas-beamformer",
+      "capability": "audio.beamform",
+      "engine": "odas",
+      "runtime": "native",
+      "status": "roadmap",
+      "description": "Multi-mic beamforming/source localization"
+    },
+    {
+      "id": "nara-wpe",
+      "capability": "audio.dereverb",
+      "engine": "nara-wpe",
+      "runtime": "isolated-worker",
+      "status": "roadmap",
+      "description": "Dereverberation"
+    },
+    {
+      "id": "clearervoice-separation",
+      "capability": "audio.separate",
+      "engine": "clearervoice",
+      "runtime": "isolated-worker",
+      "status": "roadmap",
+      "description": "Speech/source separation"
+    },
+    {
+      "id": "sherpa-source-separation",
+      "capability": "audio.separate",
+      "engine": "sherpa-onnx",
+      "runtime": "onnxruntime",
+      "status": "roadmap",
+      "description": "Offline source separation binding"
+    },
+    {
+      "id": "clearervoice-target-speaker",
+      "capability": "audio.target-speaker",
+      "engine": "clearervoice",
+      "runtime": "isolated-worker",
+      "status": "roadmap",
+      "description": "User-conditioned target speaker extraction"
+    },
+    {
+      "id": "silero-vad",
+      "capability": "speech.vad",
+      "engine": "silero-vad",
+      "runtime": "onnxruntime",
+      "status": "optional",
+      "description": "Neural VAD"
+    },
+    {
+      "id": "webrtc-vad",
+      "capability": "speech.vad",
+      "engine": "webrtc-apm",
+      "runtime": "native",
+      "status": "candidate",
+      "description": "Lightweight VAD"
+    },
+    {
+      "id": "sherpa-vad",
+      "capability": "speech.vad",
+      "engine": "sherpa-onnx",
+      "runtime": "onnxruntime",
+      "status": "optional",
+      "description": "Sherpa VAD"
+    },
+    {
+      "id": "native-energy-vad",
+      "capability": "speech.vad",
+      "engine": "narrivy-core",
+      "runtime": "native",
+      "status": "linux-1.0",
+      "description": "Minimal VAD/fallback"
+    },
+    {
+      "id": "narrivy-endpointer",
+      "capability": "speech.endpoint",
+      "engine": "narrivy-core",
+      "runtime": "native",
+      "status": "linux-1.0",
+      "description": "Endpoint policy using VAD + trigger/session cues"
+    },
+    {
+      "id": "sherpa-language-id",
+      "capability": "speech.language-id",
+      "engine": "sherpa-onnx",
+      "runtime": "onnxruntime",
+      "status": "optional",
+      "description": "Language identification"
+    },
+    {
+      "id": "sherpa-audio-tagging",
+      "capability": "speech.audio-tagging",
+      "engine": "sherpa-onnx",
+      "runtime": "onnxruntime",
+      "status": "roadmap",
+      "description": "Acoustic scene classification"
+    },
+    {
+      "id": "pyannote-diarization",
+      "capability": "speech.diarization",
+      "engine": "pyannote-audio",
+      "runtime": "isolated-worker",
+      "status": "roadmap",
+      "description": "Speaker diarization"
+    },
+    {
+      "id": "sherpa-diarization",
+      "capability": "speech.diarization",
+      "engine": "sherpa-onnx",
+      "runtime": "onnxruntime",
+      "status": "roadmap",
+      "description": "Offline diarization"
+    },
+    {
+      "id": "sherpa-speaker-id",
+      "capability": "speech.speaker-id",
+      "engine": "sherpa-onnx",
+      "runtime": "onnxruntime",
+      "status": "roadmap",
+      "description": "Speaker embedding/ID convenience"
+    },
+    {
+      "id": "sherpa-asr",
+      "capability": "speech.asr",
+      "engine": "sherpa-onnx",
+      "runtime": "onnxruntime",
+      "status": "optional",
+      "description": "Alternative offline ASR family"
+    },
+    {
+      "id": "asr-mock",
+      "capability": "speech.asr",
+      "engine": "asr-mock",
+      "runtime": "native",
+      "status": "default-fallback",
+      "description": "Deterministic test ASR",
+      "status_note": "The default engine of a default narrivyd build; deterministic and not a product-quality recognition capability."
+    },
+    {
+      "id": "sherpa-punctuation",
+      "capability": "text.punctuation",
+      "engine": "sherpa-onnx",
+      "runtime": "onnxruntime",
+      "status": "optional",
+      "description": "Neural punctuation"
+    },
+    {
+      "id": "deterministic-punctuation",
+      "capability": "text.punctuation",
+      "engine": "narrivy-core",
+      "runtime": "native",
+      "status": "linux-1.0",
+      "description": "Spoken punctuation/rules"
+    },
+    {
+      "id": "nemo-itn",
+      "capability": "text.itn",
+      "engine": "nemo-text-processing",
+      "runtime": "isolated-worker",
+      "status": "optional",
+      "description": "Inverse text normalization"
+    },
+    {
+      "id": "native-itn",
+      "capability": "text.itn",
+      "engine": "narrivy-core",
+      "runtime": "native",
+      "status": "linux-1.0",
+      "description": "Lean deterministic numbers/dates/common forms"
+    },
+    {
+      "id": "symspell",
+      "capability": "text.spell",
+      "engine": "symspell",
+      "runtime": "native",
+      "status": "optional",
+      "description": "Fast spell correction"
+    },
+    {
+      "id": "hunspell",
+      "capability": "text.spell",
+      "engine": "hunspell",
+      "runtime": "native",
+      "status": "optional",
+      "description": "Dictionary/morphology spell checking"
+    },
+    {
+      "id": "languagetool",
+      "capability": "text.grammar",
+      "engine": "languagetool",
+      "runtime": "isolated-worker",
+      "status": "optional",
+      "description": "Grammar/style check"
+    },
+    {
+      "id": "offline-translation",
+      "capability": "text.translate",
+      "engine": "local-llm",
+      "runtime": "openvino/onnxruntime/llama.cpp",
+      "status": "roadmap",
+      "description": "Offline translation engine slot"
+    },
+    {
+      "id": "llm-translation",
+      "capability": "text.translate",
+      "engine": "local-llm",
+      "runtime": "provider",
+      "status": "roadmap",
+      "description": "Local/cloud LLM translation"
+    },
+    {
+      "id": "openvino-llm-postprocess",
+      "capability": "text.llm-postprocess",
+      "engine": "local-llm",
+      "runtime": "openvino",
+      "status": "optional",
+      "description": "Small instruct model on qualified OpenVINO device"
+    },
+    {
+      "id": "llamacpp-llm-postprocess",
+      "capability": "text.llm-postprocess",
+      "engine": "local-llm",
+      "runtime": "llama.cpp",
+      "status": "optional",
+      "description": "Small local instruct model via llama.cpp"
+    },
+    {
+      "id": "cloud-llm-postprocess",
+      "capability": "text.llm-postprocess",
+      "engine": "cloud-provider",
+      "runtime": "remote",
+      "status": "optional",
+      "description": "Explicitly authorized provider adapter"
+    },
+    {
+      "id": "narrivy-semantic-guard",
+      "capability": "text.semantic-guard",
+      "engine": "narrivy-core",
+      "runtime": "native",
+      "status": "linux-1.0",
+      "description": "Protect names/numbers/URLs/paths and enforce mutation budget"
+    },
+    {
+      "id": "app-context-provider",
+      "capability": "context.provider",
+      "engine": "narrivy-platform",
+      "runtime": "native",
+      "status": "optional",
+      "description": "Permission-controlled app/selection/context source"
+    },
+    {
+      "id": "platform-direct-delivery",
+      "capability": "delivery.direct",
+      "engine": "narrivy-platform",
+      "runtime": "native",
+      "status": "linux-1.0",
+      "description": "Capability-specific direct insertion"
+    },
+    {
+      "id": "transactional-clipboard",
+      "capability": "delivery.clipboard",
+      "engine": "narrivy-platform",
+      "runtime": "native",
+      "status": "linux-1.0",
+      "description": "Clipboard delivery with ownership-safe restoration"
+    },
+    {
+      "id": "narrivy-inbox",
+      "capability": "delivery.inbox",
+      "engine": "narrivy-core",
+      "runtime": "native",
+      "status": "linux-1.0",
+      "description": "Guaranteed recovery fallback"
+    },
+    {
+      "id": "narrivy-qualifier",
+      "capability": "quality.qualifier",
+      "engine": "narrivy-core",
+      "runtime": "native",
+      "status": "linux-1.0",
+      "description": "Whole-pipeline/device qualification and evidence"
+    },
+    {
+      "id": "qwen3-asr-openvino",
+      "capability": "speech.asr",
+      "engine": "qwen3-asr",
+      "runtime": "openvino",
+      "status": "linux-1.0",
+      "description": "Qwen3-ASR through OpenVINO 2026.4; CPU/GPU supported upstream, NPU admitted only after exact tuple qualification"
+    },
+    {
+      "id": "parakeet-eddy-openvino",
+      "capability": "speech.asr",
+      "engine": "parakeet",
+      "runtime": "openvino",
+      "status": "candidate",
+      "description": "Parakeet TDT v3 via Apache-2.0 Eddy decoder on NPU; owner-fork-proven 220-240ms warm Owner-fork-proven 220-240ms warm on NPU"
+    },
+    {
+      "id": "parakeet-onnx",
+      "capability": "speech.asr",
+      "engine": "parakeet",
+      "runtime": "onnxruntime",
+      "status": "candidate",
+      "description": "Parakeet via sherpa-onnx ONNX (earlier versions)"
+    },
+    {
+      "id": "nemotron-onnx",
+      "capability": "speech.asr",
+      "engine": "nemotron-speech",
+      "runtime": "onnxruntime",
+      "status": "candidate",
+      "description": "Streaming conformer transducer, int4, CPU/NPU-friendly static shapes"
+    },
+    {
+      "id": "funasr-gguf",
+      "capability": "speech.asr",
+      "engine": "fun-asr",
+      "runtime": "llama.cpp",
+      "status": "candidate",
+      "description": "0.8B LLM-ASR with built-in punct+ITN; official GGUF; not Urdu-qualified (Hindi only)"
+    },
+    {
+      "id": "moonshine-onnx",
+      "capability": "speech.asr",
+      "engine": "moonshine",
+      "runtime": "onnxruntime",
+      "status": "candidate",
+      "description": "Tiny English tier / low-memory fallback lane"
+    },
+    {
+      "id": "vosk-native",
+      "capability": "speech.asr",
+      "engine": "vosk",
+      "runtime": "native",
+      "status": "candidate",
+      "description": "Lowest-footprint streaming fallback lane"
+    },
+    {
+      "id": "tenvad-onnx",
+      "capability": "speech.vad",
+      "engine": "ten-vad",
+      "runtime": "onnxruntime",
+      "status": "candidate",
+      "description": "Footprint-tier VAD (306KB); license check before adoption"
+    },
+    {
+      "id": "turn-detector-eou",
+      "capability": "speech.endpoint",
+      "engine": "turn-detector",
+      "runtime": "onnxruntime",
+      "status": "candidate",
+      "description": "EOU classification to polish endpointing beyond VAD silence"
+    },
+    {
+      "id": "ct-transformer-punct",
+      "capability": "text.punctuation",
+      "engine": "sherpa-onnx",
+      "runtime": "onnxruntime",
+      "status": "candidate",
+      "description": "CT-Transformer zh/en punctuation via sherpa-onnx/FunASR ONNX"
+    },
+    {
+      "id": "openwakeword-onnx",
+      "capability": "activation.wake-word",
+      "engine": "openwakeword",
+      "runtime": "onnxruntime",
+      "status": "roadmap",
+      "description": "Self-trainable on-device wake word"
+    },
+    {
+      "id": "microwakeword-native",
+      "capability": "activation.wake-word",
+      "engine": "openwakeword",
+      "runtime": "native",
+      "status": "roadmap",
+      "description": "Ultra-light wake-word models (ESP32-class \u2192 trivially CPU)"
+    },
+    {
+      "id": "parakeet-transcribecpp",
+      "capability": "speech.asr",
+      "engine": "parakeet",
+      "runtime": "transcribe.cpp",
+      "status": "linux-1.0",
+      "description": "Model-dependent GGUF ASR via transcribe.cpp on CPU/iGPU/dGPU (Vulkan). Standard Parakeet TDT v2/v3 models are offline. Narrivy recovery now has controlled live capture/VAD/daemon/volatile-partial UI composition only for an attested streaming GGUF model; no Parakeet model or native/release qualification is claimed. Reference GPU/CPU lane per owner decision 2026-08-22."
+    },
+    {
+      "id": "gguf-whisper-models-transcribecpp",
+      "capability": "speech.asr",
+      "engine": "transcribe-gguf-models",
+      "runtime": "transcribe.cpp",
+      "status": "linux-1.0",
+      "description": "All Whisper model variants (large-v3 / large-v3-turbo / medium / small / base / tiny, distil variants) as GGUF weights executed via transcribe.cpp on CPU/iGPU/dGPU (Vulkan). MODEL-WEIGHT lane only \u2014 there is no separate engine/runtime product entity behind these models."
+    }
+  ]
+}

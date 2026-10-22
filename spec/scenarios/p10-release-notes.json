@@ -1,0 +1,11 @@
+{
+  "id": "p10-release-notes",
+  "phase": "P10",
+  "kind": "release",
+  "scenario": "release notes and supported environments matrix derived from qualification, known limitations documented, no untested compatibility as supported",
+  "native_required": false,
+  "requirement_ids": [
+    "OPS-005"
+  ],
+  "verification_id": "VER-OPS-005"
+}

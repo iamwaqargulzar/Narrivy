@@ -1,0 +1,27 @@
+#!/bin/sh
+set -e
+# narrivy postinst — per-user data preserved on upgrade, transactionally migrated
+# XDG: data ~/.local/share/narrivy  config ~/.config/narrivy  cache ~/.cache/narrivy
+case "$1" in
+  configure)
+    # Upgrade migration: if old config exists, migrate transactionally
+    if [ -x /usr/bin/narrivy-migrate ]; then
+        /usr/bin/narrivy-migrate --check || true
+    fi
+    # The unprivileged desktop client starts the per-user service on first use.
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database -q || true
+    fi
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
+    fi
+    ;;
+  abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+  *)
+    echo "postinst called with unknown argument \`$1'" >&2
+    exit 1
+    ;;
+esac
+#DEBHELPER#
+exit 0

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-OPS-005",
+  "requirement_ids": [
+    "OPS-005"
+  ],
+  "phase": "P10",
+  "scenario_id": "p10-release-notes",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p10-14ffd69",
+  "environment": {
+    "id": "cosmic-p10",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": "x86_64",
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": null
+  },
+  "command": "python3 tools/narrivy-qualify/p10_runner.py --scenario p10-release-notes",
+  "scenario_hash": "811bf90f41bef2ff35615233ae914fb6860ca4f535f9f363c437477bfb4d96bc",
+  "started_at": "2026-08-26T06:44:52.331914+00:00",
+  "ended_at": "2026-08-26T06:44:52.372024+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "version": "0.1.0",
+    "git_commit": "43566ebea4f8",
+    "builder_documented": true,
+    "arch_is_amd64": true,
+    "support_matrix_checked": true
+  },
+  "artifact_hashes": {
+    "artifacts/sbom/spdx.json": "dc869aff657882ebb9c1966d7275c31715a9f68d98c3403a11630f7b7632fa54",
+    "artifacts/releases/narrivy_0.1.0_amd64.deb": "bc15dbf6a42a446bbb1d04f1a46edc77a69bf35f163affaffbd7eca2a1c1f3dc",
+    "artifacts/release-evidence/linux-1.0/release-artifacts.json": "9761b5408ea5e646092b41059ac43fb36ed4a1c7ac3337874b5428314ce1eec8"
+  },
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "version 0.1.0 commit 43566ebea4f8",
+  "tester": "autonomous-agent",
+  "notes": "release notes and support matrix documented, no untested compatibility claimed"
+}

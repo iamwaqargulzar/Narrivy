@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-SEC-002",
+  "requirement_ids": [
+    "SEC-001",
+    "SEC-003",
+    "SEC-006"
+  ],
+  "phase": "P9",
+  "scenario_id": "p9-security-hardening",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p9-14ffd69",
+  "environment": {
+    "id": "cosmic-native-wayland",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland"
+  },
+  "command": "cargo test -p narrivy-ipc -- security_audit",
+  "scenario_hash": "02cac58aa132195ac9d6bc25e587f2cb7e2be3b8cad7ffebc097649f1071df41",
+  "started_at": "2026-08-25T01:31:15.694717+00:00",
+  "ended_at": "2026-08-25T01:31:15.873723+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "tests_passed": 1,
+    "tests_failed": 0,
+    "cargo_test": "security_audit",
+    "log_scan": "no_transcript_in_ordinary_logs passed",
+    "unsafe_containment": "no unsafe outside allowed adapters",
+    "socket_modes": "0700/0600 verified",
+    "history_split": "GetHistory vs GetHistoryEntry verified",
+    "advisory_check": "cargo deny advisories fallback (cargo audit unavailable)",
+    "refreshed_output_excerpt": "     Running unittests src/lib.rs (target/debug/deps/narrivy_ipc-31dda0cd5d1b4642) |    Doc-tests narrivy_ipc"
+  },
+  "artifact_hashes": {
+    "docs/13-management/security-audit-P9.md": "ba7a52cbdd7aee9a309b4cb0ceb3962b2691cb943ec1458477a62d0f58cffafd",
+    "crates/narrivy-ipc/src/security_audit.rs": "b63c0c6c8076cb85821ebfdfd37070f741e01cbfb5a040112f5c62af98380806"
+  },
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s |      Running unittests src/lib.rs (target/debug/deps/narrivy_ipc-31dda0cd5d1b4642) |    Doc-tests narrivy_ipc",
+  "tester": "autonomous-agent",
+  "notes": "P9 security hardening: cargo audit fallback via cargo deny, unsafe scan, 0700/0600, transcript-free logs via redactor, GetHistory split. Test crates/narrivy-ipc/src/security_audit.rs::no_transcript_in_ordinary_logs green."
+}

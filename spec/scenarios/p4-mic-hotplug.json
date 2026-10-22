@@ -1,0 +1,12 @@
+{
+  "id": "p4-mic-hotplug",
+  "phase": "P4",
+  "kind": "e2e",
+  "scenario": "Deterministic mic ranking + persisted override + virtual-device hotplug detection and fallback",
+  "native_required": false,
+  "requirement_ids": [
+    "FUN-011",
+    "REL-004"
+  ],
+  "verification_id": "VER-FUN-011"
+}

@@ -1,0 +1,139 @@
+{
+  "artifact_hashes": {
+    "artifacts/releases/narrivy-linux-amd64.deb": "42f9101593a5a323a1af934c5ee80609c57a31d78fa78ecfcbd40bc1b23faf7c",
+    "scripts/qualify_candidate_known_phrase.py": "6c3d9ad93dea7681bad7bb6726c69608444140dc80eda16299b8ec1709c408be",
+    "scripts/record_cpu_performance_evidence.py": "df51f0e2c4056fd633542e44eaa05e3fed13ca8fe18287e60ed521ee9210bfe6",
+    "tests/fixtures/jfk16.wav": "59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e"
+  },
+  "artifact_under_test": {
+    "kind": "package",
+    "path": "artifacts/releases/narrivy-linux-amd64.deb",
+    "sha256": "42f9101593a5a323a1af934c5ee80609c57a31d78fa78ecfcbd40bc1b23faf7c"
+  },
+  "build_id": "0.1.0~rc55+g14c89af",
+  "command": "python3 scripts/record_cpu_performance_evidence.py artifacts/releases/narrivy-linux-amd64.deb tests/fixtures/jfk16.wav agent/evidence/P5/VER-PERF-005.json agent/evidence/P5/VER-PERF-007.json",
+  "ended_at": "2026-09-22T08:40:37.471120+00:00",
+  "environment": {
+    "cpu": "Intel(R) Core(TM) Ultra 9 288V",
+    "desktop": "COSMIC",
+    "device_details": "packaged transcribe.cpp worker with enforced CPU backend",
+    "display_scale": null,
+    "gpu": null,
+    "id": "cosmic-wayland-packaged-cpu-worker",
+    "input_backend": "fixed PCM fixture over private resident protocol",
+    "kernel": "7.2.2-popos",
+    "lane_available": true,
+    "microphone": null,
+    "native_or_vm": "native",
+    "npu": null,
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "qualification_lane": "cosmic-wayland-packaged-cpu-worker",
+    "session": "wayland"
+  },
+  "evidence_type": "native-platform",
+  "execution": {
+    "child_failures_ignored": false,
+    "environment_class": "native-platform",
+    "lane_available": true,
+    "substitutions": []
+  },
+  "exit_code": 0,
+  "git_commit": "14c89afc58a046b9e2e885ffeb1d517be87d6ab6",
+  "git_dirty": false,
+  "metrics": {
+    "backend": "cpu",
+    "cold_decode": {
+      "max_ms": 334.776,
+      "mean_ms": 334.776,
+      "n": 1,
+      "p50_ms": 334.776,
+      "p95_ms": 334.776
+    },
+    "cold_worker_ready": {
+      "max_ms": 104.311,
+      "mean_ms": 104.311,
+      "n": 1,
+      "p50_ms": 104.311,
+      "p95_ms": 104.311
+    },
+    "failure_rate": 0.0,
+    "fixture_seconds": 11.0,
+    "fragment_matched": true,
+    "hot_decode": {
+      "max_ms": 1504.964,
+      "mean_ms": 465.444,
+      "n": 100,
+      "p50_ms": 437.558,
+      "p95_ms": 631.134
+    },
+    "hot_warmups_discarded": 5,
+    "hot_worker_ready_ms": 87.866,
+    "protocol": "docs/07-testing/performance-benchmark-protocol.md",
+    "streaming_supported": false,
+    "timestamps_supported": false,
+    "transcript_sha256": "dfe1af694958a82c9d89d31bf0378075a10d40f715e670b6e5169042c8680cec",
+    "transcript_utf8_bytes": 106,
+    "warm_decode": {
+      "max_ms": 1304.367,
+      "mean_ms": 514.561,
+      "n": 10,
+      "p50_ms": 396.684,
+      "p95_ms": 1304.367
+    },
+    "warm_worker_ready": {
+      "max_ms": 127.311,
+      "mean_ms": 103.186,
+      "n": 10,
+      "p50_ms": 105.002,
+      "p95_ms": 127.311
+    },
+    "worker_capabilities": {
+      "context_bias": true,
+      "language_detection": false,
+      "languages": [
+        "en"
+      ],
+      "streaming": false,
+      "translation": false,
+      "translation_targets": []
+    },
+    "worker_stderr_bytes": 0
+  },
+  "notes": "The exact packaged CPU worker reports streaming unsupported and produces a verified final transcript. The conditional first-partial target is therefore not applicable to this engine; no partial latency is invented.",
+  "package_sha256": "42f9101593a5a323a1af934c5ee80609c57a31d78fa78ecfcbd40bc1b23faf7c",
+  "pass": true,
+  "phase": "P5",
+  "procedure": {
+    "assertions": [
+      {
+        "id": "cpu-backend-enforced",
+        "result": "pass"
+      },
+      {
+        "id": "streaming-capability-observed",
+        "result": "pass"
+      },
+      {
+        "id": "partial-target-not-applicable",
+        "result": "pass"
+      },
+      {
+        "id": "known-phrase-final-passed",
+        "result": "pass"
+      }
+    ],
+    "id": "packaged-cpu-final-only-capability-v1",
+    "profile_id": "native-behavior-v1"
+  },
+  "requirement_ids": [
+    "PERF-005"
+  ],
+  "result": "pass",
+  "scenario_hash": "df51f0e2c4056fd633542e44eaa05e3fed13ca8fe18287e60ed521ee9210bfe6",
+  "scenario_id": "packaged-cpu-final-only-capability-v1",
+  "scenario_version": "1",
+  "schema_version": 2,
+  "started_at": "2026-09-22T08:39:41.841535+00:00",
+  "verification_id": "VER-PERF-005"
+}

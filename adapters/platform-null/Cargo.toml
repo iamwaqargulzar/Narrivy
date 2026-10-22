@@ -1,0 +1,17 @@
+[package]
+publish = false
+name = "narrivy-platform-null"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Null platform adapter for portable integration tests."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints]
+workspace = true
+[dependencies]
+narrivy-types.workspace = true
+narrivy-platform-api.workspace = true
+

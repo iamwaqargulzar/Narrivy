@@ -1,0 +1,111 @@
+{
+  "artifact_hashes": {
+    "artifacts/releases/narrivy-linux-amd64.deb": "42f9101593a5a323a1af934c5ee80609c57a31d78fa78ecfcbd40bc1b23faf7c",
+    "scripts/doctor.py": "48c0205e2c5210ab168a2589f5335cb7e4c6622b762c67ac8ca4d9aeced05793",
+    "scripts/record_native_hardening_evidence.py": "f0fe930e143e6abc9e5d9e04caca78289cc31bcb5d6a11a82ab1533a5574d1f7"
+  },
+  "artifact_under_test": {
+    "kind": "package",
+    "path": "artifacts/releases/narrivy-linux-amd64.deb",
+    "sha256": "42f9101593a5a323a1af934c5ee80609c57a31d78fa78ecfcbd40bc1b23faf7c"
+  },
+  "build_id": "0.1.0~rc55+g14c89af",
+  "command": "python3 scripts/record_native_hardening_evidence.py artifacts/releases/narrivy-linux-amd64.deb",
+  "ended_at": "2026-09-22T08:39:03.724130+00:00",
+  "environment": {
+    "cpu": "x86_64",
+    "desktop": "COSMIC",
+    "device_details": "package-bound local hardening procedure",
+    "display_scale": null,
+    "gpu": null,
+    "id": "cosmic-wayland-native-hardening",
+    "input_backend": "Unix domain socket and host capability probes",
+    "kernel": "7.2.2-popos",
+    "lane_available": true,
+    "microphone": null,
+    "native_or_vm": "native",
+    "npu": null,
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "qualification_lane": "cosmic-wayland-native-hardening",
+    "session": "wayland"
+  },
+  "evidence_type": "native-platform",
+  "execution": {
+    "child_failures_ignored": false,
+    "environment_class": "native-platform",
+    "lane_available": true,
+    "substitutions": []
+  },
+  "exit_code": 0,
+  "git_commit": "14c89afc58a046b9e2e885ffeb1d517be87d6ab6",
+  "git_dirty": false,
+  "metrics": {
+    "diagnostics_stderr_lines": 0,
+    "diagnostics_stdout_lines": 5,
+    "doctor_remediation_count": 1,
+    "doctor_sections": [
+      "asr_runtime",
+      "clipboard",
+      "desktop",
+      "disk",
+      "libei_eis",
+      "microphone",
+      "notes",
+      "pipewire",
+      "portal",
+      "remediation",
+      "secret_service",
+      "toolchain",
+      "uinput",
+      "webkit_tauri"
+    ],
+    "endpoint": {
+      "authenticated_status_round_trip": true,
+      "daemon_exit_code": 0,
+      "owner_uid_matches": true,
+      "runtime_mode": "0700",
+      "socket_mode": "0600"
+    }
+  },
+  "notes": "Exact clean package on native COSMIC/Wayland. This procedure makes only the named IPC, support-report and doctor hardening claims.",
+  "package_sha256": "42f9101593a5a323a1af934c5ee80609c57a31d78fa78ecfcbd40bc1b23faf7c",
+  "pass": true,
+  "phase": "P6",
+  "procedure": {
+    "assertions": [
+      {
+        "id": "exact-package-source-bound",
+        "result": "pass"
+      },
+      {
+        "id": "native-capabilities-reported",
+        "result": "pass"
+      },
+      {
+        "id": "actionable-remediation-reported",
+        "result": "pass"
+      },
+      {
+        "id": "content-canaries-absent",
+        "result": "pass"
+      },
+      {
+        "id": "home-path-redacted",
+        "result": "pass"
+      }
+    ],
+    "id": "native-nondestructive-doctor-v1",
+    "profile_id": "native-behavior-v1"
+  },
+  "requirement_ids": [
+    "OPS-001"
+  ],
+  "result": "pass",
+  "scenario_hash": "f0fe930e143e6abc9e5d9e04caca78289cc31bcb5d6a11a82ab1533a5574d1f7",
+  "scenario_id": "native-nondestructive-doctor-v1",
+  "scenario_version": "1",
+  "schema_version": 2,
+  "started_at": "2026-09-22T08:38:57.932566+00:00",
+  "verification_id": "VER-OPS-001"
+}

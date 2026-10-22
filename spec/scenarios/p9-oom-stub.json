@@ -1,0 +1,11 @@
+{
+  "id": "p9-oom-stub",
+  "phase": "P9",
+  "kind": "failure",
+  "scenario": "OOM stub: RLIMIT_AS 64MiB large alloc graceful Typed OOM not SIGABRT, fake cgroup memory.max stub",
+  "native_required": true,
+  "requirement_ids": [
+    "TEST-006"
+  ],
+  "verification_id": "VER-TEST-006"
+}

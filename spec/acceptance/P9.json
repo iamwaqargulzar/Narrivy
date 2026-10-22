@@ -1,0 +1,25 @@
+{
+  "schema_version": 2,
+  "phase": "P9",
+  "implemented": true,
+  "primary_requirements": [
+    "ACC-001",
+    "ACC-002",
+    "ACC-003",
+    "ACC-004",
+    "ACC-005",
+    "ACC-006",
+    "ACC-007",
+    "PERF-010",
+    "TEST-006",
+    "TEST-007"
+  ],
+  "required_artifacts": [],
+  "commands": [
+    "cargo test --workspace --locked -- a11y",
+    "python3 scripts/verify_traceability.py"
+  ],
+  "smoke_commands": [
+    "python3 tools/narrivy-qualify/p9_runner.py --all"
+  ]
+}

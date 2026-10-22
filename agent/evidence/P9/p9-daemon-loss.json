@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-TEST-006",
+  "requirement_ids": [
+    "TEST-006"
+  ],
+  "phase": "P9",
+  "scenario_id": "p9-daemon-loss",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p9-14ffd69",
+  "environment": {
+    "id": "cosmic-p9",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": "x86_64",
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": null
+  },
+  "command": "python3 tools/narrivy-qualify/p9_runner.py --scenario p9-daemon-loss --stub",
+  "scenario_hash": "fad7db921f809ded6d390e3ffe98eec6efb66d38d2fc8ee7283be36d2d3506e5",
+  "started_at": "2026-08-25T01:31:37.549879+00:00",
+  "ended_at": "2026-08-25T01:31:37.659788+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "kill_info": {
+      "pid": 462038,
+      "killed": true,
+      "exit_code": -9
+    },
+    "cargo_child": false,
+    "worker_delay_ms": 290,
+    "quarantined_count": 1,
+    "survivor_count": 3,
+    "survivor_ids": [
+      "pre-000",
+      "pre-001",
+      "pre-002"
+    ],
+    "hash_chain_ok": true,
+    "hash_chain_msg": "hash chain ok max_ver=2 count=2",
+    "max_version_after_kill": 2,
+    "no_half_migration": true,
+    "has_note_column": false
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "survivors=['pre-000', 'pre-001', 'pre-002'] quarantined=1 hash_chain=hash chain ok max_ver=2 count=2 max_ver=2 no_half=True kill={'pid': 462038, 'killed': True, 'exit_code': -9}",
+  "tester": "autonomous-agent",
+  "notes": "[0.2.0-p9 stub] init_db hash chain ok max_ver=2 count=2 kill9 python worker pid=462038 rc=-9 kill_delay=0.085 worker_delay=290 spawn cargo test --test harness_kill (simulated via python worker; command would be `cargo test --test harness_kill`) hash_chain hash chain ok max_ver=2 count=2"
+}

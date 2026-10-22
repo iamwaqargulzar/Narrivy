@@ -1,0 +1,11 @@
+{
+  "id": "p2-cpu-fallback",
+  "phase": "P2",
+  "kind": "e2e",
+  "scenario": "CPU correctness lane works on accelerator-capable host",
+  "requirement_ids": [
+    "FUN-013",
+    "TEST-004"
+  ],
+  "verification_id": "VER-FUN-013"
+}

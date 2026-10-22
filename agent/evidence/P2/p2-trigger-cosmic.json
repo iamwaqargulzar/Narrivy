@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-FUN-001",
+  "requirement_ids": [
+    "FUN-001",
+    "FUN-004"
+  ],
+  "phase": "P2",
+  "scenario_id": "p2-trigger-cosmic",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p2-14ffd69",
+  "environment": {
+    "id": "cosmic-native-wayland",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": null,
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": "in-process synthesized silence (no device claimed)"
+  },
+  "command": "python3 tools/narrivy-qualify/p2_runner.py --scenario p2-trigger-cosmic",
+  "scenario_hash": "0bd131803b8645343fddc099d1428960df0f80239f48cdd74c9a7d6a6a8423d2",
+  "started_at": "2026-08-26T06:42:36.668304+00:00",
+  "ended_at": "2026-08-26T06:42:37.995367+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "engine_contract": "default cargo features: engines/asr-transcribe 'runtime' OFF -> typed runtime_unavailable -> deterministic asr-mock fallback; real-GGUF path qualifies at P5 (license review pending)",
+    "build_tail": "cargo build ok",
+    "activation_channel": "manual narrivy-cli over the real unix socket; global trigger route exercised at library level only",
+    "happy_path": {
+      "daemon_build": "0.0.0",
+      "protocol_minor": 1,
+      "capabilities": [
+        "mock.asr",
+        "null.delivery"
+      ],
+      "first_event": {
+        "session_id": 4294967297,
+        "state": "preparing",
+        "seq": 1
+      },
+      "states_seen_via_status_polls": [],
+      "delivered_text_sha256": "e2aa681ea43e18d7ec443bb8c3db95bb8ea0b04fb8bbce33091a008b8284b204",
+      "delivered_matches_expected": true,
+      "journal_entries_total": 1
+    },
+    "cancel_path": {
+      "attempts": [
+        {
+          "attempt": 0,
+          "cancel_exit_code": 1,
+          "outcome": "race_lost_committed_pre_cancel"
+        },
+        {
+          "attempt": 1,
+          "cancel_exit_code": 1,
+          "outcome": "race_lost_committed_pre_cancel"
+        },
+        {
+          "attempt": 2,
+          "cancel_exit_code": 1,
+          "outcome": "race_lost_committed_pre_cancel"
+        }
+      ],
+      "wins_cancelled_no_delivery": 0,
+      "race_losses_committed_pre_cancel": 3,
+      "stale_output_invariant_held": true,
+      "deterministic_proof_reference": "cargo test -p narrivyd --test e2e_mock_dictation -- e2e_cancel_right_after_start_delivers_nothing"
+    },
+    "log_redaction": {
+      "scanned_chars": 1455,
+      "fixture_leak_hits": 0
+    }
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "happy_path delivered_matches_expected=True; cancel wins=0 race_losses=3; log_leak_hits=0",
+  "tester": "autonomous-agent",
+  "notes": "Walking-skeleton service path over a REAL transport: narrivyd binary on a tempdir XDG_RUNTIME_DIR, driven end-to-end by apps/narrivy-cli (status/start/status-poll/cancel) across a real 0600 unix socket. Engine determinism: transcribe.cpp built WITHOUT its 'runtime' feature reports typed runtime_unavailable and the pipeline falls back to asr-mock; delivered text equals the deterministic correction of the synthetic mock fixture (hash-compared, fixture defined in services/narrivyd/src/main.rs). Real-GGUF qualification is deferred to P5 pending license review. Delivery observation: daemon null sink + recovery journal variants.delivered; platform delivery ladder (wtype/clipboard/inbox) is library-proven separately. Cancellation coverage: socket-level cancel attempts classified truthfully; the instant mock worker usually wins the race, so the deterministic stale-output proof is the injected-window Rust e2e (see metrics.deterministic reference). Log hygiene: combined daemon+CLI output scanned for the fixture phrase; zero hits."
+}

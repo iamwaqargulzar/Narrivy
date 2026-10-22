@@ -1,0 +1,11 @@
+{
+  "notes": "Qualification reset before the next exact release candidate. Prior evidence remains available in Git history and is not a claim for the new artifact.",
+  "pass": false,
+  "phase": "P4",
+  "requirement_ids": [
+    "FUN-012"
+  ],
+  "result": "historical",
+  "schema_version": 1,
+  "verification_id": "VER-FUN-012"
+}

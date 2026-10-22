@@ -1,0 +1,55 @@
+[package]
+name = "narrivy-asr-transcribe"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+description = "transcribe.cpp ASR engine binding: the resident worker process and its protocol (CPU GGUF lane)."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[features]
+default = []
+# Real ASR path: drives a pinned, operator-built transcribe.cpp CLI sidecar
+# as a versioned subprocess (see src/sidecar.rs + BUILD-NOTES.md). No
+# upstream code links into this crate; `unsafe` stays forbidden.
+runtime = []
+# Recovery 4B: a process-isolated worker links the exact safe upstream Rust
+# wrapper and keeps one CPU model resident across requests. The daemon-facing
+# parent remains safe Rust and can kill/reap the worker on cancellation or a
+# native stall. This is intentionally separate from the legacy CLI sidecar.
+resident-worker = [
+    "dep:transcribe-cpp",
+    "dep:rustix",
+    "dep:narrivy-process-linux",
+    "dep:sha2",
+]
+# T2.15: also build the Vulkan backend into the worker. The worker then uses
+# a GPU when one works and the CPU otherwise. Needs the Vulkan headers and
+# `glslc` at build time, and `libvulkan.so.1` at run time.
+vulkan = ["resident-worker", "transcribe-cpp/vulkan"]
+
+[dependencies]
+narrivy-asr-api.workspace = true
+narrivy-types.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2 = { workspace = true, optional = true }
+tempfile.workspace = true
+rustix = { workspace = true, optional = true }
+narrivy-process-linux = { workspace = true, optional = true }
+transcribe-cpp = { version = "=0.2.3", default-features = false, optional = true }
+
+[[bin]]
+name = "narrivy-transcribe-worker"
+path = "src/bin/narrivy-transcribe-worker.rs"
+required-features = ["resident-worker"]
+
+[[example]]
+name = "backend_probe"
+required-features = ["resident-worker"]
+
+[lints]
+workspace = true

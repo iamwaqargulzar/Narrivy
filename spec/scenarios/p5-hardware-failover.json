@@ -1,0 +1,10 @@
+{
+  "id": "p5-hardware-failover",
+  "phase": "P5",
+  "kind": "e2e",
+  "scenario": "Planner falls through enumerated-but-runtime-less NPU to qualified iGPU Vulkan; simulated Vulkan rejection falls back to CPU",
+  "requirement_ids": [
+    "PORT-006"
+  ],
+  "verification_id": "VER-PORT-006"
+}

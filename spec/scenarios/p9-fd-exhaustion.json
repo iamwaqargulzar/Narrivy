@@ -1,0 +1,11 @@
+{
+  "id": "p9-fd-exhaustion",
+  "phase": "P9",
+  "kind": "failure",
+  "scenario": "fd exhaustion: RLIMIT_NOFILE 32, 40 concurrent socket opens, 8 EMFILE typed error, no panic, limit restored, baseline survives",
+  "native_required": true,
+  "requirement_ids": [
+    "TEST-006"
+  ],
+  "verification_id": "VER-TEST-006"
+}

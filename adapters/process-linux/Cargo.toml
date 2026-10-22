@@ -1,0 +1,28 @@
+[package]
+publish = false
+name = "narrivy-process-linux"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Trusted system-helper launching on Linux: identity checks, environment scrubbing and process-group containment."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints.rust]
+unsafe_code = "allow"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "deny"
+
+[dependencies]
+libc.workspace = true
+narrivy-types.workspace = true
+rustix.workspace = true
+sha2.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

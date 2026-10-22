@@ -1,0 +1,23 @@
+[package]
+publish = false
+name = "narrivy-cli"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Command-line client for narrivyd (toggle, status, support report)."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints]
+workspace = true
+[dependencies]
+narrivy-ipc.workspace = true
+narrivy-ipc-unix.workspace = true
+# REL-008: the user-reachable support report is built, redacted and
+# content-checked by this crate's own diagnostics facility. Every value the
+# report carries is routed through `narrivy_diagnostics::Redactor`.
+narrivy-diagnostics.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

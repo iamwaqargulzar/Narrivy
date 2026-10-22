@@ -1,0 +1,100 @@
+{
+  "artifact_hashes": {
+    "artifacts/candidates/linux-1.0-supply-chain/provenance.json": "41b24a746e14a0d7db6d69ec334d846d3a5371b0f23df348a9f1b26e384c72fc",
+    "artifacts/candidates/linux-1.0-supply-chain/release-artifacts.json": "de1ad035af07a372d55121f4a3646b3534c0f27fbef854286813b0324161c8d9",
+    "artifacts/candidates/linux-1.0-supply-chain/result.json": "dbcc1618d78288e525beabe5d613ad5476fd8218895f47700ef1bb3382c3eb74",
+    "artifacts/candidates/linux-1.0-supply-chain/spdx.json": "af7d9e224b4f6cdae0cb2a522399fe51e17384bc5f706e023a841bba990de5d6",
+    "artifacts/releases/narrivy-linux-amd64.deb": "42f9101593a5a323a1af934c5ee80609c57a31d78fa78ecfcbd40bc1b23faf7c",
+    "scripts/record_supply_chain_evidence.py": "aaa9b33115ad840db090ac314c220a7d452fe37c1e013ea094dd1857d7de5ebf"
+  },
+  "artifact_under_test": {
+    "kind": "package",
+    "path": "artifacts/releases/narrivy-linux-amd64.deb",
+    "sha256": "42f9101593a5a323a1af934c5ee80609c57a31d78fa78ecfcbd40bc1b23faf7c"
+  },
+  "build_id": "narrivy-0.1.0~rc55+g14c89af+14c89af",
+  "command": "python3 scripts/record_supply_chain_evidence.py artifacts/releases/narrivy-linux-amd64.deb artifacts/candidates/linux-1.0-supply-chain",
+  "ended_at": "2026-09-22T08:32:44.949233+00:00",
+  "environment": {
+    "cpu": "x86_64",
+    "desktop": "none",
+    "device_details": "content verification only",
+    "display_scale": null,
+    "gpu": null,
+    "id": "supply-chain-verification",
+    "input_backend": null,
+    "kernel": "7.2.2-popos",
+    "lane_available": true,
+    "microphone": null,
+    "native_or_vm": "controlled",
+    "npu": null,
+    "os": "Linux",
+    "os_version": "7.2.2-popos",
+    "qualification_lane": "exact-package-supply-chain",
+    "session": "noninteractive"
+  },
+  "evidence_type": "package-artifact",
+  "execution": {
+    "child_failures_ignored": false,
+    "environment_class": "release-package",
+    "lane_available": true,
+    "substitutions": []
+  },
+  "exit_code": 0,
+  "git_commit": "14c89afc58a046b9e2e885ffeb1d517be87d6ab6",
+  "git_dirty": false,
+  "metrics": {
+    "checksummed_dependency_count": 204,
+    "dependency_count": 227,
+    "signed": false,
+    "signing_status": "not-supported"
+  },
+  "notes": "Verified the exact package, schema-v3 checksum manifest, SPDX dependency/license fields, in-toto subject, embedded clean-source build identity, and declared signing state. This does not claim native runtime qualification.",
+  "package_sha256": "42f9101593a5a323a1af934c5ee80609c57a31d78fa78ecfcbd40bc1b23faf7c",
+  "pass": true,
+  "phase": "P10",
+  "procedure": {
+    "assertions": [
+      {
+        "id": "exact-clean-package-bound",
+        "result": "pass"
+      },
+      {
+        "id": "package-checksum-manifest-matched",
+        "result": "pass"
+      },
+      {
+        "id": "spdx-dependency-license-inventory-present",
+        "result": "pass"
+      },
+      {
+        "id": "spdx-package-checksums-verified",
+        "result": "pass"
+      },
+      {
+        "id": "in-toto-subject-matched",
+        "result": "pass"
+      },
+      {
+        "id": "immutable-build-identity-matched",
+        "result": "pass"
+      },
+      {
+        "id": "signing-state-truthful",
+        "result": "pass"
+      }
+    ],
+    "id": "exact-package-supply-chain-v1",
+    "profile_id": "package-artifact-v1"
+  },
+  "requirement_ids": [
+    "OPS-004"
+  ],
+  "result": "pass",
+  "scenario_hash": "aaa9b33115ad840db090ac314c220a7d452fe37c1e013ea094dd1857d7de5ebf",
+  "scenario_id": "exact-package-supply-chain-v1",
+  "scenario_version": "1",
+  "schema_version": 2,
+  "started_at": "2026-09-22T08:32:43.082709+00:00",
+  "verification_id": "VER-OPS-004"
+}

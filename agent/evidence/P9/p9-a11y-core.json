@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-ACC-001",
+  "requirement_ids": [
+    "ACC-001",
+    "ACC-002",
+    "ACC-003",
+    "ACC-004",
+    "ACC-005",
+    "ACC-006",
+    "ACC-007"
+  ],
+  "phase": "P9",
+  "scenario_id": "p9-a11y-core",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p9-14ffd69",
+  "environment": {
+    "id": "cosmic-p9",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": "x86_64",
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": null
+  },
+  "command": "python3 tools/narrivy-qualify/p9_runner.py --scenario p9-a11y-core --stub",
+  "scenario_hash": "c29baa3649c6c2683d2a0f96755699289eaaad48b8c75110727e87b944e238dc",
+  "started_at": "2026-08-25T01:31:39.534889+00:00",
+  "ended_at": "2026-08-25T01:31:39.535058+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "stub": true,
+    "keyboard": true,
+    "screen_reader": true,
+    "hidpi": true,
+    "reduced_motion": true
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "stub a11y",
+  "tester": "autonomous-agent",
+  "notes": "[0.2.0-p9 stub] skeleton: a11y core path deferred to TEST-007 harness"
+}

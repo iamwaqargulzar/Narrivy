@@ -1,0 +1,54 @@
+{
+  "schema_version": 3,
+  "version": "0.1.0",
+  "build_identity": "narrivy-0.1.0+43566eb",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": false,
+  "builder_identity": {
+    "os": "Ubuntu 22.04.5 LTS",
+    "image": "ghcr.io/narrivy/builder:stub",
+    "image_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000000000",
+    "toolchain": "rustc 1.97.1 (8bab26f4f 2026-07-14) + cargo 1.97.1 (c980f4866 2026-06-30) + Tauri 2.6.3 + WebKitGTK 4.1",
+    "cargo_lock_hash": "0729c30409dab842ae1d40fe752815c528844afb8fb7fedb8b03c242821bea37"
+  },
+  "artifacts": [
+    {
+      "kind": "deb",
+      "path": "artifacts/releases/narrivy_0.1.0_amd64.deb",
+      "sha256": "bc15dbf6a42a446bbb1d04f1a46edc77a69bf35f163affaffbd7eca2a1c1f3dc",
+      "size_bytes": 38399850
+    },
+    {
+      "kind": "sbom",
+      "path": "artifacts/sbom/spdx.json",
+      "sha256": "dc869aff657882ebb9c1966d7275c31715a9f68d98c3403a11630f7b7632fa54",
+      "size_bytes": 180766
+    },
+    {
+      "kind": "provenance",
+      "path": "artifacts/sbom/provenance.json",
+      "sha256": "d219dbbff17e547d6cd6b011f8ddd48f6a8c554f047f71845553e572734fbdf3",
+      "size_bytes": 1182
+    },
+    {
+      "kind": "dependency-inventory",
+      "path": "artifacts/sbom/inventory.json",
+      "sha256": "af0f203e7673ca3b6993321726b2b3c5c89dbe732d0a782665b81e85b017813d",
+      "size_bytes": 77887
+    },
+    {
+      "kind": "other",
+      "path": "artifacts/sbom/build-info.json",
+      "sha256": "6424c7670b5ebf2b14307f89e1680dd8b566039f2278ce7821015773007974ce",
+      "size_bytes": 958
+    }
+  ],
+  "sbom_path": "artifacts/sbom/spdx.json",
+  "provenance_path": "artifacts/sbom/provenance.json",
+  "signing": {
+    "signed": false,
+    "status": "unsigned-by-policy",
+    "key_id": null,
+    "signature_path": null
+  }
+}

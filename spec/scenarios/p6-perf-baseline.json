@@ -1,0 +1,19 @@
+{
+  "id": "p6-perf-baseline",
+  "phase": "P6",
+  "kind": "perf",
+  "metrics": [
+    "hotkey_ack",
+    "capture_ready",
+    "listening_feedback",
+    "speech_partial",
+    "release_raw",
+    "release_committed",
+    "committed_delivered"
+  ],
+  "per_protocol": "docs/maintainers/qualification/performance-benchmark-protocol.md",
+  "requirement_ids": [
+    "PERF-001"
+  ],
+  "verification_id": "VER-PERF-001"
+}

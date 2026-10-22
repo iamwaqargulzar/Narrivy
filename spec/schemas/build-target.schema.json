@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://narrivy.local/schema/build-target-v2.json",
+  "title": "Narrivy Build Target",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project", "product_target", "target_phase", "auto_advance", "stop_after_target", "primary_platforms", "quality_profile", "network_default", "local_processing_default", "release_gate"],
+  "properties": {
+    "schema_version": {"const": 2},
+    "project": {"const": "Narrivy"},
+    "product_target": {"const": "linux-1.0"},
+    "target_phase": {"const": "P11"},
+    "auto_advance": {"const": true},
+    "stop_after_target": {"const": true},
+    "primary_platforms": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 160}},
+    "compatibility_targets": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 160}},
+    "post_release_targets": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 160}},
+    "quality_profile": {"const": "release-grade"},
+    "network_default": {"const": "deny-unless-policy-allows"},
+    "local_processing_default": {"const": true},
+    "release_gate": {"const": "python3 scripts/release_gate.py --target linux-1.0"}
+  }
+}

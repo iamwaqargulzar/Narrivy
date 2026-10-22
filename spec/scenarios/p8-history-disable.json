@@ -1,0 +1,12 @@
+{
+  "id": "p8-history-disable",
+  "phase": "P8",
+  "kind": "integration",
+  "scenario": "history Off \u2192 after dictation, history empty but journal recoverable",
+  "native_required": false,
+  "requirement_ids": [
+    "PRIV-002",
+    "PRIV-001"
+  ],
+  "verification_id": "VER-PRIV-002"
+}

@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "phase": "P5",
+  "description": "P5 reference ASR, model manager, compute qualification with NPU/GPU/CPU pooling.",
+  "minimum_checks": [
+    {
+      "id": "P5-001",
+      "description": "One reference ASR engine qualified (CPU fallback sufficient)",
+      "kind": "scenario",
+      "scenario_id": "p5-asr-cpu-correctness",
+      "native_required": true
+    },
+    {
+      "id": "P5-002",
+      "description": "Model download/hash/cache with corruption recovery",
+      "kind": "scenario",
+      "scenario_id": "p5-model-cache"
+    },
+    {
+      "id": "P5-003",
+      "description": "Hot/Warm/Cold residency and compiled cache with invalidation key",
+      "kind": "evidence",
+      "verification_id": "VER-PERF-007"
+    },
+    {
+      "id": "P5-004",
+      "description": "Hardware discovery NPU\u2192GPU(Vulkan)\u2192CPU fallback chain where present",
+      "kind": "scenario",
+      "scenario_id": "p5-hardware-failover"
+    },
+    {
+      "id": "P5-005",
+      "description": "Quant variant validated vs baseline, not just load",
+      "kind": "scenario",
+      "scenario_id": "p5-quant-validation"
+    },
+    {
+      "id": "P5-006",
+      "description": "Accelerator claim only if tuple qualified (device+driver+runtime+model+quant+OS+version)",
+      "kind": "evidence",
+      "verification_id": "VER-TEST-005"
+    },
+    {
+      "id": "P5-007",
+      "description": "Resource registry download path verifies immutable metadata/integrity before activation",
+      "kind": "evidence",
+      "verification_id": "VER-SEC-007"
+    }
+  ],
+  "required_artifacts": [],
+  "required_verification_ids": [
+    "VER-FUN-003",
+    "VER-FUN-028",
+    "VER-FUN-029",
+    "VER-PERF-005",
+    "VER-PERF-007",
+    "VER-PERF-008",
+    "VER-PERF-009",
+    "VER-PORT-006",
+    "VER-SEC-002",
+    "VER-SEC-007",
+    "VER-TEST-005"
+  ],
+  "native_required": true,
+  "working_app_required": true
+}

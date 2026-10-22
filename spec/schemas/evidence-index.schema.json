@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://narrivy.local/schema/evidence-index-v1.json",
+  "title": "Narrivy Evidence Disposition Index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "policy",
+    "legacy_default",
+    "qualified_evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "policy": {
+      "type": "string",
+      "const": "release-evidence-v2-required"
+    },
+    "legacy_default": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "eligible_for_release",
+        "reason"
+      ],
+      "properties": {
+        "disposition": {
+          "const": "historical-quarantined"
+        },
+        "eligible_for_release": {
+          "const": false
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "qualified_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256",
+          "disposition"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "disposition": {
+            "const": "qualified"
+          }
+        }
+      }
+    }
+  }
+}

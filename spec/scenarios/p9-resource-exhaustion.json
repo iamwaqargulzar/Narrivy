@@ -1,0 +1,11 @@
+{
+  "id": "p9-resource-exhaustion",
+  "phase": "P9",
+  "kind": "failure",
+  "scenario": "resource exhaustion combined: fd pressure + OOM stub, bounded fallback, transcript preserved, Inbox honored",
+  "native_required": true,
+  "requirement_ids": [
+    "TEST-006"
+  ],
+  "verification_id": "VER-TEST-006"
+}

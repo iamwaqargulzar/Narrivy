@@ -1,0 +1,10 @@
+{
+  "id": "p2-inbox-fallback",
+  "phase": "P2",
+  "kind": "e2e",
+  "scenario": "delivery failure falls back to Inbox; text recoverable",
+  "requirement_ids": [
+    "FUN-009"
+  ],
+  "verification_id": "VER-FUN-009"
+}

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-FUN-010",
+  "requirement_ids": [
+    "FUN-010"
+  ],
+  "phase": "P2",
+  "scenario_id": "p2-cancel-race",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p2-14ffd69",
+  "environment": {
+    "id": "cosmic-native-wayland",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": null,
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": "in-process synthesized silence (no device claimed)"
+  },
+  "command": "python3 tools/narrivy-qualify/p2_runner.py --cancel-race",
+  "scenario_hash": "35fd4b379a89995ddd6cc8a7a3062835fccf364c851cc90fc091713a42806728",
+  "started_at": "2026-08-26T06:42:30.988982+00:00",
+  "ended_at": "2026-08-26T06:42:34.114020+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "attempts": 3,
+    "stale_outputs": 0,
+    "final_states": [
+      "listening",
+      "listening",
+      "listening"
+    ],
+    "cancelled_states_seen": 0
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "cancellation without stale insertion",
+  "tester": "autonomous-agent",
+  "notes": "zero stale output across 3 attempts; cancelled-transition observed 0/3 polls"
+}

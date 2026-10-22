@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-TEST-006",
+  "requirement_ids": [
+    "TEST-006"
+  ],
+  "phase": "P9",
+  "scenario_id": "p9-oom-stub",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p9-14ffd69",
+  "environment": {
+    "id": "cosmic-p9",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": "x86_64",
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": null
+  },
+  "command": "python3 tools/narrivy-qualify/p9_runner.py --scenario p9-oom-stub --stub",
+  "scenario_hash": "f75d45864d57d537042da3642207f536ddafba2018cf7b8a40206c671162af90",
+  "started_at": "2026-08-25T01:31:39.127703+00:00",
+  "ended_at": "2026-08-25T01:31:39.128802+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "cgroup_available": true,
+    "rlimit_as_bytes": 67108864,
+    "note": "stub does not kill host; uses RLIMIT_AS + allocation probe",
+    "target_rlimit_as_bytes": 67108864,
+    "rlimit_set_to": 67108864,
+    "allocation_attempt_bytes": 134217728,
+    "allocation_rejected": true,
+    "allocation_error_type": "MemoryError:",
+    "probe_allocation_fails_helper": true,
+    "rlimit_restored": true,
+    "small_alloc_after_restore": true,
+    "cgroup_stub": {
+      "writable": true,
+      "note": "no private cgroup mount in skeleton",
+      "fake_memory_max": "67108864",
+      "fake_path": "/tmp/p9-oom-getjdivy/fake_cgroup/memory.max",
+      "read_back_ok": true,
+      "fake_memory_high": "67108864"
+    },
+    "real_cgroup_available": true
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "rlimit_rejected=True alloc_failed=True probe=True cgroup={'writable': True, 'note': 'no private cgroup mount in skeleton', 'fake_memory_max': '67108864', 'fake_path': '/tmp/p9-oom-getjdivy/fake_cgroup/memory.max', 'read_back_ok': True, 'fake_memory_high': '67108864'} restored=True",
+  "tester": "autonomous-agent",
+  "notes": "[0.2.0-p9 stub] RLIMIT_AS clamped to 67108864 (target 67108864) alloc MemoryError typed graceful, not SIGABRT:  helper probe_allocation_fails=True RLIMIT_AS restored to -1 (orig -1) fake cgroup memory.max written 67108864"
+}

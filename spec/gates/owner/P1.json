@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "phase": "P1",
+  "description": "P1 core contracts, IPC, persistence, privacy baseline with ADRs.",
+  "minimum_checks": [
+    {
+      "id": "P1-001",
+      "description": "Daemon lifecycle ADR exists and is accepted",
+      "kind": "artifact",
+      "artifact": "docs/adr/ADR-0012-daemon-lifecycle.md"
+    },
+    {
+      "id": "P1-002",
+      "description": "Persistence ADR exists and is accepted",
+      "kind": "artifact",
+      "artifact": "docs/adr/ADR-0013-persistence.md"
+    },
+    {
+      "id": "P1-003",
+      "description": "Session state machine tests",
+      "kind": "command",
+      "command": "cargo test --workspace --locked -- test_state_machine"
+    },
+    {
+      "id": "P1-004",
+      "description": "IPC handshake/peer validation tests",
+      "kind": "command",
+      "command": "cargo test --workspace --locked -- ipc"
+    },
+    {
+      "id": "P1-005",
+      "description": "Persistence migration atomicity/interrupt tests",
+      "kind": "command",
+      "command": "cargo test --workspace --locked -- migration"
+    },
+    {
+      "id": "P1-006",
+      "description": "Privacy policy enforcement before network boundary",
+      "kind": "evidence",
+      "verification_id": "VER-TEST-003"
+    },
+    {
+      "id": "P1-007",
+      "description": "First-class Pipeline and resource artifact contracts have deterministic contract tests",
+      "kind": "evidence",
+      "verification_id": "VER-FUN-030"
+    }
+  ],
+  "required_artifacts": [
+    "docs/adr/ADR-0012-daemon-lifecycle.md",
+    "docs/adr/ADR-0013-persistence.md"
+  ],
+  "required_verification_ids": [
+    "VER-FUN-005",
+    "VER-FUN-020",
+    "VER-FUN-030",
+    "VER-OPS-006",
+    "VER-PORT-002",
+    "VER-PORT-003",
+    "VER-PORT-004",
+    "VER-PORT-005",
+    "VER-PORT-008",
+    "VER-REL-001",
+    "VER-REL-007",
+    "VER-SEC-005",
+    "VER-TEST-003"
+  ],
+  "native_required": false,
+  "working_app_required": false
+}

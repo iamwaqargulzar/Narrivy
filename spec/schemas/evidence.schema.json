@@ -1,0 +1,675 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://narrivy.local/schema/evidence-v3.json",
+  "title": "Narrivy Evidence Record",
+  "description": "Schema-v3 records bind every procedure assertion to a measurement resolved in the record's own metrics. Schema-v2 records remain readable so historical qualification material is not destroyed, but a v2 record can no longer qualify: its assertions are unmeasured labels, which is exactly the defect schema-v3 removes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "verification_id",
+    "requirement_ids",
+    "phase",
+    "scenario_id",
+    "git_commit",
+    "git_dirty",
+    "build_id",
+    "environment",
+    "command",
+    "started_at",
+    "ended_at",
+    "exit_code",
+    "result",
+    "artifact_hashes"
+  ],
+  "properties": {
+    "schema_version": {
+      "enum": [
+        1,
+        2,
+        3
+      ]
+    },
+    "verification_id": {
+      "type": "string",
+      "pattern": "^VER-[A-Z0-9][A-Z0-9-]*$"
+    },
+    "requirement_ids": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z]+-[0-9]+$"
+      }
+    },
+    "phase": {
+      "type": "string",
+      "pattern": "^P0F$|^P[0-9]+$|^R[0-9]+$"
+    },
+    "scenario_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "git_commit": {
+      "type": "string",
+      "pattern": "^(?:[a-f0-9]{7,40}|unknown)$"
+    },
+    "git_dirty": {
+      "type": "boolean"
+    },
+    "build_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "binary_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "package_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "native_or_vm",
+        "os",
+        "os_version",
+        "kernel",
+        "desktop",
+        "session"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "native_or_vm": {
+          "enum": [
+            "native",
+            "vm",
+            "controlled"
+          ]
+        },
+        "os": {
+          "type": "string",
+          "minLength": 1
+        },
+        "os_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kernel": {
+          "type": "string",
+          "minLength": 1
+        },
+        "desktop": {
+          "type": "string",
+          "minLength": 1
+        },
+        "session": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cpu": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gpu": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "npu": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "device_details": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "microphone": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "input_backend": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_scale": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "qualification_lane": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lane_available": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "command": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenario_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "scenario_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "exit_code": {
+      "type": "integer"
+    },
+    "result": {
+      "enum": [
+        "pass",
+        "fail",
+        "skip"
+      ]
+    },
+    "pass": {
+      "type": "boolean"
+    },
+    "metrics": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true
+    },
+    "artifact_hashes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    },
+    "artifact_under_test": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "executable",
+            "package"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "procedure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "profile_id",
+        "assertions"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*-v[0-9]+$"
+        },
+        "profile_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*-v[0-9]+$"
+        },
+        "assertions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/assertionShape"
+          }
+        }
+      }
+    },
+    "diagnostic_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "diagnostic_excerpt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 4000
+    },
+    "tester": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 4000
+    },
+    "evidence_type": {
+      "enum": [
+        "unit",
+        "mock",
+        "simulated",
+        "integration",
+        "native-platform",
+        "package-artifact",
+        "manual"
+      ]
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lane_available": {
+          "type": "boolean"
+        },
+        "child_failures_ignored": {
+          "type": "boolean"
+        },
+        "environment_class": {
+          "enum": [
+            "controlled",
+            "native-platform",
+            "release-package"
+          ]
+        },
+        "substitutions": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "mock",
+              "fixture",
+              "proxy",
+              "stub",
+              "synthetic-audio"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  },
+  "$defs": {
+    "assertionShape": {
+      "type": "object",
+      "required": [
+        "id",
+        "result"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "result": {
+          "const": "pass"
+        },
+        "measurement": {
+          "$ref": "#/$defs/measurement"
+        }
+      }
+    },
+    "measurement": {
+      "description": "A pointer into this record's own metrics, the comparator to apply, and the value the measurement must satisfy. An assertion without a resolvable, satisfied measurement is not a claim.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric",
+        "comparator"
+      ],
+      "properties": {
+        "metric": {
+          "description": "Dot-separated path of mapping keys rooted at the record's metrics object. Array indices are not addressable; measure a collection with a len_* comparator instead.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*(\\.[A-Za-z0-9_-]+)*$"
+        },
+        "comparator": {
+          "enum": [
+            "eq",
+            "ne",
+            "lt",
+            "le",
+            "gt",
+            "ge",
+            "in",
+            "not_in",
+            "contains",
+            "len_eq",
+            "len_ne",
+            "len_lt",
+            "len_le",
+            "len_gt",
+            "len_ge",
+            "is_true",
+            "is_false"
+          ]
+        },
+        "expected": {
+          "type": [
+            "number",
+            "string",
+            "boolean",
+            "array",
+            "null"
+          ]
+        },
+        "tolerance": {
+          "description": "Absolute numeric slack for eq/ne. Only meaningful when both sides are numbers.",
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "comparator": {
+                "enum": [
+                  "lt",
+                  "le",
+                  "gt",
+                  "ge",
+                  "len_eq",
+                  "len_ne",
+                  "len_lt",
+                  "len_le",
+                  "len_gt",
+                  "len_ge"
+                ]
+              }
+            },
+            "required": [
+              "comparator"
+            ]
+          },
+          "then": {
+            "required": [
+              "expected"
+            ],
+            "properties": {
+              "expected": {
+                "type": "number"
+              },
+              "tolerance": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "comparator": {
+                "enum": [
+                  "in",
+                  "not_in",
+                  "contains"
+                ]
+              }
+            },
+            "required": [
+              "comparator"
+            ]
+          },
+          "then": {
+            "required": [
+              "expected"
+            ],
+            "properties": {
+              "expected": {
+                "type": "array",
+                "minItems": 1
+              },
+              "tolerance": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "comparator": {
+                "enum": [
+                  "is_true",
+                  "is_false"
+                ]
+              }
+            },
+            "required": [
+              "comparator"
+            ]
+          },
+          "then": {
+            "properties": {
+              "expected": false,
+              "tolerance": false
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "enum": [
+              2,
+              3
+            ]
+          }
+        },
+        "required": [
+          "schema_version"
+        ]
+      },
+      "then": {
+        "required": [
+          "evidence_type",
+          "execution",
+          "pass",
+          "procedure"
+        ],
+        "properties": {
+          "environment": {
+            "required": [
+              "qualification_lane",
+              "lane_available"
+            ]
+          },
+          "execution": {
+            "required": [
+              "lane_available",
+              "child_failures_ignored",
+              "environment_class",
+              "substitutions"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": 3
+          }
+        },
+        "required": [
+          "schema_version"
+        ]
+      },
+      "then": {
+        "required": [
+          "metrics"
+        ],
+        "properties": {
+          "metrics": {
+            "type": "object"
+          },
+          "procedure": {
+            "properties": {
+              "assertions": {
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "result",
+                    "measurement"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9-]*$"
+                    },
+                    "result": {
+                      "const": "pass"
+                    },
+                    "measurement": {
+                      "$ref": "#/$defs/measurement"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": 2
+          }
+        },
+        "required": [
+          "schema_version"
+        ]
+      },
+      "then": {
+        "properties": {
+          "procedure": {
+            "properties": {
+              "assertions": {
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "not": {
+                    "required": [
+                      "measurement"
+                    ]
+                  },
+                  "required": [
+                    "id",
+                    "result"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9-]*$"
+                    },
+                    "result": {
+                      "const": "pass"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "enum": [
+              2,
+              3
+            ]
+          },
+          "evidence_type": {
+            "const": "package-artifact"
+          }
+        },
+        "required": [
+          "evidence_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "artifact_under_test": {
+            "properties": {
+              "kind": {
+                "const": "package"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

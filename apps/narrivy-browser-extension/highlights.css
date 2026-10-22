@@ -1,0 +1,26 @@
+/* Narrivy Writing: underlines in rich editors (CSS Custom Highlight API).
+   Only these ::highlight() rules are added to pages; everything else the
+   extension shows lives in its own shadow root. */
+::highlight(narrivy-spelling) {
+  text-decoration: underline wavy #e5484d;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+::highlight(narrivy-grammar) {
+  text-decoration: underline wavy #f08c00;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+::highlight(narrivy-punctuation) {
+  text-decoration: underline #f08c00;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+::highlight(narrivy-style) {
+  text-decoration: underline dotted #3e7bfa;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+::highlight(narrivy-active) {
+  background-color: rgba(62, 123, 250, 0.16);
+}

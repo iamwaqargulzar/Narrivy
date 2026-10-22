@@ -1,0 +1,11 @@
+{
+  "id": "p8-privacy-zones",
+  "phase": "P8",
+  "kind": "integration",
+  "scenario": "zone deny for app_x \u2192 dictation into app_x produces no history row, but journal still has it",
+  "native_required": false,
+  "requirement_ids": [
+    "PRIV-003"
+  ],
+  "verification_id": "VER-PRIV-003"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "p8-history-retention",
+  "phase": "P8",
+  "kind": "integration",
+  "scenario": "history SQLite per-user TTL 7d/30d/forever respects PRIV-002 off; disabling History does not disable journal recovery",
+  "native_required": false,
+  "requirement_ids": ["PRIV-002", "PRIV-001"],
+  "verification_id": "VER-PRIV-002"
+}

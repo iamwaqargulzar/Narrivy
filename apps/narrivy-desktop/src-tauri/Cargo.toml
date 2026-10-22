@@ -1,0 +1,56 @@
+[package]
+publish = false
+name = "narrivy-desktop"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+description = "Narrivy desktop shell (Tauri 2): thin client of narrivyd over narrivy-ipc."
+
+# Joined the repo-root workspace at P3 integration (orchestrator): the owner
+# gate runs `cargo test --workspace --locked -- capability_ui`, which requires
+# this package in the root member list.
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "deny"
+
+[lib]
+name = "narrivy_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "narrivy-desktop"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-single-instance = "2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+# Real P1 IPC client/framing/protocol — the ONLY domain transport this shell uses.
+narrivy-ipc = { path = "../../../crates/narrivy-ipc" }
+narrivy-ipc-unix = { path = "../../../adapters/ipc-unix" }
+# P7 FUN-033: versioned pipeline export/import uses the real registry types.
+narrivy-pipeline = { path = "../../../crates/narrivy-pipeline" }
+
+# Linux overlay: native layer-shell card (ADR-0075, docs/product/ux/overlay.md).
+# gtk 0.18 is the same GTK3 binding Tauri uses on Linux.
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+# Already in the tree through Tauri's Linux web view; named here only for
+# `WebViewExt::terminate_web_process` on quit.
+webkit2gtk = "2.0"
+gtk-layer-shell = { version = "0.8", features = ["v0_6"] }
+# The desktop's folder chooser (XDG portal), for the assistant's working
+# folder; already in the workspace for the Linux platform adapter.
+ashpd.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

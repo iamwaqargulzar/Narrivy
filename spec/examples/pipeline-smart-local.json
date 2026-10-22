@@ -1,0 +1,208 @@
+{
+  "$schema": "https://narrivy.local/schema/pipeline-v1.json",
+  "schema_version": 1,
+  "id": "smart-local",
+  "name": "Smart Local",
+  "description": "Fast Dictation plus optional guarded local-LLM faithful cleanup (canonical slots).",
+  "extends": "fast-dictation",
+  "triggers": [
+    {
+      "id": "smart-hold",
+      "kind": "hotkey_hold",
+      "binding": "Ctrl+Alt+Space",
+      "enabled": true
+    }
+  ],
+  "nodes": [
+    {
+      "id": "capture",
+      "capability": "audio.capture",
+      "selection": "auto",
+      "module_id": null,
+      "optional": false,
+      "execution": "local_required",
+      "device_preference": [
+        "cpu"
+      ],
+      "failure": "fail_pipeline",
+      "fallback_modules": [],
+      "config": {}
+    },
+    {
+      "id": "denoise",
+      "capability": "audio.denoise",
+      "selection": "auto",
+      "module_id": null,
+      "optional": true,
+      "execution": "local_required",
+      "device_preference": [
+        "cpu"
+      ],
+      "failure": "skip",
+      "fallback_modules": [],
+      "config": {
+        "profile": "balanced"
+      }
+    },
+    {
+      "id": "vad",
+      "capability": "speech.vad",
+      "selection": "auto",
+      "module_id": null,
+      "optional": false,
+      "execution": "local_required",
+      "device_preference": [
+        "cpu"
+      ],
+      "failure": "fail_pipeline",
+      "fallback_modules": [],
+      "config": {}
+    },
+    {
+      "id": "asr",
+      "capability": "speech.asr",
+      "selection": "auto",
+      "module_id": null,
+      "optional": false,
+      "execution": "local_required",
+      "device_preference": [
+        "npu",
+        "dgpu",
+        "igpu",
+        "cpu"
+      ],
+      "failure": "fallback",
+      "fallback_modules": [],
+      "config": {
+        "gpu_api_preference": "vulkan"
+      }
+    },
+    {
+      "id": "punct",
+      "capability": "text.punctuation",
+      "selection": "auto",
+      "module_id": null,
+      "optional": false,
+      "execution": "local_required",
+      "device_preference": [
+        "cpu"
+      ],
+      "failure": "fallback",
+      "fallback_modules": [],
+      "config": {}
+    },
+    {
+      "id": "itn",
+      "capability": "text.itn",
+      "selection": "auto",
+      "module_id": null,
+      "optional": false,
+      "execution": "local_required",
+      "device_preference": [
+        "cpu"
+      ],
+      "failure": "fallback",
+      "fallback_modules": [],
+      "config": {}
+    },
+    {
+      "id": "llm",
+      "capability": "text.llm-postprocess",
+      "selection": "auto",
+      "module_id": null,
+      "optional": true,
+      "execution": "local_required",
+      "device_preference": [
+        "npu",
+        "igpu",
+        "cpu"
+      ],
+      "failure": "fallback",
+      "fallback_modules": [],
+      "config": {
+        "level": "faithful",
+        "quant": "int4"
+      }
+    },
+    {
+      "id": "guard",
+      "capability": "text.semantic-guard",
+      "selection": "auto",
+      "module_id": null,
+      "optional": false,
+      "execution": "local_required",
+      "device_preference": [
+        "cpu"
+      ],
+      "failure": "fail_pipeline",
+      "fallback_modules": [],
+      "config": {}
+    },
+    {
+      "id": "deliver",
+      "capability": "delivery.direct",
+      "selection": "auto",
+      "module_id": null,
+      "optional": false,
+      "execution": "local_required",
+      "device_preference": [
+        "cpu"
+      ],
+      "failure": "fallback",
+      "fallback_modules": [
+        "transactional-clipboard",
+        "narrivy-inbox"
+      ],
+      "config": {}
+    }
+  ],
+  "edges": [
+    {
+      "from": "capture",
+      "to": "denoise",
+      "stream": "audio"
+    },
+    {
+      "from": "denoise",
+      "to": "vad",
+      "stream": "audio"
+    },
+    {
+      "from": "vad",
+      "to": "asr",
+      "stream": "speech"
+    },
+    {
+      "from": "asr",
+      "to": "punct",
+      "stream": "transcript"
+    },
+    {
+      "from": "punct",
+      "to": "itn",
+      "stream": "text"
+    },
+    {
+      "from": "itn",
+      "to": "llm",
+      "stream": "text"
+    },
+    {
+      "from": "llm",
+      "to": "guard",
+      "stream": "text"
+    },
+    {
+      "from": "guard",
+      "to": "deliver",
+      "stream": "text"
+    }
+  ],
+  "policy": {
+    "privacy": "local_only",
+    "network": "deny",
+    "fallback": "safe_local",
+    "send_transcript_remote": false,
+    "send_context_remote": false
+  }
+}

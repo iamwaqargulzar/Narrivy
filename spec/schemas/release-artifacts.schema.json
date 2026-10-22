@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://narrivy.local/schema/release-artifacts-v3.json",
+  "title": "Narrivy Release Artifacts",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "version",
+    "build_identity",
+    "git_commit",
+    "git_dirty",
+    "builder_identity",
+    "artifacts",
+    "sbom_path",
+    "provenance_path",
+    "signing"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 3
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "build_identity": {
+      "type": "string",
+      "minLength": 7
+    },
+    "git_commit": {
+      "type": "string",
+      "pattern": "^(?:[a-f0-9]{7,40}|unknown)$"
+    },
+    "git_dirty": {
+      "type": "boolean"
+    },
+    "builder_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "os",
+        "image",
+        "image_digest",
+        "toolchain",
+        "cargo_lock_hash"
+      ],
+      "properties": {
+        "os": {
+          "type": "string",
+          "minLength": 1
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1
+        },
+        "image_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "toolchain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cargo_lock_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "path",
+          "sha256",
+          "size_bytes"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "deb",
+              "sbom",
+              "provenance",
+              "dependency-inventory",
+              "license-inventory",
+              "other"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "sbom_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "provenance_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "signing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signed",
+        "status"
+      ],
+      "properties": {
+        "signed": {
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "signed",
+            "unsigned-by-policy",
+            "not-supported"
+          ]
+        },
+        "key_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "signature_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

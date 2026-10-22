@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "phase": "P7",
+  "description": "P7 Raw/Clean modes only, simple personalization.",
+  "minimum_checks": [
+    {
+      "id": "P7-001",
+      "description": "Raw and Clean modes work end-to-end",
+      "kind": "scenario",
+      "scenario_id": "p7-raw-clean"
+    },
+    {
+      "id": "P7-002",
+      "description": "Deterministic formatting preferred over LLM",
+      "kind": "evidence",
+      "verification_id": "VER-FUN-027"
+    },
+    {
+      "id": "P7-003",
+      "description": "Deferred screens hidden/labeled, not shown complete (executed as deterministic UI audit: DeferredFeaturesAbsent suite + rendered-source grep)",
+      "kind": "manual",
+      "verification_id": "VER-UX-DEFERRED-HONESTY"
+    },
+    {
+      "id": "P7-004",
+      "description": "Lean default and optional guarded post-processing pipeline work; settings/pipeline export-import is exercised",
+      "kind": "evidence",
+      "verification_id": "VER-FUN-033"
+    }
+  ],
+  "required_artifacts": [],
+  "required_verification_ids": [
+    "VER-FUN-021",
+    "VER-FUN-027",
+    "VER-FUN-032",
+    "VER-FUN-033",
+    "VER-UX-009",
+    "VER-UX-011"
+  ],
+  "native_required": false,
+  "working_app_required": true
+}

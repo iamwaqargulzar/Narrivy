@@ -1,0 +1,10 @@
+{
+  "id": "p0f-tauri-build",
+  "phase": "P0F",
+  "kind": "tauri",
+  "checks": [
+    "deps",
+    "clean_launch"
+  ],
+  "native_required": false
+}

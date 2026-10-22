@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-PERF-PROBE-MICRO",
+  "requirement_ids": [
+    "PERF-006"
+  ],
+  "phase": "P4",
+  "scenario_id": "micro-bench-probe",
+  "scenario_hash": null,
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p4-14ffd69",
+  "environment": {
+    "id": "p4-host-native",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "microphone": "Meteor condenser microphone (default source)"
+  },
+  "command": "python3 tools/narrivy-qualify/p4_runner.py --micro-bench probe",
+  "started_at": "2026-08-26T06:43:40.111606+00:00",
+  "ended_at": "2026-08-26T06:43:40.269014+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "cargo_output": "\nrunning 1 test\nprobe_all parallel: 60.231415ms for 4 backends\ntest delivery::tests::probe_all_returns_per_backend_map_quickly_in_parallel ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 114 filtered out; finished in 0.06s\n\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s\n     Running unittests src/lib.rs (target/debug/deps/narrivy_platform_linux-17114b6946eacb78)\n",
+    "parallel_time": "60.231415",
+    "passed": true
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "{\"cargo_output\": \"\\nrunning 1 test\\nprobe_all parallel: 60.231415ms for 4 backends\\ntest delivery::tests::probe_all_returns_per_backend_map_quickly_in_parallel ... ok\\n\\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 114 filtered out; finished in 0.06s\\n\\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s\\n     Running unittests src/lib.rs (target/debug/deps/narrivy_platform_linux-17114b6946eacb78)\\n\", \"parallel_time\": \"60.231415\", \"passed\": true}",
+  "tester": "autonomous-agent-p4",
+  "notes": "Micro-benchmark: DeliveryRouter::probe_all() <100ms parallel."
+}

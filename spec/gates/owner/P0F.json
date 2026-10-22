@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "phase": "P0F",
+  "description": "P0F must prove or limit activation, delivery, target identity, mic, and packaging via disposable probes. Owner decision 2026-08-22: the GNOME lane is deferred to P11 release qualification; P0F completes on COSMIC-native evidence.",
+  "minimum_checks": [
+    {
+      "id": "P0F-001",
+      "description": "Probe global activation on Pop!_OS/COSMIC Wayland (toggle + PTT truth)",
+      "kind": "scenario",
+      "scenario_id": "p0f-activation-cosmic",
+      "native_required": true
+    },
+    {
+      "id": "P0F-003",
+      "description": "Probe text delivery on both desks across native Wayland, browser, Electron, terminal, XWayland with Unicode/multiline fixtures",
+      "kind": "scenario",
+      "scenario_id": "p0f-delivery-matrix"
+    },
+    {
+      "id": "P0F-004",
+      "description": "Least-privilege analysis documented, no default broad uinput",
+      "kind": "evidence",
+      "verification_id": "VER-P0F-LEAST-PRIV"
+    },
+    {
+      "id": "P0F-005",
+      "description": "Target identity probe (app/window/selection/surrounding) with fallback semantics",
+      "kind": "scenario",
+      "scenario_id": "p0f-target-identity"
+    },
+    {
+      "id": "P0F-006",
+      "description": "Microphone/PipeWire probe (discovery/open/hotplug/suspend)",
+      "kind": "scenario",
+      "scenario_id": "p0f-mic-pipewire"
+    },
+    {
+      "id": "P0F-007",
+      "description": "Tauri/WebKitGTK package probe builds and launches",
+      "kind": "scenario",
+      "scenario_id": "p0f-tauri-build"
+    },
+    {
+      "id": "P0F-008",
+      "description": "Capability matrix updated from evidence, not assumptions",
+      "kind": "artifact",
+      "artifact": "docs/platforms/capability-matrix.md"
+    },
+    {
+      "id": "P0F-009",
+      "description": "All P0F evidence validates evidence schema and is bound to commit/env",
+      "kind": "schema"
+    }
+  ],
+  "required_artifacts": [
+    "docs/platforms/capability-matrix.md",
+    "tools/p0f-probes/README.md"
+  ],
+  "required_verification_ids": [],
+  "native_required": true,
+  "working_app_required": false
+}

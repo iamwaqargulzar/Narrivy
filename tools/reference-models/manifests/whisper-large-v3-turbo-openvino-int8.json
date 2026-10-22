@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "id": "narrivy/whisper-large-v3-turbo-openvino-int8",
+  "revision": "2026-09-30.1",
+  "display_name": "Whisper large-v3 turbo (OpenVINO IR, INT8, 8-bit)",
+  "source": {
+    "provider": "huggingface",
+    "locator": "OpenVINO/whisper-large-v3-turbo-int8-ov",
+    "immutable_revision": "b568445dd5dc8c695bde596f8acbb4694fd6ba64",
+    "publisher": "OpenVINO"
+  },
+  "engine": {
+    "id": "asr-openvino",
+    "min_version": "2026.4",
+    "max_version": null
+  },
+  "format": {
+    "family": "whisper",
+    "precision": "INT8",
+    "conversion_recipe": null
+  },
+  "tasks": [
+    "transcribe"
+  ],
+  "languages": [
+    "multilingual"
+  ],
+  "files": [
+    {
+      "path": "added_tokens.json",
+      "sha256": "3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0",
+      "size_bytes": 34648,
+      "optional_signature": null
+    },
+    {
+      "path": "config.json",
+      "sha256": "bfd92c097547ab12cb42abae8008be5a59a91fdc5ab39acce24489eb8a3e8a86",
+      "size_bytes": 1192,
+      "optional_signature": null
+    },
+    {
+      "path": "generation_config.json",
+      "sha256": "4617fcca458af3b91a103143aaac919c1ab6680b552d7abd10811b7248bd77b4",
+      "size_bytes": 3767,
+      "optional_signature": null
+    },
+    {
+      "path": "merges.txt",
+      "sha256": "2df2990a395e35e8dfbc7511e08c12d56018d8d04691e0133e5d63b21e154dc6",
+      "size_bytes": 493869,
+      "optional_signature": null
+    },
+    {
+      "path": "normalizer.json",
+      "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+      "size_bytes": 52666,
+      "optional_signature": null
+    },
+    {
+      "path": "openvino_config.json",
+      "sha256": "9da38e88cec069ad54699d627f1c59d36c36a3dfb54b5e1bb5cfdf5832efaf03",
+      "size_bytes": 622,
+      "optional_signature": null
+    },
+    {
+      "path": "openvino_decoder_model.bin",
+      "sha256": "c064991cbafc4381567d29972b7013dc24026de9c326d03eb1e6e4fc44aa959f",
+      "size_bytes": 172534710,
+      "optional_signature": null
+    },
+    {
+      "path": "openvino_decoder_model.xml",
+      "sha256": "aeb09fafbf1c0cbf84baf30f46763436005822faf3b365359b8de0aa04f03047",
+      "size_bytes": 391642,
+      "optional_signature": null
+    },
+    {
+      "path": "openvino_detokenizer.bin",
+      "sha256": "f2b3c47825a1089525ff65c0c8e49271e1dee69a401a04fc827ac2de5b7766e4",
+      "size_bytes": 736198,
+      "optional_signature": null
+    },
+    {
+      "path": "openvino_detokenizer.xml",
+      "sha256": "6e106a14f14b0771b46b7948a99b1d819ff93b2455b7da8f47761ab9dba9dc56",
+      "size_bytes": 9779,
+      "optional_signature": null
+    },
+    {
+      "path": "openvino_encoder_model.bin",
+      "sha256": "0590a8f35f96d57801c55990028d917821ac721026e34b7f3f59d7561fc908e6",
+      "size_bytes": 645332592,
+      "optional_signature": null
+    },
+    {
+      "path": "openvino_encoder_model.xml",
+      "sha256": "60713d4ed3a8ac8ee020e11c4737ec276d14cabc6a082537bddf2c00ba6ce070",
+      "size_bytes": 1518660,
+      "optional_signature": null
+    },
+    {
+      "path": "openvino_tokenizer.bin",
+      "sha256": "adfa3d9a2920d0f314121270a960ab331ec0f05838544bb8ecaaa422282a6fd4",
+      "size_bytes": 1898973,
+      "optional_signature": null
+    },
+    {
+      "path": "openvino_tokenizer.xml",
+      "sha256": "cba304e7bad54773b9d2cbccfbc8501117ecf2e3c0f4f5331742a0a3c9feed93",
+      "size_bytes": 27091,
+      "optional_signature": null
+    },
+    {
+      "path": "preprocessor_config.json",
+      "sha256": "654cf18d3e163b948ceaf9766da56ce0b52de265d58673cf61c9376f126bd499",
+      "size_bytes": 357,
+      "optional_signature": null
+    },
+    {
+      "path": "special_tokens_map.json",
+      "sha256": "baea4ea09372eb4fca86b4e4346139fd73cb807d5087e9de0948e971739c3e74",
+      "size_bytes": 2186,
+      "optional_signature": null
+    },
+    {
+      "path": "tokenizer.json",
+      "sha256": "5c1bf30c9e716e1477bedef846b01be0013daecb89e9e3ef7ab89b23c178df1b",
+      "size_bytes": 3930645,
+      "optional_signature": null
+    },
+    {
+      "path": "tokenizer_config.json",
+      "sha256": "3c75940dfce3a294fca7041a5faff011677f1b68fa85e47511bb8cf6dccaded6",
+      "size_bytes": 282873,
+      "optional_signature": null
+    },
+    {
+      "path": "vocab.json",
+      "sha256": "6788c80b082e9b0d1393147d3a3e62ba19285ac0c82ace8e5ef00f37ead58971",
+      "size_bytes": 835528,
+      "optional_signature": null
+    }
+  ],
+  "devices": [
+    "CPU",
+    "GPU",
+    "NPU"
+  ],
+  "runtime_constraints": {
+    "notes": "Quantization: INT8 (8-bit weights). Returns text after you stop. May run on CPU, GPU, NPU; a device is used only after this exact model, runtime, driver and device pass qualification on the user's computer."
+  },
+  "license": {
+    "spdx_or_name": "MIT",
+    "source": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov",
+    "redistribution": "allowed",
+    "notice": "Whisper large-v3 turbo by OpenAI; OpenVINO IR conversion and INT8 compression by Intel (OpenVINO). Redistributed unmodified."
+  }
+}

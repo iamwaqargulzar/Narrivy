@@ -1,0 +1,11 @@
+{
+  "id": "p10-deb-build",
+  "phase": "P10",
+  "kind": "packaging",
+  "scenario": "reproducible .deb build via dpkg-deb --root-owner-group with SOURCE_DATE_EPOCH from git log, version from Cargo.toml/tauri, build-info embedded, permissions 0755/0644",
+  "native_required": true,
+  "requirement_ids": [
+    "OPS-002"
+  ],
+  "verification_id": "VER-OPS-002"
+}

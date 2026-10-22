@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "phase": "P1",
+  "implemented": true,
+  "primary_requirements": [
+    "FUN-005",
+    "FUN-020",
+    "FUN-030",
+    "OPS-006",
+    "PORT-002",
+    "PORT-003",
+    "PORT-004",
+    "PORT-005",
+    "PORT-008",
+    "REL-001",
+    "REL-007",
+    "SEC-005",
+    "TEST-003"
+  ],
+  "required_artifacts": [
+    "docs/adr/ADR-0012-daemon-lifecycle.md",
+    "docs/adr/ADR-0013-persistence.md"
+  ],
+  "commands": [
+    "python3 scripts/verify_traceability.py",
+    "python3 scripts/verify_architecture_map.py",
+    "python3 scripts/verify_pipeline_contracts.py"
+  ]
+}

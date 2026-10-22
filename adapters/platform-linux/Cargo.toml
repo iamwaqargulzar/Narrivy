@@ -1,0 +1,53 @@
+[package]
+publish = false
+name = "narrivy-platform-linux"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+
+# Scoped unsafe override (ADR-0014 invariant): the ONLY unsafe in this crate
+# is isolated Linux FFI for daemon lifecycle primitives (getuid, SO_PEERCRED-
+# free flock) inside `ffi` modules with SAFETY comments. Everything else in
+# the workspace remains forbid(unsafe). Portable logic stays out of here.
+description = "Linux platform adapter: PipeWire capture, routed text delivery (wtype, portal), model import and daemon lifecycle."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+[lints.rust]
+unsafe_code = "allow"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "deny"
+
+[dependencies]
+libc.workspace = true
+narrivy-types.workspace = true
+narrivy-platform-api.workspace = true
+narrivy-process-linux.workspace = true
+narrivy-model-manager.workspace = true
+
+# Compute host facts (accelerator nodes, bounded discovery helpers, core
+# count) and POSIX cache-file protection. Both implement portable contracts
+# and hold no planning or store policy.
+narrivy-compute.workspace = true
+# JSON parsing of one-shot `pw-dump` snapshots for node-name -> serial
+# resolution at capture start (never on the PERF-006 hot path).
+serde_json.workspace = true
+serde.workspace = true
+tempfile.workspace = true
+ashpd.workspace = true
+tokio.workspace = true
+futures-util.workspace = true
+rand.workspace = true
+zbus.workspace = true
+reis.workspace = true
+rustix.workspace = true
+sha2.workspace = true
+wayland-client.workspace = true
+wayland-protocols.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

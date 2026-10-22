@@ -1,0 +1,17 @@
+[package]
+publish = false
+name = "narrivy-types"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Portable domain value types shared by every Narrivy crate."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints]
+workspace = true
+
+
+[dependencies]
+serde.workspace = true

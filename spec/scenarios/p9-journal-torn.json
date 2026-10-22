@@ -1,0 +1,11 @@
+{
+  "id": "p9-journal-torn",
+  "phase": "P9",
+  "kind": "failure",
+  "scenario": "journal torn-write quarantine: 500 entries truncate 50 at random offsets, stray .tmp ignored, survivors ordered",
+  "native_required": true,
+  "requirement_ids": [
+    "TEST-006"
+  ],
+  "verification_id": "VER-TEST-006"
+}

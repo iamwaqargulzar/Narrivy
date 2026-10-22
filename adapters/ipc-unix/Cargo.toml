@@ -1,0 +1,31 @@
+[package]
+publish = false
+name = "narrivy-ipc-unix"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Authenticated Unix-domain socket transport for the Narrivy IPC protocol."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints.rust]
+unsafe_code = "allow"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "deny"
+
+[dependencies]
+narrivy-ipc.workspace = true
+# Portable shutdown budget so connection cleanup shares the service deadline.
+narrivy-types.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+libc.workspace = true
+socket2 = "=0.6.5"
+
+[dev-dependencies]
+tempfile.workspace = true

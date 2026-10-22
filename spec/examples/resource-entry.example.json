@@ -1,0 +1,35 @@
+{
+  "$schema": "https://narrivy.local/schema/resource-entry-v1.json",
+  "schema_version": 1,
+  "id": "module:org.narrivy.example-denoiser",
+  "artifact_class": "module",
+  "version": "1.0.0",
+  "revision": null,
+  "license": {
+    "spdx": "MIT",
+    "redistributable": true,
+    "notice": null
+  },
+  "sources": [
+    {
+      "kind": "upstream",
+      "uri": "https://example.invalid/upstream/example-denoiser-1.0.0.nmod",
+      "priority": 1
+    },
+    {
+      "kind": "narrivy_mirror",
+      "uri": "https://example.invalid/narrivy-mirror/example-denoiser-1.0.0.nmod",
+      "priority": 2
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "example-denoiser-1.0.0.nmod",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 12345,
+      "signature": null
+    }
+  ],
+  "dependencies": [],
+  "trust": "narrivy_verified"
+}

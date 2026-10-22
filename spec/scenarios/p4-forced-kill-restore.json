@@ -1,0 +1,11 @@
+{
+  "id": "p4-forced-kill-restore",
+  "phase": "P4",
+  "kind": "e2e",
+  "scenario": "SIGKILL during active duck -> dead-owner journal recovery restores original volume (native)",
+  "native_required": true,
+  "requirement_ids": [
+    "REL-009"
+  ],
+  "verification_id": "VER-REL-009"
+}

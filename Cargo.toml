@@ -1,0 +1,108 @@
+[workspace]
+resolver = "3"
+members = [
+  "crates/narrivy-types",
+  "crates/narrivy-platform-api",
+  "crates/narrivy-asr-api",
+  "crates/narrivy-policy",
+  "crates/narrivy-pipeline",
+  "crates/narrivy-ipc",
+  "crates/narrivy-journal-api",
+  "crates/narrivy-diagnostics",
+  "crates/narrivy-compute",
+  "crates/narrivy-core",
+  "crates/narrivy-model-manager",
+  "crates/narrivy-history",
+  "engines/asr-mock",
+  "engines/transcribe-cpp",
+  "engines/openvino",
+  "engines/grammar-harper",
+  "adapters/platform-null",
+  "adapters/platform-linux",
+  "adapters/process-linux",
+  "adapters/ipc-unix",
+  "adapters/journal-unix",
+  "services/narrivyd",
+  "apps/narrivy-cli",
+  "apps/narrivy-browser-host",
+  "apps/narrivy-desktop/src-tauri",
+]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+repository = "https://github.com/iamwaqargulzar/narrivy"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "deny"
+
+[workspace.dependencies]
+narrivy-types = { path = "crates/narrivy-types" }
+narrivy-platform-api = { path = "crates/narrivy-platform-api" }
+narrivy-compute = { path = "crates/narrivy-compute" }
+narrivy-model-manager = { path = "crates/narrivy-model-manager" }
+narrivy-asr-api = { path = "crates/narrivy-asr-api" }
+narrivy-policy = { path = "crates/narrivy-policy" }
+narrivy-pipeline = { path = "crates/narrivy-pipeline" }
+narrivy-ipc = { path = "crates/narrivy-ipc" }
+narrivy-ipc-unix = { path = "adapters/ipc-unix" }
+narrivy-journal-api = { path = "crates/narrivy-journal-api" }
+narrivy-journal-unix = { path = "adapters/journal-unix" }
+narrivy-diagnostics = { path = "crates/narrivy-diagnostics" }
+narrivy-core = { path = "crates/narrivy-core" }
+narrivy-history = { path = "crates/narrivy-history" }
+narrivy-platform-linux = { path = "adapters/platform-linux" }
+narrivy-process-linux = { path = "adapters/process-linux" }
+narrivy-grammar-harper = { path = "engines/grammar-harper" }
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2"
+rusqlite = { version = "0.40", features = ["bundled"] }
+sha2 = "0.11"
+hex = "0.4"
+libc = "0.2"
+tempfile = "3"
+ashpd = { version = "=0.12.0", default-features = false, features = ["tokio"] }
+tokio = { version = "=1.53.1", features = ["net", "rt", "signal", "time"] }
+futures-util = "=0.3.34"
+rand = "=0.9.5"
+zbus = { version = "=5.13.2", default-features = false, features = ["tokio"] }
+reis = { version = "=0.7.1", default-features = false }
+rustix = { version = "=1.1.4", features = ["event", "fs", "pipe", "process", "time"] }
+# The Linux adapter's clipboard access through the Wayland data-control
+# protocol (no external clipboard helper). Pure Rust.
+wayland-client = { version = "=0.31.15", default-features = false }
+wayland-protocols = { version = "=0.32.13", default-features = false, features = ["client", "staging"] }
+
+
+# Development builds hash whole model files (hundreds of megabytes) at start
+# and on every model change. Unoptimised SHA-256 makes that take most of a
+# minute, so the hashing crates are always optimised.
+[profile.dev.package.sha2]
+opt-level = 3
+
+# The writing checker runs on every pause in typing; unoptimised it takes
+# hundreds of milliseconds instead of a few.
+[profile.dev.package.harper-core]
+opt-level = 3
+[profile.dev.package.harper-brill]
+opt-level = 3
+[profile.dev.package.fst]
+opt-level = 3
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.release.package."*"]
+opt-level = 3

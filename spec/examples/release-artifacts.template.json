@@ -1,0 +1,22 @@
+{
+  "schema_version": 3,
+  "version": "0.0.0-REPLACE",
+  "build_identity": "REPLACE-BUILD-ID",
+  "git_commit": "unknown",
+  "git_dirty": false,
+  "builder_identity": {
+    "os": "REPLACE",
+    "image": "REPLACE",
+    "image_digest": "REPLACE",
+    "toolchain": "REPLACE",
+    "cargo_lock_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "artifacts": [
+    {"kind":"deb","path":"artifacts/REPLACE.deb","sha256":"0000000000000000000000000000000000000000000000000000000000000000","size_bytes":1},
+    {"kind":"sbom","path":"artifacts/REPLACE.sbom.json","sha256":"0000000000000000000000000000000000000000000000000000000000000000","size_bytes":1},
+    {"kind":"provenance","path":"artifacts/REPLACE.provenance.json","sha256":"0000000000000000000000000000000000000000000000000000000000000000","size_bytes":1}
+  ],
+  "sbom_path": "artifacts/REPLACE.sbom.json",
+  "provenance_path": "artifacts/REPLACE.provenance.json",
+  "signing": {"signed":false,"status":"unsigned-by-policy","key_id":null,"signature_path":null}
+}

@@ -1,0 +1,11 @@
+{
+  "id": "p10-upgrade-uninstall",
+  "phase": "P10",
+  "kind": "packaging",
+  "scenario": "upgrade and uninstall preserve/remove per policy: upgrade preserves XDG user data, ordinary uninstall preserves data, purge explicit, interrupted upgrade recovery",
+  "native_required": false,
+  "requirement_ids": [
+    "OPS-003"
+  ],
+  "verification_id": "VER-OPS-003"
+}

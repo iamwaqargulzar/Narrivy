@@ -1,0 +1,13 @@
+{
+  "id": "p9-security-hardening",
+  "phase": "P9",
+  "kind": "security",
+  "scenario": "security hardening: plugin deny-by-default, archive traversal blocked, integrity metadata",
+  "native_required": true,
+  "requirement_ids": [
+    "SEC-001",
+    "SEC-003",
+    "SEC-006"
+  ],
+  "verification_id": "VER-SEC-006"
+}

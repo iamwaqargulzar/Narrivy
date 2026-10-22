@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-TEST-010",
+  "requirement_ids": [
+    "TEST-010"
+  ],
+  "phase": "P11",
+  "scenario_id": "p11-cosmic-native",
+  "scenario_hash": "5df57fde9e7b1f63c44b17ac383b18edfea1ec2281a90c3d849ddd08ff9577b1",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p11-14ffd69",
+  "environment": {
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "session": "wayland",
+    "id": "cosmic-native",
+    "desktop": "COSMIC"
+  },
+  "command": "python3 tools/narrivy-qualify/p11_runner.py --scenario p11-cosmic-native",
+  "started_at": "2026-08-26T07:32:13.106740+00:00",
+  "ended_at": "2026-08-26T07:32:16.013835+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "detail": "COSMIC native E2E via release deb proxy",
+    "p2_e2e_exit": 0
+  },
+  "artifact_hashes": {},
+  "diagnostic_excerpt": "COSMIC native E2E via release deb proxy"
+}

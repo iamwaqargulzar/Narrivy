@@ -1,0 +1,17 @@
+{
+  "id": "p9-a11y-core",
+  "phase": "P9",
+  "kind": "accessibility",
+  "scenario": "accessibility core path: keyboard, screen-reader, HiDPI, reduced motion, high-contrast, focus visibility",
+  "native_required": true,
+  "requirement_ids": [
+    "ACC-001",
+    "ACC-002",
+    "ACC-003",
+    "ACC-004",
+    "ACC-005",
+    "ACC-006",
+    "ACC-007"
+  ],
+  "verification_id": "VER-ACC-001"
+}

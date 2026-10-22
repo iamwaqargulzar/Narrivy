@@ -1,0 +1,56 @@
+[graph]
+all-features = true
+
+[advisories]
+# Owner risk acceptance D22 / ADR-0075 (2026-09-29): the Tauri 2 desktop host
+# on Linux. Each entry is an "unmaintained" notice with no known
+# vulnerability, inside Tauri's own GTK3 stack or the GTK3 layer-shell
+# overlay that Handy also uses. Nothing else may be added without a new
+# owner decision. Re-evaluate at every Tauri release, and drop these when
+# Tauri ships GTK4/WebKitGTK 6 on Linux (wry PR #1767).
+ignore = [
+  { id = "RUSTSEC-2024-0370", reason = "proc-macro-error via Tauri's GTK3 menu stack (muda -> gtk 0.18 -> glib-macros); ADR-0075" },
+  { id = "RUSTSEC-2025-0075", reason = "unic-char-range via urlpattern in tauri-utils; ADR-0075" },
+  { id = "RUSTSEC-2025-0080", reason = "unic-common via urlpattern in tauri-utils; ADR-0075" },
+  { id = "RUSTSEC-2025-0081", reason = "unic-char-property via urlpattern in tauri-utils; ADR-0075" },
+  { id = "RUSTSEC-2025-0098", reason = "unic-ucd-version via urlpattern in tauri-utils; ADR-0075" },
+  { id = "RUSTSEC-2025-0100", reason = "unic-ucd-ident via urlpattern in tauri-utils; ADR-0075" },
+  { id = "RUSTSEC-2024-0422", reason = "gtk-layer-shell GTK3 bindings for the Linux overlay (Handy approach); ADR-0075" },
+  { id = "RUSTSEC-2024-0423", reason = "gtk-layer-shell-sys GTK3 bindings for the Linux overlay (Handy approach); ADR-0075" },
+]
+
+[licenses]
+confidence-threshold = 0.90
+allow = [
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "MIT",
+  "MPL-2.0",
+  "Unicode-3.0",
+  "Zlib"
+]
+
+# CC0-1.0 is a public-domain dedication. It is allowed for this one crate,
+# which harper-core (the writing checker, D26) uses for SHA-3 hashing; it is
+# not allowed in general.
+[[licenses.exceptions]]
+crate = "tiny-keccak"
+allow = ["CC0-1.0"]
+
+[licenses.private]
+# Workspace crates are publish=false; the owner selected MIT in agent/DECISIONS.md.
+# External dependency licenses remain checked independently of the root LICENSE.
+ignore = true
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+highlight = "all"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

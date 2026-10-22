@@ -1,0 +1,11 @@
+{
+  "id": "p9-privacy-leak",
+  "phase": "P9",
+  "kind": "security",
+  "scenario": "privacy leak check: harnesses emit no transcript/audio/clipboard, diagnostics redacted, typed errors",
+  "native_required": true,
+  "requirement_ids": [
+    "SEC-006"
+  ],
+  "verification_id": "VER-SEC-006"
+}

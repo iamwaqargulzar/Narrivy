@@ -1,0 +1,14 @@
+{
+  "id": "p5-model-cache",
+  "phase": "P5",
+  "kind": "integration",
+  "scenario": "trusted registry acquisition: sha256-verified staged install, corrupt-download typed recovery with staging cleanup, cold-missing re-acquire; local transports only",
+  "native_required": false,
+  "requirement_ids": [
+    "SEC-002",
+    "SEC-007",
+    "PERF-007",
+    "PERF-008"
+  ],
+  "verification_id": "VER-SEC-002"
+}

@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://narrivy.local/schema/pipeline-v1.json",
+  "title": "Narrivy Pipeline v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "nodes",
+    "edges",
+    "policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 96
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 800
+    },
+    "extends": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-z0-9][a-z0-9._@:-]{0,159}$"
+    },
+    "triggers": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/trigger"
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    },
+    "policy": {
+      "$ref": "#/$defs/policy"
+    },
+    "$schema": {
+      "const": "https://narrivy.local/schema/pipeline-v1.json"
+    }
+  },
+  "$defs": {
+    "trigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+        },
+        "kind": {
+          "enum": [
+            "hotkey_toggle",
+            "hotkey_hold",
+            "cli",
+            "app_rule",
+            "hardware",
+            "wake_word"
+          ]
+        },
+        "binding": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 160
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "capability",
+        "selection",
+        "failure"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+        },
+        "capability": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$"
+        },
+        "selection": {
+          "enum": [
+            "auto",
+            "manual_preferred",
+            "manual_locked"
+          ]
+        },
+        "module_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 160
+        },
+        "optional": {
+          "type": "boolean"
+        },
+        "execution": {
+          "enum": [
+            "local_required",
+            "local_preferred",
+            "remote_allowed"
+          ]
+        },
+        "device_preference": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "npu",
+              "dgpu",
+              "igpu",
+              "cpu"
+            ]
+          }
+        },
+        "failure": {
+          "enum": [
+            "fail_pipeline",
+            "skip",
+            "fallback"
+          ]
+        },
+        "fallback_modules": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 160
+          }
+        },
+        "config": {
+          "type": "object",
+          "maxProperties": 96
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "to": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "stream": {
+          "type": "string",
+          "maxLength": 64
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "privacy",
+        "network",
+        "fallback"
+      ],
+      "properties": {
+        "privacy": {
+          "enum": [
+            "local_only",
+            "hybrid",
+            "cloud_allowed"
+          ]
+        },
+        "network": {
+          "enum": [
+            "deny",
+            "ask",
+            "allow_configured"
+          ]
+        },
+        "fallback": {
+          "enum": [
+            "safe_local",
+            "strict",
+            "custom"
+          ]
+        },
+        "send_transcript_remote": {
+          "type": "boolean"
+        },
+        "send_context_remote": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

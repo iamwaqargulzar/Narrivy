@@ -1,0 +1,9 @@
+{
+  "id": "p8-privacy-zone",
+  "phase": "P8",
+  "kind": "integration",
+  "scenario": "Privacy Zones (app-category deny) override Mode/Profile/plugin cloud permissions per PRIV-003 and forbid history/context/cloud",
+  "native_required": false,
+  "requirement_ids": ["PRIV-003"],
+  "verification_id": "VER-PRIV-003"
+}

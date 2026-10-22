@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "phase": "P2",
+  "description": "P2 walking skeleton must prove trigger\u2192mic\u2192ASR\u2192delivery/Inbox on both lanes. Amendment 2026-08-22: check P2-002 (GNOME-native trigger probe) DEFERRED to P11 release qualification per recorded owner decision (B-HW-003; DECISIONS 2026-08-22) \u2014 same amendment pattern as P0F-002. COSMIC-native evidence completes P2.",
+  "minimum_checks": [
+    {
+      "id": "P2-001",
+      "description": "Trigger probe on COSMIC native (toggle, PTT where proven)",
+      "kind": "scenario",
+      "scenario_id": "p2-trigger-cosmic",
+      "native_required": true
+    },
+    {
+      "id": "P2-003",
+      "description": "Real mic capture \u2192 real ASR \u2192 delivery to native Wayland app",
+      "kind": "scenario",
+      "scenario_id": "p2-e2e-native-wayland"
+    },
+    {
+      "id": "P2-004",
+      "description": "Delivery fallback to Inbox when no writable target",
+      "kind": "scenario",
+      "scenario_id": "p2-inbox-fallback"
+    },
+    {
+      "id": "P2-005",
+      "description": "Cancellation without stale output",
+      "kind": "scenario",
+      "scenario_id": "p2-cancel-race"
+    },
+    {
+      "id": "P2-006",
+      "description": "No transcript/audio in ordinary logs",
+      "kind": "evidence",
+      "verification_id": "VER-PRIV-006"
+    },
+    {
+      "id": "P2-007",
+      "description": "CPU correctness path works even on accelerator hosts",
+      "kind": "scenario",
+      "scenario_id": "p2-cpu-fallback"
+    },
+    {
+      "id": "P2-008",
+      "description": "Different trigger bindings can target different pipeline IDs; hold is capability-gated",
+      "kind": "evidence",
+      "verification_id": "VER-FUN-031"
+    }
+  ],
+  "required_artifacts": [],
+  "required_verification_ids": [
+    "VER-FUN-001",
+    "VER-FUN-004",
+    "VER-FUN-009",
+    "VER-FUN-010",
+    "VER-FUN-013",
+    "VER-FUN-031",
+    "VER-REL-002",
+    "VER-REL-003",
+    "VER-TEST-004"
+  ],
+  "native_required": true,
+  "working_app_required": true
+}

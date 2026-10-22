@@ -1,0 +1,25 @@
+{
+  "schema_version": 2,
+  "phase": "P6",
+  "implemented": true,
+  "primary_requirements": [
+    "FUN-008",
+    "PERF-001",
+    "PERF-002",
+    "PERF-003",
+    "PERF-004",
+    "REL-006",
+    "REL-008",
+    "TEST-009",
+    "OPS-001"
+  ],
+  "required_artifacts": [],
+  "commands": [
+    "python3 scripts/verify_traceability.py",
+    "cargo test -p narrivy-diagnostics --locked",
+    "python3 scripts/doctor.py --json"
+  ],
+  "smoke_commands": [
+    "python3 tools/narrivy-qualify/p6_runner.py --scenario p6-e2e-beta"
+  ]
+}

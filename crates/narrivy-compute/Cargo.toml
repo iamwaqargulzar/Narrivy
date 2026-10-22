@@ -1,0 +1,21 @@
+[package]
+publish = false
+name = "narrivy-compute"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Compute-device discovery, per-tuple qualification records and explainable device planning."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

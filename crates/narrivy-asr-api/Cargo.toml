@@ -1,0 +1,16 @@
+[package]
+publish = false
+name = "narrivy-asr-api"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Speech-recognition engine contracts: streaming sessions, typed requests, capabilities and cancellation."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints]
+workspace = true
+[dependencies]
+narrivy-types.workspace = true
+

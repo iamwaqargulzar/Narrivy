@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "phase": "P3",
+  "description": "P3 desktop shell on proven service, themes, capability truth.",
+  "minimum_checks": [
+    {
+      "id": "P3-001",
+      "description": "Tauri shell launches against real daemon",
+      "kind": "scenario",
+      "scenario_id": "p3-shell-launch"
+    },
+    {
+      "id": "P3-002",
+      "description": "Home shows computed Auto\u2192resolved config (compute/model/mic/delivery)",
+      "kind": "evidence",
+      "verification_id": "VER-UX-001"
+    },
+    {
+      "id": "P3-003",
+      "description": "Theme System/Light/Dark works and persists",
+      "kind": "scenario",
+      "scenario_id": "p3-theme-switch"
+    },
+    {
+      "id": "P3-004",
+      "description": "Overlay non-focus-stealing verified",
+      "kind": "evidence",
+      "verification_id": "VER-UX-004"
+    },
+    {
+      "id": "P3-005",
+      "description": "Deferred features hidden/labeled, not shown complete (executed as deterministic UI audit: DeferredFeaturesAbsent suite + rendered-source grep)",
+      "kind": "manual",
+      "verification_id": "VER-UX-DEFERRED-HONESTY"
+    },
+    {
+      "id": "P3-006",
+      "description": "Capability-driven UI no OS branching",
+      "kind": "command",
+      "command": "cargo test --workspace --locked -- capability_ui"
+    }
+  ],
+  "required_artifacts": [],
+  "required_verification_ids": [
+    "VER-UX-001",
+    "VER-UX-002",
+    "VER-UX-003",
+    "VER-UX-004",
+    "VER-UX-005",
+    "VER-UX-006",
+    "VER-UX-007",
+    "VER-UX-008",
+    "VER-UX-010"
+  ],
+  "native_required": false,
+  "working_app_required": true
+}

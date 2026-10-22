@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-SEC-006",
+  "requirement_ids": [
+    "SEC-001",
+    "SEC-003",
+    "SEC-006"
+  ],
+  "phase": "P9",
+  "scenario_id": "p9-security-hardening",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p9-14ffd69",
+  "environment": {
+    "id": "cosmic-p9",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": "x86_64",
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": null
+  },
+  "command": "python3 tools/narrivy-qualify/p9_runner.py --scenario p9-security-hardening --stub",
+  "scenario_hash": "02cac58aa132195ac9d6bc25e587f2cb7e2be3b8cad7ffebc097649f1071df41",
+  "started_at": "2026-08-25T01:31:39.505930+00:00",
+  "ended_at": "2026-08-25T01:31:39.506006+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "traversal_check": true,
+    "deny_by_default": true,
+    "archive_integrity_stub": true
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "traversal_check ok",
+  "tester": "autonomous-agent",
+  "notes": "[0.2.0-p9 stub] security hardening: traversal reject + deny-by-default stub"
+}

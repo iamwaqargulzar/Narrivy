@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://narrivy.local/schema/evidence-verification-profiles-v1.json",
+  "title": "Narrivy Evidence Verification Profiles",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "profiles", "procedures"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "verification_layers",
+          "permitted_evidence_types",
+          "permitted_substitutions",
+          "execution_environment",
+          "artifact_binding",
+          "native_platform_required",
+          "behavioral_runner_required",
+          "qualifiable"
+        ],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*-v[0-9]+$"},
+          "verification_layers": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "permitted_evidence_types": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": ["unit", "mock", "simulated", "integration", "native-platform", "package-artifact", "manual"]
+            }
+          },
+          "permitted_substitutions": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": ["mock", "fixture", "proxy", "stub", "synthetic-audio"]
+            }
+          },
+          "execution_environment": {"enum": ["controlled", "native-platform", "release-package"]},
+          "artifact_binding": {"enum": ["forbidden", "required"]},
+          "native_platform_required": {"type": "boolean"},
+          "behavioral_runner_required": {"type": "boolean"},
+          "qualifiable": {"type": "boolean"}
+        }
+      }
+    },
+    "procedures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verification_id", "profile_id", "command_argv", "permitted_substitutions", "required_assertions"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*-v[0-9]+$"},
+          "verification_id": {"type": "string", "pattern": "^VER-[A-Z0-9][A-Z0-9-]*$"},
+          "profile_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*-v[0-9]+$"},
+          "command_argv": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "permitted_substitutions": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": ["mock", "fixture", "proxy", "stub", "synthetic-audio"]
+            }
+          },
+          "runner": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256", "argv_index"],
+            "properties": {
+              "path": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"},
+              "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "argv_index": {"type": "integer", "minimum": 0}
+            }
+          },
+          "required_assertions": {
+            "description": "One entry per reviewed claim. An object entry pins the metric, comparator and value that must back the claim, so a recorder cannot substitute a trivially-true measurement. A bare string is a legacy entry that carries no reviewed measurement; the policy refuses to qualify any record that depends on one.",
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "oneOf": [
+                {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["id", "measurement"],
+                  "properties": {
+                    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+                    "measurement": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["metric", "comparator"],
+                      "properties": {
+                        "metric": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*(\\.[A-Za-z0-9_-]+)*$"
+                        },
+                        "comparator": {
+                          "enum": [
+                            "eq", "ne", "lt", "le", "gt", "ge", "in", "not_in", "contains",
+                            "len_eq", "len_ne", "len_lt", "len_le", "len_gt", "len_ge",
+                            "is_true", "is_false"
+                          ]
+                        },
+                        "expected": {
+                          "type": ["number", "string", "boolean", "array", "null"]
+                        },
+                        "tolerance": {"type": "number", "minimum": 0}
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

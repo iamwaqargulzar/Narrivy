@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://narrivy.local/schema/phase-report-v1.json",
+  "title": "Narrivy Phase Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "phase",
+    "status",
+    "started_at",
+    "ended_at",
+    "git_start_commit",
+    "git_end_commit",
+    "git_dirty",
+    "build_id",
+    "gate_command",
+    "gate_exit_code",
+    "environment",
+    "requirements",
+    "artifacts",
+    "metrics"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "phase": {
+      "type": "string",
+      "pattern": "^P0F$|^P[0-9]+$"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "failed",
+        "not_started",
+        "in_progress"
+      ]
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "git_start_commit": {
+      "type": "string",
+      "pattern": "^(?:[a-f0-9]{7,40}|unknown)$"
+    },
+    "git_end_commit": {
+      "type": "string",
+      "pattern": "^(?:[a-f0-9]{7,40}|unknown)$"
+    },
+    "git_dirty": {
+      "type": "boolean"
+    },
+    "build_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "gate_command": {
+      "type": "string",
+      "minLength": 1
+    },
+    "gate_exit_code": {
+      "type": "integer"
+    },
+    "gate_transcript_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "os",
+        "os_version",
+        "kernel",
+        "desktop",
+        "session",
+        "native_or_vm"
+      ],
+      "properties": {
+        "os": {
+          "type": "string",
+          "minLength": 1
+        },
+        "os_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kernel": {
+          "type": "string",
+          "minLength": 1
+        },
+        "desktop": {
+          "type": "string",
+          "minLength": 1
+        },
+        "session": {
+          "type": "string",
+          "minLength": 1
+        },
+        "native_or_vm": {
+          "enum": [
+            "native",
+            "vm"
+          ]
+        },
+        "cpu": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requirement_id",
+          "verification_id",
+          "status",
+          "evidence"
+        ],
+        "properties": {
+          "requirement_id": {
+            "type": "string",
+            "pattern": "^[A-Z]+-[0-9]+$"
+          },
+          "verification_id": {
+            "type": "string",
+            "pattern": "^VER-.*"
+          },
+          "status": {
+            "enum": [
+              "passed",
+              "failed",
+              "planned",
+              "blocked"
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true
+    },
+    "summary": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 8000
+    },
+    "deviations": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blockers": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

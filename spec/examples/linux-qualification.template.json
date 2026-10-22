@@ -1,0 +1,69 @@
+{
+  "schema_version": 3,
+  "build_identity": "REPLACE-BUILD-ID",
+  "git_commit": "unknown",
+  "git_dirty": false,
+  "generated_at": "2026-08-21T00:00:00Z",
+  "environments": [
+    {
+      "kind": "cosmic-wayland",
+      "os": "REPLACE",
+      "os_version": "REPLACE",
+      "kernel": "REPLACE",
+      "desktop": "COSMIC",
+      "session": "wayland",
+      "native_or_vm": "native",
+      "cpu": "REPLACE",
+      "gpu_npu": null,
+      "microphone": "REPLACE",
+      "display_scale": null,
+      "package_type": "deb",
+      "package_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "e2e_pass": false,
+      "evidence": "artifacts/REPLACE-cosmic-evidence.json",
+      "git_commit": "unknown",
+      "scenario_hash": null
+    },
+    {
+      "kind": "gnome-wayland",
+      "os": "REPLACE",
+      "os_version": "REPLACE",
+      "kernel": "REPLACE",
+      "desktop": "GNOME",
+      "session": "wayland",
+      "native_or_vm": "native",
+      "cpu": "REPLACE",
+      "gpu_npu": null,
+      "microphone": "REPLACE",
+      "display_scale": null,
+      "package_type": "deb",
+      "package_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "e2e_pass": false,
+      "evidence": "artifacts/REPLACE-gnome-evidence.json",
+      "git_commit": "unknown",
+      "scenario_hash": null
+    }
+  ],
+  "cpu_fallback_pass": false,
+  "accessibility_pass": false,
+  "privacy_security_pass": false,
+  "accelerator_claims": [],
+  "target_matrix": [
+    {"class":"gtk","environment_kind":"cosmic-wayland","result":"unsupported","delivery_outcome":"REPLACE","evidence":"artifacts/REPLACE-target-gtk.json"},
+    {"class":"qt","environment_kind":"cosmic-wayland","result":"unsupported","delivery_outcome":"REPLACE","evidence":"artifacts/REPLACE-target-qt.json"},
+    {"class":"firefox","environment_kind":"gnome-wayland","result":"unsupported","delivery_outcome":"REPLACE","evidence":"artifacts/REPLACE-target-firefox.json"},
+    {"class":"chromium","environment_kind":"gnome-wayland","result":"unsupported","delivery_outcome":"REPLACE","evidence":"artifacts/REPLACE-target-chromium.json"},
+    {"class":"electron","environment_kind":"cosmic-wayland","result":"unsupported","delivery_outcome":"REPLACE","evidence":"artifacts/REPLACE-target-electron.json"},
+    {"class":"terminal","environment_kind":"cosmic-wayland","result":"unsupported","delivery_outcome":"REPLACE","evidence":"artifacts/REPLACE-target-terminal.json"},
+    {"class":"libreoffice","environment_kind":"gnome-wayland","result":"unsupported","delivery_outcome":"REPLACE","evidence":"artifacts/REPLACE-target-libreoffice.json"},
+    {"class":"xwayland","environment_kind":"cosmic-wayland","result":"unsupported","delivery_outcome":"REPLACE","evidence":"artifacts/REPLACE-target-xwayland.json"}
+  ],
+  "performance": {
+    "protocol": "docs/maintainers/qualification/performance-benchmark-protocol.md",
+    "pass": false,
+    "evidence": "artifacts/REPLACE-performance.json",
+    "metrics": {"trigger_to_listening":{"p50_ms":0,"p95_ms":0}}
+  },
+  "metrics": null,
+  "notes": "Template only; must never be used as passing release evidence."
+}

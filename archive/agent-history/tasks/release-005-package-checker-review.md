@@ -1,0 +1,11 @@
+# Release task 005: correct independently found candidate checker defects
+
+DeepSeek V4.1 Flash at provider reasoning=max implements; Codex reviews. Use apply_patch, no commits/pushes, host changes, global changes, secret access or evidence promotion. Review task 002 source and current P11 rules. Keep changes narrow.
+
+Independent result `artifacts/candidates/lifecycle-independent-001.json` proves a real failure at container_start: docker cp targets /qualification/candidate.deb before /qualification exists in ubuntu:24.04. Start the test-owned container, create private qualification directories, then copy/verify inputs. Regress the operation order with a fake that rejects absent parent paths, not a fake that accepts impossible operations. Stop the restarted daemon and confirm clean exit before apt remove/purge; removal from a container without systemd must not be misrepresented as user-service stop qualification.
+
+Review bound correctness: polling uses per-command 120s budgets despite short local startup/shutdown deadlines. Every nested operation must respect remaining local AND overall deadlines; reject NaN/infinite timeout values. DockerRunner captures to unbounded temporary files; impose actual output bounds (not merely read only the first bytes after unlimited capture). Preserve named failure and owned-container cleanup. Do not overengineer a second harness or introduce dependencies.
+
+Codex has corrected model/status probes to share resident_worker_ready: ready installed model AND exact live worker=ready capability, never binary-integrity alone. Two additional regressions cover artifact-only/awaiting/active/failure and malformed capability data; 15 tests pass. Preserve this correction and verify it in the real run. Historical result startup.worker_ready=true remains untrusted and must not be overwritten.
+
+Run focused tests and one real disposable Ubuntu lifecycle run against exact candidate <repo>/artifacts/candidates/narrivy_0.1.0~rc1+g9c03860_amd64.deb SHA256 023358b6b23560fe0ea6e5be122248c420d4bddfe7d9a0c555d915e54ab4219d; use a fresh non-overwriting unqualified result path. Never promote native/hardware/release claims. Stop after concise exact results, no repeated final review.

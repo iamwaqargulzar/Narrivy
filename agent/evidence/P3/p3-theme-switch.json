@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-P3-THEME-SWITCH",
+  "requirement_ids": [
+    "UX-002"
+  ],
+  "phase": "P3",
+  "scenario_id": "p3-theme-switch",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p3-14ffd69",
+  "environment": {
+    "id": "cosmic-native-wayland",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland"
+  },
+  "command": "python3 tools/narrivy-qualify/p3_runner.py --theme-switch",
+  "scenario_hash": "c6dcecd6bc33295f618c0b5480166da7742e75abad761a3bb1254e11140db108",
+  "artifact_hashes": {},
+  "started_at": "2026-08-24T14:50:55.497350+00:00",
+  "ended_at": "2026-08-24T14:50:59.378163+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "sequence": [
+      {
+        "launch": 1,
+        "theme_mode": "system"
+      },
+      {
+        "launch": 2,
+        "theme_mode": "light",
+        "persisted": "light"
+      },
+      {
+        "launch": 3,
+        "theme_mode": "dark",
+        "persisted": "dark"
+      },
+      {
+        "launch": 4,
+        "theme_mode": "dark",
+        "read_back": "dark"
+      }
+    ],
+    "theme_store_check_available": true
+  },
+  "diagnostic_excerpt": "System/Light/Dark persistence proven across three real launches; UI-side switching covered by ThemePersistsAndAppliesClass vitest",
+  "notes": "System/Light/Dark persistence proven across three real launches; UI-side switching covered by ThemePersistsAndAppliesClass vitest",
+  "tester": "autonomous-agent"
+}

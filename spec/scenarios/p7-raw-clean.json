@@ -1,0 +1,10 @@
+{
+  "id": "p7-raw-clean",
+  "phase": "P7",
+  "kind": "e2e",
+  "scenario": "raw vs clean pipeline selection changes delivered output deterministically over a real daemon socket session",
+  "requirement_ids": [
+    "FUN-021"
+  ],
+  "verification_id": "VER-FUN-021"
+}

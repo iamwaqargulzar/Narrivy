@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-FUN-013",
+  "requirement_ids": [
+    "FUN-013",
+    "TEST-004"
+  ],
+  "phase": "P2",
+  "scenario_id": "p2-cpu-fallback",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p2-14ffd69",
+  "environment": {
+    "id": "cosmic-native-wayland",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": null,
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": "in-process synthesized silence (no device claimed)"
+  },
+  "command": "python3 tools/narrivy-qualify/p2_runner.py --cpu-fallback",
+  "scenario_hash": "bd91f1a5af6baf78625ed04f3d7b1f4992823357a071e4f9c2a71bc9c8346edf",
+  "started_at": "2026-08-26T06:42:34.250091+00:00",
+  "ended_at": "2026-08-26T06:42:34.652377+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "host_has_igpu_vulkan": true,
+    "cpu_lane_advertised": true,
+    "delivered_matches_contract": true
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "deterministic CPU correctness lane",
+  "tester": "autonomous-agent",
+  "notes": "CPU correctness lane proven alongside Vulkan/NPU-capable host"
+}

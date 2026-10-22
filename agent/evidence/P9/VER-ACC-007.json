@@ -1,0 +1,147 @@
+{
+  "artifact_hashes": {
+    "artifacts/releases/narrivy-linux-amd64.deb": "42f9101593a5a323a1af934c5ee80609c57a31d78fa78ecfcbd40bc1b23faf7c",
+    "docs/02-architecture/pipeline-catalog.md": "c88755c85e41accd552252a796cdc331eb1d9072890aa281ec7e37e901352b7f",
+    "docs/03-ui-ux/accessibility.md": "8115915d6779854d08437df4d82df81b6d3904cd86cad870ef150440488764f9",
+    "scripts/record_native_accessibility_evidence.py": "5b8b8c3924df6716090e04dfabf4438ae76cb242de2b5882e4b9d1a73fb3afc7",
+    "spec/catalogs/pipelines.json": "bd6db2e75c343c16b4b5d3472a80eeb37ac6fe4cd86a3633f3acbdfe9f08b905"
+  },
+  "artifact_under_test": {
+    "kind": "package",
+    "path": "artifacts/releases/narrivy-linux-amd64.deb",
+    "sha256": "42f9101593a5a323a1af934c5ee80609c57a31d78fa78ecfcbd40bc1b23faf7c"
+  },
+  "build_id": "0.1.0~rc55+g14c89af",
+  "command": "python3 scripts/record_native_accessibility_evidence.py artifacts/releases/narrivy-linux-amd64.deb",
+  "ended_at": "2026-09-22T08:38:21.256975+00:00",
+  "environment": {
+    "cpu": "x86_64",
+    "desktop": "COSMIC",
+    "device_details": "GTK4/WebKitGTK 6 with AT-SPI",
+    "display_scale": null,
+    "gpu": null,
+    "id": "cosmic-wayland-native-atspi",
+    "input_backend": "AT-SPI actions over native Wayland",
+    "kernel": "7.2.2-popos",
+    "lane_available": true,
+    "microphone": null,
+    "native_or_vm": "native",
+    "npu": null,
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "qualification_lane": "cosmic-wayland-native-atspi",
+    "session": "wayland"
+  },
+  "evidence_type": "native-platform",
+  "execution": {
+    "child_failures_ignored": false,
+    "environment_class": "native-platform",
+    "lane_available": true,
+    "substitutions": []
+  },
+  "exit_code": 0,
+  "git_commit": "14c89afc58a046b9e2e885ffeb1d517be87d6ab6",
+  "git_dirty": false,
+  "metrics": {
+    "atspi": {
+      "command_palette_escape_closed": false,
+      "diagnostics_named_nodes": 29,
+      "error_recovery_actions": [
+        "Retry",
+        "Dismiss notification"
+      ],
+      "individual_diagnostic_actions": 4,
+      "initial_named_nodes": 11,
+      "inspection_mode": "semantic",
+      "keyboard_diagnostics_order": [],
+      "keyboard_navigation_order": [],
+      "keyboard_onboarding_action": null,
+      "main_named_nodes": 37,
+      "onboarding_actions": [
+        "Skip setup",
+        "Next"
+      ],
+      "unnamed_main_controls": 0,
+      "zoomed_welcome_extent": {
+        "height": 66,
+        "width": 1068
+      }
+    },
+    "frontend_contracts": {
+      "command": "npm test --prefix apps/narrivy-desktop -- --run src/__tests__/A11yLandmarks.test.tsx src/__tests__/A11yHardening.test.tsx src/__tests__/MicroInteractions.test.tsx",
+      "exit_code": 0,
+      "stderr_lines": 2,
+      "stdout_lines": 12
+    },
+    "hands_free_defaults": {
+      "privacy": "local-default",
+      "safe_action_constraint": true,
+      "status": "roadmap"
+    },
+    "keyboard_lane": {
+      "atspi": null,
+      "available": false,
+      "native_marker": null,
+      "reason": "COSMIC did not route the native Return event to the AT-SPI-focused window"
+    },
+    "native_marker": {
+      "asset_origin": "narrivy://app/",
+      "backend": "gtk4-webkitgtk6",
+      "bridge_call_count": 3,
+      "bridge_handler": "narrivy",
+      "document": {
+        "bridgeReply": "ok",
+        "errors": [],
+        "handler": "function",
+        "ready": "complete",
+        "root": true
+      },
+      "gdk_display_type": "GdkWaylandDisplay",
+      "network_default": "deny",
+      "resources": {
+        "external_count": 0,
+        "internal": [
+          "index.html",
+          "assets/index-Pqg66mZf.css"
+        ]
+      },
+      "zoom_level": 2.0
+    }
+  },
+  "notes": "Exact packaged GTK4/WebKitGTK 6 client on native COSMIC Wayland at reviewed 200% WebKit zoom. AT-SPI exposed named semantics, recovery actions, and individual Diagnostics actions; source-bound frontend contracts checked reduced motion and root-relative type. This record makes no keyboard-operation claim and does not claim GNOME qualification.",
+  "package_sha256": "42f9101593a5a323a1af934c5ee80609c57a31d78fa78ecfcbd40bc1b23faf7c",
+  "pass": true,
+  "phase": "P9",
+  "procedure": {
+    "assertions": [
+      {
+        "id": "exact-package-source-bound",
+        "result": "pass"
+      },
+      {
+        "id": "hands-free-remains-roadmap",
+        "result": "pass"
+      },
+      {
+        "id": "network-default-deny",
+        "result": "pass"
+      },
+      {
+        "id": "explicit-onboarding-and-dictation-actions",
+        "result": "pass"
+      }
+    ],
+    "id": "native-hands-free-defaults-v1",
+    "profile_id": "native-behavior-v1"
+  },
+  "requirement_ids": [
+    "ACC-007"
+  ],
+  "result": "pass",
+  "scenario_hash": "5b8b8c3924df6716090e04dfabf4438ae76cb242de2b5882e4b9d1a73fb3afc7",
+  "scenario_id": "native-hands-free-defaults-v1",
+  "scenario_version": "1",
+  "schema_version": 2,
+  "started_at": "2026-09-22T08:38:12.895761+00:00",
+  "verification_id": "VER-ACC-007"
+}

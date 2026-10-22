@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "runtimes": [
+    {
+      "id": "openvino-runtime-2026.4-linux-x86_64",
+      "runtime": "openvino",
+      "name": "OpenVINO 2026.4",
+      "version": "2026.4.0",
+      "platform": "linux-x86_64",
+      "size_bytes": 292096824,
+      "license": "Apache-2.0 AND MIT",
+      "source_repo": "narrivy/store",
+      "source_path": "runtimes/openvino/2026.4-linux-x86_64",
+      "source_revision": "1fa31d318fe6a7c36d3b71134e26dd9c14c11d0b",
+      "manifest_sha256": "e4183401b65f1e6425991f5f8ca2ed7028e78510ce2ce0fda3d6015c5f2bc5aa",
+      "manifest_size": 7631,
+      "devices": [
+        "CPU",
+        "GPU",
+        "NPU"
+      ]
+    },
+    {
+      "id": "browser-chromium-153.0.8010.12-linux-x86_64",
+      "runtime": "browser",
+      "name": "Chromium for the assistant",
+      "version": "153.0.8010.12",
+      "platform": "linux-x86_64",
+      "size_bytes": 272530165,
+      "license": "BSD-3-Clause",
+      "source_repo": "narrivy/store",
+      "source_path": "runtimes/browser/153.0.8010.12-linux-x86_64",
+      "source_revision": null,
+      "manifest_sha256": "bec0e32eb6283247ccefafd0279b8eb044ffd48f854e0e534e18437e0829ee13",
+      "manifest_size": 69937,
+      "devices": [
+        "CPU"
+      ]
+    }
+  ]
+}

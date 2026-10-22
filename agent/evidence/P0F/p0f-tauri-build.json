@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-P0F-TAURI",
+  "requirement_ids": [],
+  "phase": "P0F",
+  "scenario_id": "p0f-tauri-build",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p0f-14ffd69",
+  "environment": {
+    "id": "cosmic-native",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": "Intel(R) Core(TM) Ultra 9 288V",
+    "gpu": "Intel(R) Graphics (LNL)",
+    "npu": "/dev/accel0 (intel_vpu)",
+    "microphone": "alsa_input.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__Mic1__source"
+  },
+  "command": "python3 tools/p0f-probes/probe-tauri.py",
+  "scenario_hash": "64f7169868ceb4dcbf1d28f5776af866f9d14c5b7c334a0e3bfa1026157f1da9",
+  "started_at": "2026-08-22T10:57:28.696133+00:00",
+  "ended_at": "2026-08-22T10:57:28.915254+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "deps": {
+      "webkit2gtk-4.1": "2.52.3",
+      "javascriptcoregtk-4.1": "2.52.3",
+      "libsoup-3.0": "3.4.4",
+      "gtk-3.0": "missing (Package gtk-3.0 was not found in the pkg-config search path.\nPerhaps you should add the directory containing `gtk-3.0.pc'\nto the PKG_CONFIG_PATH envir)",
+      "webkitgtk-6.0": "missing (expected when 4.1 is the lane)",
+      "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+      "node": "v24.18.1",
+      "npm": "11.16.0",
+      "cargo_tauri_available": true,
+      "cargo_tauri_version": "tauri-cli 2.11.4",
+      "dpkg_webkit_dev": "installed",
+      "pkg-config_available": true,
+      "cmake_available": true,
+      "gcc_available": true
+    },
+    "build": {
+      "workspace_cargo_check": {
+        "exit_code": 0,
+        "stderr_excerpt": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s\n",
+        "pass": true
+      },
+      "webkit_libs_ok": true,
+      "webkit_libs": "-lwebkit2gtk-4.1 -lgtk-3 -lgdk-3 -lz -lpangocairo-1.0 -lpango-1.0 -lharfbuzz -latk-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -lsoup-3.0 -Wl,--export-dynamic -lgmodule-2.0 -pthread -lglib-2.0 -lgio-2.0 -ljavascriptcoregtk-4.1 -lgobject-2.0 -lglib-2.0",
+      "launch_test": {
+        "performed": false,
+        "reason": "GUI launch requires the P3 client shell and an interactive session; this probe proves the builder/link boundary only"
+      }
+    },
+    "package": {
+      "dpkg-deb": "/usr/bin/dpkg-deb",
+      "dpkg-buildpackage": "/usr/bin/dpkg-buildpackage",
+      "appimagetool": "missing",
+      "linuxdeploy": "missing",
+      "libssl_dev": "installed"
+    },
+    "summary": {
+      "webkit2gtk_4_1_version": "2.52.3",
+      "webkit_ok": true,
+      "cargo_available": true,
+      "cargo_check_workspace_pass": true,
+      "cargo_tauri_available": true,
+      "clean_launch_deps_proven": true
+    }
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "webkit=2.52.3 cargo_check=True tauri_cli=True",
+  "tester": "autonomous-agent",
+  "notes": "Tauri/WebKitGTK probe: webkit2gtk-4.1=2.52.3, node=v24.18.1, cargo-tauri CLI=True (installable via cargo install tauri-cli; not a P0F blocker). Workspace cargo check pass=True; webkit link flags resolvable=True. Client shell is deliberately absent until P3; this probe proves the builder boundary (deps + toolchain + link viability) per phase-0F spec item 8. Packaging tooling: dpkg-deb=/usr/bin/dpkg-deb appimagetool=missing (full packaging proof belongs to P10)."
+}

@@ -1,0 +1,11 @@
+# Task015 independent review correction: validate before toggle mutation
+
+DeepSeek V4.1 Flash at provider reasoning=max implements this bounded correction. Codex owns review, research and acceptance. Read AGENTS/source authority/current task015 code and the new independent regression. Do not commit/push, modify user/host settings, promote evidence, or weaken security.
+
+Codex reproduced `toggle_rejects_invalid_input_before_stopping_an_active_session` failing: ToggleSession with pipeline unknown-mode while an active Clean session exists returns FinalizationRequested and mutates the recording. The original task explicitly requires malformed/unsupported pipeline to have no capture side effect. ToggleSession also accepts ActivationSourceDto::Unknown and echoes arbitrary source tags as successful activation, contradicting the closed activation-source command contract. Lossless decoding may preserve Unknown for forward compatibility, but unsupported request tags must fail closed at execution.
+
+Validate supplied pipeline and known activation source before toggle_decision or any session/control mutation, whether idle, recording or already stopping. Do not gate stop on current model readiness: active recording must still gracefully stop when assets become unavailable. Separate syntax/catalog validity from start-only readiness as appropriate. Preserve existing pipeline meanings, default selection and exactly one start admission resolution. Reject unknown activation as typed BadRequest without echoing its raw tag into diagnostics. Add regressions for unknown source idle/recording, malformed pipeline recording/already-stopping, and valid stop when start readiness unavailable. Retain the independent failing regression unchanged in intent.
+
+Review shutdown-after-handler-admission ordering against supervisor admission closure; add a focused test only if an actual gap exists. Do not fabricate native shortcut evidence.
+
+Run fmt, focused daemon toggle tests default/resident, IPC/CLI tests, and strict daemon Clippy default/resident. Avoid repeated broad platform/frontend suites for this daemon-local correction. End with exact changed files/checks and remaining qualification limits.

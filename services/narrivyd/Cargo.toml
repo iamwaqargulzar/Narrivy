@@ -1,0 +1,75 @@
+[package]
+publish = false
+name = "narrivyd"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "The Narrivy per-user dictation daemon: composes capture, ASR, correction, delivery and recovery."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints]
+workspace = true
+[dependencies]
+narrivy-core.workspace = true
+# P7 modes: built-in Raw/Clean definitions register through the real
+# PipelineRegistry (FUN-021).
+narrivy-pipeline.workspace = true
+# P1 integration: daemon.rs (session machinery) plus the new IPC entrypoint
+# need direct access to these crates. See INTEGRATION-NOTES.md.
+narrivy-types.workspace = true
+narrivy-asr-api.workspace = true
+narrivy-policy.workspace = true
+narrivy-ipc.workspace = true
+narrivy-ipc-unix.workspace = true
+narrivy-journal-api.workspace = true
+narrivy-journal-unix.workspace = true
+# PRIV-002: the real optional retained History store (SQLite retention +
+# privacy zones). `daemon/retained_history.rs` is the only module that
+# composes it; the recovery journal stays separate and is never served here.
+narrivy-history.workspace = true
+# REL-008: the daemon's content-safe diagnostics surface (redaction of every
+# free-form diagnostic message, plus the health/latency state a support report
+# is rendered from). `daemon/diagnostics.rs` is the only module that composes
+# it, and it holds no user content.
+narrivy-diagnostics.workspace = true
+
+# P5 compute planning: the daemon runs discovery once at startup, resolves a
+# device through the qualified-tuple planner, and advertises only the classes
+# and backend ids the planner returned. `daemon/compute.rs` is the only module
+# that composes it.
+narrivy-compute.workspace = true
+
+libc.workspace = true
+rand.workspace = true
+tokio.workspace = true
+# P3 bridge extensions serialize extension replies as bounded JSON values.
+serde.workspace = true
+serde_json.workspace = true
+base64 = "=0.22.1"
+narrivy-platform-linux = { path = "../../adapters/platform-linux" }
+narrivy-process-linux.workspace = true
+narrivy-asr-mock = { path = "../../engines/asr-mock" }
+narrivy-platform-api.workspace = true
+narrivy-model-manager.workspace = true
+narrivy-asr-openvino = { path = "../../engines/openvino" }
+narrivy-grammar-harper.workspace = true
+narrivy-asr-transcribe = { path = "../../engines/transcribe-cpp", optional = true }
+
+# P2 real-path feature: enables the transcribe.cpp sidecar ASR lane.
+# Default builds stay toolchain-free; scenarios build with
+# `cargo build -p narrivyd --features asr-transcribe-cpp`.
+[features]
+asr-transcribe-cpp = ["dep:narrivy-asr-transcribe", "narrivy-asr-transcribe/runtime"]
+# Recovery 4B retains the sidecar feature for rollback/non-strict paths while
+# adding the process-isolated resident worker for strict recovery lanes.
+asr-transcribe-resident = [
+  "asr-transcribe-cpp",
+  "narrivy-asr-transcribe/resident-worker",
+]
+
+[dev-dependencies]
+serde_json.workspace = true
+tempfile.workspace = true
+sha2.workspace = true

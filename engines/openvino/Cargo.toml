@@ -1,0 +1,68 @@
+[package]
+name = "narrivy-asr-openvino"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+description = "OpenVINO speech engine: a process-isolated resident worker that runs OpenVINO IR models on the NPU, GPU or CPU from an installed runtime pack."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+# The worker calls the OpenVINO GenAI C API through `libloading`. That
+# foreign-function code is the only `unsafe` here, kept in `src/genai.rs`
+# with its invariants written beside it. The daemon never loads OpenVINO:
+# only this worker process does.
+[lints.rust]
+unsafe_code = "deny"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "deny"
+
+[features]
+default = []
+# The worker binary. Building it needs no OpenVINO SDK: the runtime is
+# loaded at run time from the runtime pack the user installed.
+worker = ["dep:libloading", "dep:rustix", "dep:image"]
+
+[dependencies]
+narrivy-asr-api.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+libloading = { version = "0.7", optional = true }
+rustix = { workspace = true, optional = true }
+# Pictures for the vision-language model: PNG only (no new decoders).
+image = { version = "0.25.9", default-features = false, features = ["png"], optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[[bin]]
+name = "narrivy-openvino-worker"
+path = "src/bin/narrivy-openvino-worker.rs"
+required-features = ["worker"]
+
+[[example]]
+name = "openvino_probe"
+required-features = ["worker"]
+
+[[bin]]
+name = "narrivy-openvino-llm-worker"
+path = "src/bin/narrivy-openvino-llm-worker.rs"
+required-features = ["worker"]
+
+[[example]]
+name = "refine_probe"
+required-features = ["worker"]
+
+[[example]]
+name = "static_probe"
+required-features = ["worker"]
+
+[[example]]
+name = "chat_probe"
+required-features = ["worker"]

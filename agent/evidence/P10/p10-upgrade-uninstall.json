@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-OPS-003",
+  "requirement_ids": [
+    "OPS-003"
+  ],
+  "phase": "P10",
+  "scenario_id": "p10-upgrade-uninstall",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p10-14ffd69",
+  "environment": {
+    "id": "cosmic-p10",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": "x86_64",
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": null
+  },
+  "command": "python3 tools/narrivy-qualify/p10_runner.py --scenario p10-upgrade-uninstall",
+  "scenario_hash": "92680295cd9dec3d44865dfd0e33c07f9b6cfe4d23ba4269a338ba72e5c2cb23",
+  "started_at": "2026-08-26T06:44:52.709611+00:00",
+  "ended_at": "2026-08-26T06:44:53.031024+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "postinst_exists": true,
+    "postinst_size": 809,
+    "postinst_sha256": "fd6fa3827e4d1ea5b716c8c246dc95dff890e24c35c54a1520150419c836f425",
+    "postinst_executable": true,
+    "postinst_policy_ok": true,
+    "prerm_exists": true,
+    "prerm_size": 325,
+    "prerm_sha256": "322e54f8b321a9ec8bfd4b8a921687673fb3d72b795a8f065ba37c214b8e0206",
+    "prerm_executable": true,
+    "prerm_stops_daemon": true,
+    "postrm_exists": true,
+    "postrm_size": 868,
+    "postrm_sha256": "9c84f87b29840ca1e4f6b5262f94e60540e16a2afbd373973743bdf45ccba40b",
+    "postrm_executable": true,
+    "postrm_has_purge_branch": true,
+    "deb_no_etc_conffiles": true,
+    "changelog_present": true,
+    "handles_abort_upgrade": true
+  },
+  "artifact_hashes": {
+    "artifacts/sbom/spdx.json": "dc869aff657882ebb9c1966d7275c31715a9f68d98c3403a11630f7b7632fa54",
+    "artifacts/releases/narrivy_0.1.0_amd64.deb": "bc15dbf6a42a446bbb1d04f1a46edc77a69bf35f163affaffbd7eca2a1c1f3dc",
+    "artifacts/release-evidence/linux-1.0/release-artifacts.json": "9761b5408ea5e646092b41059ac43fb36ed4a1c7ac3337874b5428314ce1eec8"
+  },
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": " new Debian package, version 2.0.\n size 38399850 bytes: control archive=1332 bytes.\n     620 bytes,    14 lines      control\n     811 bytes,    24 lines   *  postinst             #!/bin/sh\n     874 bytes,    24 lines   *  postrm               #!/bin/sh\n     325 bytes,    14 lines   *  prerm                #!/bin/sh\n Package: narrivy\n Version: 0.1.0\n Section: utils\n Priority: optional\n Architecture: amd64\n Maintainer: Narrivy <release@narrivy.local>\n Description: Narrivy \u2014 local-first voice dictation for Linux\n  Fast, private dictation that runs locally on your machine.\n  Uses PipeWire for capt",
+  "tester": "autonomous-agent",
+  "notes": "upgrade preserves data, uninstall respects purge, maintainer scripts policy ok"
+}

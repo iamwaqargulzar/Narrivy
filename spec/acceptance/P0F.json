@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "phase": "P0F",
+  "implemented": true,
+  "primary_requirements": [],
+  "required_artifacts": [
+    "docs/platforms/capability-matrix.md",
+    "tools/p0f-probes/README.md"
+  ],
+  "commands": [
+    "python3 tools/narrivy-qualify/narrivy-qualify.py verify agent/evidence/P0F/p0f-activation-cosmic.json",
+    "python3 tools/narrivy-qualify/narrivy-qualify.py verify agent/evidence/P0F/p0f-delivery-matrix.json",
+    "python3 tools/narrivy-qualify/narrivy-qualify.py verify agent/evidence/P0F/p0f-mic-pipewire.json",
+    "python3 tools/narrivy-qualify/narrivy-qualify.py verify agent/evidence/P0F/p0f-tauri-build.json"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "p10-deb-install",
+  "phase": "P10",
+  "kind": "packaging",
+  "scenario": "clean install of .deb on target, dpkg -i, desktop entry and systemd user service present, launch and real dictation from package not source tree",
+  "native_required": true,
+  "requirement_ids": [
+    "OPS-002"
+  ],
+  "verification_id": "VER-OPS-002"
+}

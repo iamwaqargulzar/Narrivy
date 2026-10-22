@@ -1,0 +1,12 @@
+{
+  "id": "p2-trigger-cosmic",
+  "phase": "P2",
+  "kind": "e2e",
+  "scenario": "trigger\u2192mic\u2192ASR\u2192delivery native Wayland on COSMIC",
+  "native_required": true,
+  "requirement_ids": [
+    "FUN-001",
+    "FUN-004"
+  ],
+  "verification_id": "VER-FUN-001"
+}

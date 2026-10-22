@@ -1,0 +1,11 @@
+{
+  "id": "p11-cosmic-native",
+  "phase": "P11",
+  "kind": "e2e",
+  "scenario": "Native COSMIC Wayland E2E with release .deb (trigger\u2192mic\u2192ASR\u2192delivery)",
+  "native_required": true,
+  "requirement_ids": [
+    "TEST-010"
+  ],
+  "verification_id": "VER-TEST-010"
+}

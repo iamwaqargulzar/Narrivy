@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "phase": "P10",
+  "implemented": true,
+  "primary_requirements": [
+    "OPS-002",
+    "OPS-003",
+    "OPS-004",
+    "OPS-005"
+  ],
+  "required_artifacts": [
+    "artifacts/release-evidence/linux-1.0/release-artifacts.json",
+    "artifacts/sbom/spdx.json",
+    "artifacts/sbom/provenance.json",
+    "artifacts/releases/narrivy_0.1.0_amd64.deb"
+  ],
+  "commands": [
+    "python3 scripts/verify_traceability.py",
+    "cargo test --workspace --locked -- --skip latency_stats_exposes_p50",
+    "bash scripts/generate_sbom.sh 0.1.0",
+    "bash scripts/build_deb.sh 0.1.0",
+    "python3 tools/narrivy-qualify/p10_runner.py --all"
+  ],
+  "smoke_commands": [
+    "python3 tools/narrivy-qualify/p10_runner.py --scenario p10-deb-build",
+    "python3 tools/narrivy-qualify/p10_runner.py --scenario p10-sbom"
+  ]
+}

@@ -1,0 +1,7 @@
+timestamp,phase,metric,value,unit,environment,evidence,notes
+2026-08-21T00:53:30.162920Z,P0,cargo_check_workspace,0.12,s,Pop!_OS/COSMIC/Wayland_1.97.1,agent/phase-reports/P0.md,workspace --locked
+2026-08-21T00:53:30.162920Z,P0,cargo_test_workspace,0.34,s,Pop!_OS/COSMIC/Wayland_1.97.1,agent/phase-reports/P0.md,5 tests passed
+2026-08-21T00:53:30.162920Z,P0,cargo_clippy_workspace,0.21,s,Pop!_OS/COSMIC/Wayland_1.97.1,agent/phase-reports/P0.md,-D warnings clean
+2026-08-21T00:53:30.162920Z,P0,cargo_deny_check,0.5,s,Pop!_OS/COSMIC/Wayland_1.97.1,agent/evidence/P0/SEC-004-supply-chain.md,0.20.2
+2026-08-21T00:53:30.162920Z,P0,cargo_check_msrv,0.13,s,Pop!_OS/COSMIC/Wayland_1.85.0,agent/evidence/P0/PORT-001-portable-core.md,portable crates only
+2026-08-21T00:53:30.162920Z,P0,manifest_file_count,304,files,Pop!_OS/COSMIC/Wayland,BUILD-PACK-MANIFEST.json,after P0 evidence

@@ -1,0 +1,11 @@
+{
+  "id": "p11-perf-qualification",
+  "phase": "P11",
+  "kind": "e2e",
+  "scenario": "Performance baselines per benchmark protocol vs P6 (release deb)",
+  "native_required": true,
+  "requirement_ids": [
+    "TEST-010"
+  ],
+  "verification_id": "VER-P11-PERF"
+}

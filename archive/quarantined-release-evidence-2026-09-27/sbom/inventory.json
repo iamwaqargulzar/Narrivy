@@ -1,0 +1,2731 @@
+{
+  "version": "0.1.0",
+  "commit": "43566ebea4f82fc30bce82fc555e314a1da63daa",
+  "cargo_lock_hash": "0729c30409dab842ae1d40fe752815c528844afb8fb7fedb8b03c242821bea37",
+  "generated": "2026-08-26T06:41:37Z",
+  "dependencies": [
+    {
+      "name": "adler2",
+      "version": "2.0.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "aho-corasick",
+      "version": "1.1.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "alloc-no-stdlib",
+      "version": "2.0.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "alloc-stdlib",
+      "version": "0.2.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "android_system_properties",
+      "version": "0.1.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "anyhow",
+      "version": "1.0.104",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "atk",
+      "version": "0.18.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "atk-sys",
+      "version": "0.18.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "atomic-waker",
+      "version": "1.1.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "autocfg",
+      "version": "1.5.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "base64",
+      "version": "0.21.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "base64",
+      "version": "0.22.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "bit-set",
+      "version": "0.8.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "bit-vec",
+      "version": "0.8.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "bitflags",
+      "version": "1.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "bitflags",
+      "version": "2.13.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "block-buffer",
+      "version": "0.10.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "block-buffer",
+      "version": "0.12.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "block2",
+      "version": "0.6.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "brotli",
+      "version": "8.0.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "brotli-decompressor",
+      "version": "5.0.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "bumpalo",
+      "version": "3.20.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "bytemuck",
+      "version": "1.25.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "byteorder",
+      "version": "1.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "bytes",
+      "version": "1.12.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "cairo-rs",
+      "version": "0.18.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "cairo-sys-rs",
+      "version": "0.18.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "camino",
+      "version": "1.2.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "cargo-platform",
+      "version": "0.1.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "cargo_metadata",
+      "version": "0.19.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "cargo_toml",
+      "version": "0.22.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "cc",
+      "version": "1.4.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "cesu8",
+      "version": "1.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "cfb",
+      "version": "0.7.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "cfg-expr",
+      "version": "0.15.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "cfg-if",
+      "version": "1.0.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "chrono",
+      "version": "0.4.45",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "combine",
+      "version": "4.6.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "const-oid",
+      "version": "0.10.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "cookie",
+      "version": "0.18.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "core-foundation",
+      "version": "0.10.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "core-foundation-sys",
+      "version": "0.8.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "core-graphics",
+      "version": "0.25.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "core-graphics-types",
+      "version": "0.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "cpufeatures",
+      "version": "0.2.17",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "cpufeatures",
+      "version": "0.3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "crc32fast",
+      "version": "1.5.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "crossbeam-channel",
+      "version": "0.5.16",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "crossbeam-utils",
+      "version": "0.8.22",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "crypto-common",
+      "version": "0.1.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "crypto-common",
+      "version": "0.2.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "cssparser",
+      "version": "0.36.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "cssparser-macros",
+      "version": "0.6.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "ctor",
+      "version": "0.8.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "ctor-proc-macro",
+      "version": "0.0.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "darling",
+      "version": "0.21.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "darling_core",
+      "version": "0.21.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "darling_macro",
+      "version": "0.21.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "dbus",
+      "version": "0.9.12",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "deranged",
+      "version": "0.5.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "derive_more",
+      "version": "2.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "derive_more-impl",
+      "version": "2.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "digest",
+      "version": "0.10.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "digest",
+      "version": "0.11.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "dirs",
+      "version": "6.0.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "dirs-sys",
+      "version": "0.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "dispatch2",
+      "version": "0.3.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "displaydoc",
+      "version": "0.2.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "dlopen2",
+      "version": "0.8.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "dlopen2_derive",
+      "version": "0.4.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "dom_query",
+      "version": "0.27.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "dpi",
+      "version": "0.1.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "dtoa",
+      "version": "1.0.11",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "dtoa-short",
+      "version": "0.3.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "dtor",
+      "version": "0.3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "dtor-proc-macro",
+      "version": "0.0.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "dunce",
+      "version": "1.0.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "dyn-clone",
+      "version": "1.0.20",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "embed-resource",
+      "version": "3.0.11",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "embed_plist",
+      "version": "1.2.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "equivalent",
+      "version": "1.0.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "erased-serde",
+      "version": "0.4.10",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "errno",
+      "version": "0.3.14",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "fallible-iterator",
+      "version": "0.3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "fallible-streaming-iterator",
+      "version": "0.1.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "fastrand",
+      "version": "2.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "fdeflate",
+      "version": "0.3.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "field-offset",
+      "version": "0.3.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "find-msvc-tools",
+      "version": "0.1.11",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "flate2",
+      "version": "1.1.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "fnv",
+      "version": "1.0.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "foldhash",
+      "version": "0.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "foreign-types",
+      "version": "0.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "foreign-types-macros",
+      "version": "0.2.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "foreign-types-shared",
+      "version": "0.3.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "form_urlencoded",
+      "version": "1.2.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "futures-channel",
+      "version": "0.3.34",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "futures-core",
+      "version": "0.3.34",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "futures-executor",
+      "version": "0.3.34",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "futures-io",
+      "version": "0.3.34",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "futures-macro",
+      "version": "0.3.34",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "futures-sink",
+      "version": "0.3.34",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "futures-task",
+      "version": "0.3.34",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "futures-util",
+      "version": "0.3.34",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "gdk",
+      "version": "0.18.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "gdk-pixbuf",
+      "version": "0.18.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "gdk-pixbuf-sys",
+      "version": "0.18.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "gdk-sys",
+      "version": "0.18.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "gdkwayland-sys",
+      "version": "0.18.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "gdkx11",
+      "version": "0.18.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "gdkx11-sys",
+      "version": "0.18.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "generic-array",
+      "version": "0.14.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "getrandom",
+      "version": "0.2.17",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "getrandom",
+      "version": "0.3.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "getrandom",
+      "version": "0.4.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "gio",
+      "version": "0.18.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "gio-sys",
+      "version": "0.18.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "glib",
+      "version": "0.18.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "glib-macros",
+      "version": "0.18.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "glib-sys",
+      "version": "0.18.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "glob",
+      "version": "0.3.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "gobject-sys",
+      "version": "0.18.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "gtk",
+      "version": "0.18.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "gtk-sys",
+      "version": "0.18.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "gtk3-macros",
+      "version": "0.18.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "hashbrown",
+      "version": "0.12.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "hashbrown",
+      "version": "0.16.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "hashbrown",
+      "version": "0.17.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "hashlink",
+      "version": "0.12.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "heck",
+      "version": "0.4.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "heck",
+      "version": "0.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "hex",
+      "version": "0.4.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "html5ever",
+      "version": "0.38.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "http",
+      "version": "1.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "http-body",
+      "version": "1.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "http-body-util",
+      "version": "0.1.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "httparse",
+      "version": "1.10.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "hybrid-array",
+      "version": "0.4.14",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "hyper",
+      "version": "1.11.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "hyper-util",
+      "version": "0.1.20",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "iana-time-zone",
+      "version": "0.1.65",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "iana-time-zone-haiku",
+      "version": "0.1.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "ico",
+      "version": "0.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "icu_collections",
+      "version": "2.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "icu_locale_core",
+      "version": "2.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "icu_normalizer",
+      "version": "2.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "icu_normalizer_data",
+      "version": "2.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "icu_properties",
+      "version": "2.1.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "icu_properties_data",
+      "version": "2.1.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "icu_provider",
+      "version": "2.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "ident_case",
+      "version": "1.0.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "idna",
+      "version": "1.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "idna_adapter",
+      "version": "1.2.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "indexmap",
+      "version": "1.9.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "indexmap",
+      "version": "2.14.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "infer",
+      "version": "0.19.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "ipnet",
+      "version": "2.12.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "itoa",
+      "version": "1.0.18",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "javascriptcore-rs",
+      "version": "1.1.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "javascriptcore-rs-sys",
+      "version": "1.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "jni",
+      "version": "0.21.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "jni-sys",
+      "version": "0.3.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "jni-sys",
+      "version": "0.4.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "jni-sys-macros",
+      "version": "0.4.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "js-sys",
+      "version": "0.3.104",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "json-patch",
+      "version": "3.0.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "jsonptr",
+      "version": "0.6.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "keyboard-types",
+      "version": "0.7.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "libappindicator",
+      "version": "0.9.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "libappindicator-sys",
+      "version": "0.9.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "libc",
+      "version": "0.2.189",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "libdbus-sys",
+      "version": "0.2.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "libloading",
+      "version": "0.7.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "libredox",
+      "version": "0.1.20",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "libsqlite3-sys",
+      "version": "0.38.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "linux-raw-sys",
+      "version": "0.12.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "litemap",
+      "version": "0.8.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "lock_api",
+      "version": "0.4.14",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "log",
+      "version": "0.4.34",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "markup5ever",
+      "version": "0.38.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "memchr",
+      "version": "2.8.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "memoffset",
+      "version": "0.9.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "mime",
+      "version": "0.3.17",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "miniz_oxide",
+      "version": "0.8.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "mio",
+      "version": "1.2.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "muda",
+      "version": "0.19.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-asr-api",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-asr-mock",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-asr-transcribe",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-cli",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-compute",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-core",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-desktop",
+      "version": "0.1.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-diagnostics",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-history",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-ipc",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-model-manager",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-pipeline",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-platform-api",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-platform-linux",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-platform-null",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-policy",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivy-types",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "narrivyd",
+      "version": "0.0.0",
+      "source": "workspace",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "ndk",
+      "version": "0.9.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "ndk-sys",
+      "version": "0.6.0+11769913",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "new_debug_unreachable",
+      "version": "1.0.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "num-conv",
+      "version": "0.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "num-traits",
+      "version": "0.2.19",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "num_enum",
+      "version": "0.7.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "num_enum_derive",
+      "version": "0.7.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2",
+      "version": "0.6.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-app-kit",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-cloud-kit",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-core-data",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-core-foundation",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-core-graphics",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-core-image",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-core-location",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-core-text",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-encode",
+      "version": "4.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-exception-helper",
+      "version": "0.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-foundation",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-io-surface",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-quartz-core",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-ui-kit",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-user-notifications",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "objc2-web-kit",
+      "version": "0.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "once_cell",
+      "version": "1.21.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "option-ext",
+      "version": "0.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "pango",
+      "version": "0.18.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "pango-sys",
+      "version": "0.18.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "parking_lot",
+      "version": "0.12.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "parking_lot_core",
+      "version": "0.9.12",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "percent-encoding",
+      "version": "2.3.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "phf",
+      "version": "0.13.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "phf_codegen",
+      "version": "0.13.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "phf_generator",
+      "version": "0.13.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "phf_macros",
+      "version": "0.13.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "phf_shared",
+      "version": "0.13.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "pin-project-lite",
+      "version": "0.2.17",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "pkg-config",
+      "version": "0.3.34",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "plist",
+      "version": "1.8.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "png",
+      "version": "0.17.16",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "png",
+      "version": "0.18.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "potential_utf",
+      "version": "0.1.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "powerfmt",
+      "version": "0.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "precomputed-hash",
+      "version": "0.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "proc-macro-crate",
+      "version": "1.3.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "proc-macro-crate",
+      "version": "2.0.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "proc-macro-crate",
+      "version": "3.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "proc-macro-error",
+      "version": "1.0.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "proc-macro-error-attr",
+      "version": "1.0.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "proc-macro2",
+      "version": "1.0.107",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "quick-xml",
+      "version": "0.38.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "quote",
+      "version": "1.0.47",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "r-efi",
+      "version": "5.3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "r-efi",
+      "version": "6.0.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "raw-window-handle",
+      "version": "0.6.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "redox_syscall",
+      "version": "0.5.18",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "redox_users",
+      "version": "0.5.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "ref-cast",
+      "version": "1.0.27",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "ref-cast-impl",
+      "version": "1.0.27",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "regex",
+      "version": "1.13.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "regex-automata",
+      "version": "0.4.18",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "regex-syntax",
+      "version": "0.8.11",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "reqwest",
+      "version": "0.13.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "rsqlite-vfs",
+      "version": "0.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "rusqlite",
+      "version": "0.40.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "rustc-hash",
+      "version": "2.1.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "rustc_version",
+      "version": "0.4.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "rustix",
+      "version": "1.1.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "rustversion",
+      "version": "1.0.23",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "same-file",
+      "version": "1.0.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "schemars",
+      "version": "0.8.22",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "schemars",
+      "version": "0.9.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "schemars",
+      "version": "1.2.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "schemars_derive",
+      "version": "0.8.22",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "scopeguard",
+      "version": "1.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "selectors",
+      "version": "0.36.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "semver",
+      "version": "1.0.28",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "serde",
+      "version": "1.0.229",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "serde-untagged",
+      "version": "0.1.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "serde_core",
+      "version": "1.0.229",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "serde_derive",
+      "version": "1.0.229",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "serde_derive_internals",
+      "version": "0.29.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "serde_json",
+      "version": "1.0.151",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "serde_repr",
+      "version": "0.1.21",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "serde_spanned",
+      "version": "0.6.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "serde_spanned",
+      "version": "1.1.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "serde_with",
+      "version": "3.17.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "serde_with_macros",
+      "version": "3.17.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "serialize-to-javascript",
+      "version": "0.1.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "serialize-to-javascript-impl",
+      "version": "0.1.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "servo_arc",
+      "version": "0.4.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "sha2",
+      "version": "0.10.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "sha2",
+      "version": "0.11.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "shlex",
+      "version": "2.0.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "simd-adler32",
+      "version": "0.3.10",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "siphasher",
+      "version": "1.0.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "slab",
+      "version": "0.4.12",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "smallvec",
+      "version": "1.15.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "socket2",
+      "version": "0.6.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "softbuffer",
+      "version": "0.4.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "soup3",
+      "version": "0.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "soup3-sys",
+      "version": "0.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "sqlite-wasm-rs",
+      "version": "0.5.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "stable_deref_trait",
+      "version": "1.2.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "string_cache",
+      "version": "0.9.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "string_cache_codegen",
+      "version": "0.6.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "strsim",
+      "version": "0.11.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "swift-rs",
+      "version": "1.0.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "syn",
+      "version": "1.0.109",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "syn",
+      "version": "2.0.119",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "syn",
+      "version": "3.0.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "sync_wrapper",
+      "version": "1.0.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "synstructure",
+      "version": "0.13.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "system-deps",
+      "version": "6.2.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tao",
+      "version": "0.35.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tao-macros",
+      "version": "0.1.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "target-lexicon",
+      "version": "0.12.16",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tauri",
+      "version": "2.11.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tauri-build",
+      "version": "2.6.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tauri-codegen",
+      "version": "2.6.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tauri-macros",
+      "version": "2.6.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tauri-runtime",
+      "version": "2.11.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tauri-runtime-wry",
+      "version": "2.11.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tauri-utils",
+      "version": "2.9.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tauri-winres",
+      "version": "0.3.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tempfile",
+      "version": "3.27.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tendril",
+      "version": "0.5.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "thiserror",
+      "version": "1.0.69",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "thiserror",
+      "version": "2.0.20",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "thiserror-impl",
+      "version": "1.0.69",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "thiserror-impl",
+      "version": "2.0.20",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "time",
+      "version": "0.3.45",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "time-core",
+      "version": "0.1.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "time-macros",
+      "version": "0.2.25",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tinystr",
+      "version": "0.8.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tokio",
+      "version": "1.53.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tokio-util",
+      "version": "0.7.19",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "toml",
+      "version": "0.8.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "toml",
+      "version": "0.9.12+spec-1.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "toml",
+      "version": "1.1.4+spec-1.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "toml_datetime",
+      "version": "0.6.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "toml_datetime",
+      "version": "0.7.5+spec-1.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "toml_datetime",
+      "version": "1.1.1+spec-1.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "toml_edit",
+      "version": "0.19.15",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "toml_edit",
+      "version": "0.20.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "toml_edit",
+      "version": "0.25.13+spec-1.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "toml_parser",
+      "version": "1.1.3+spec-1.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "toml_writer",
+      "version": "1.1.2+spec-1.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tower",
+      "version": "0.5.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tower-http",
+      "version": "0.6.11",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tower-layer",
+      "version": "0.3.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tower-service",
+      "version": "0.3.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tracing",
+      "version": "0.1.44",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tracing-core",
+      "version": "0.1.36",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "tray-icon",
+      "version": "0.24.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "try-lock",
+      "version": "0.2.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "typeid",
+      "version": "1.0.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "typenum",
+      "version": "1.20.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "unic-char-property",
+      "version": "0.9.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "unic-char-range",
+      "version": "0.9.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "unic-common",
+      "version": "0.9.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "unic-ucd-ident",
+      "version": "0.9.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "unic-ucd-version",
+      "version": "0.9.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "unicode-ident",
+      "version": "1.0.24",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "unicode-segmentation",
+      "version": "1.13.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "url",
+      "version": "2.5.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "urlpattern",
+      "version": "0.3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "utf8_iter",
+      "version": "1.0.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "uuid",
+      "version": "1.25.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "vcpkg",
+      "version": "0.2.15",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "version-compare",
+      "version": "0.2.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "version_check",
+      "version": "0.9.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "vswhom",
+      "version": "0.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "vswhom-sys",
+      "version": "0.1.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "walkdir",
+      "version": "2.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "want",
+      "version": "0.3.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "wasi",
+      "version": "0.11.1+wasi-snapshot-preview1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "wasip2",
+      "version": "1.0.1+wasi-0.2.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "wasm-bindgen",
+      "version": "0.2.127",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "wasm-bindgen-futures",
+      "version": "0.4.77",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "wasm-bindgen-macro",
+      "version": "0.2.127",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "wasm-bindgen-macro-support",
+      "version": "0.2.127",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "wasm-bindgen-shared",
+      "version": "0.2.127",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "wasm-streams",
+      "version": "0.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "web-sys",
+      "version": "0.3.104",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "web_atoms",
+      "version": "0.2.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "webkit2gtk",
+      "version": "2.0.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "webkit2gtk-sys",
+      "version": "2.0.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "webview2-com",
+      "version": "0.38.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "webview2-com-macros",
+      "version": "0.8.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "webview2-com-sys",
+      "version": "0.38.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "winapi",
+      "version": "0.3.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "winapi-i686-pc-windows-gnu",
+      "version": "0.4.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "winapi-util",
+      "version": "0.1.11",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "winapi-x86_64-pc-windows-gnu",
+      "version": "0.4.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "window-vibrancy",
+      "version": "0.6.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows",
+      "version": "0.61.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-collections",
+      "version": "0.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-core",
+      "version": "0.61.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-core",
+      "version": "0.62.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-future",
+      "version": "0.2.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-implement",
+      "version": "0.60.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-interface",
+      "version": "0.59.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-link",
+      "version": "0.1.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-link",
+      "version": "0.2.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-numerics",
+      "version": "0.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-result",
+      "version": "0.3.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-result",
+      "version": "0.4.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-strings",
+      "version": "0.4.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-strings",
+      "version": "0.5.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-sys",
+      "version": "0.45.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-sys",
+      "version": "0.59.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-sys",
+      "version": "0.61.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-targets",
+      "version": "0.42.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-targets",
+      "version": "0.52.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-threading",
+      "version": "0.1.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows-version",
+      "version": "0.1.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows_aarch64_gnullvm",
+      "version": "0.42.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows_aarch64_gnullvm",
+      "version": "0.52.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows_aarch64_msvc",
+      "version": "0.42.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows_aarch64_msvc",
+      "version": "0.52.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows_i686_gnu",
+      "version": "0.42.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows_i686_gnu",
+      "version": "0.52.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows_i686_gnullvm",
+      "version": "0.52.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows_i686_msvc",
+      "version": "0.42.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows_i686_msvc",
+      "version": "0.52.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows_x86_64_gnu",
+      "version": "0.42.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows_x86_64_gnu",
+      "version": "0.52.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows_x86_64_gnullvm",
+      "version": "0.42.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows_x86_64_gnullvm",
+      "version": "0.52.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows_x86_64_msvc",
+      "version": "0.42.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "windows_x86_64_msvc",
+      "version": "0.52.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "winnow",
+      "version": "0.5.40",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "winnow",
+      "version": "0.7.15",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "winnow",
+      "version": "1.0.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "winreg",
+      "version": "0.55.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "wit-bindgen",
+      "version": "0.46.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "writeable",
+      "version": "0.6.4",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "wry",
+      "version": "0.55.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "x11",
+      "version": "2.21.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "x11-dl",
+      "version": "2.21.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "yoke",
+      "version": "0.8.3",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "yoke-derive",
+      "version": "0.8.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "zerofrom",
+      "version": "0.1.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "zerofrom-derive",
+      "version": "0.1.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "zerotrie",
+      "version": "0.2.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "zerovec",
+      "version": "0.11.8",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "zerovec-derive",
+      "version": "0.11.6",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    },
+    {
+      "name": "zmij",
+      "version": "1.0.23",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "NOASSERTION"
+    }
+  ],
+  "tool": "generate_sbom.sh manual Cargo.lock inventory (cargo cyclonedx preferred when available)",
+  "counts": {
+    "total": 453,
+    "unique_crates": 406
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "p8-context-privacy",
+  "phase": "P8",
+  "kind": "integration",
+  "scenario": "Context provider isolated, declares sensitivity, never sent remotely unless policy explicitly permits (PRIV-007 split transcript vs context); when history Off, context provider not called (no leakage)",
+  "native_required": false,
+  "requirement_ids": [
+    "FUN-064",
+    "PRIV-007"
+  ],
+  "verification_id": "VER-FUN-064",
+  "steps": [
+    "history retention Off -> maybe_collect_context returns None without calling provider.snapshot()",
+    "history On + PrivacyZone DenyContext for app -> returns None without calling provider",
+    "history On + NoopContext allowed -> returns Some(empty snapshot)",
+    "gate_context declares sensitivity via ContextProvider::sensitivity() and requested_fields()",
+    "verify provider isolation: no context content logged via diagnostics redactor"
+  ],
+  "checks": [
+    "history_off_no_leakage",
+    "privacy_zone_override",
+    "noop_context_allowed",
+    "sensitivity_declaration",
+    "log_redaction_via_diagnostics_redactor"
+  ]
+}

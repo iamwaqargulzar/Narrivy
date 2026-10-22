@@ -1,0 +1,12 @@
+{
+  "id": "p0f-target-identity",
+  "phase": "P0F",
+  "kind": "target-identity",
+  "checks": [
+    "app_window_id",
+    "selection_surrounding",
+    "permission",
+    "fallback"
+  ],
+  "native_required": true
+}

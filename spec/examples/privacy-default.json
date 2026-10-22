@@ -1,0 +1,1 @@
+{"schema_version":1,"default_processing":"local_only","history":{"enabled":true,"retain_days":30,"store_raw_variant":true,"store_audio":false},"recovery":{"enabled":true,"retain_hours":24},"zones":[]}

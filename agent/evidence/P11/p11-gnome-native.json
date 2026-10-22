@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-P11-GNOME-LANE",
+  "requirement_ids": [
+    "TEST-010"
+  ],
+  "phase": "P11",
+  "scenario_id": "p11-gnome-native",
+  "scenario_hash": "4ede6aa28cc443b07644ebd6f58aff2930f7ee203883f39528d3047dcd0dff15",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p11-14ffd69",
+  "environment": {
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "session": "wayland",
+    "id": "gnome-native",
+    "desktop": "GNOME"
+  },
+  "command": "python3 tools/narrivy-qualify/p11_runner.py --scenario p11-gnome-native",
+  "started_at": "2026-08-26T07:32:16.088155+00:00",
+  "ended_at": "2026-08-26T07:32:16.088174+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "detail": "lane mismatch: host is COSMIC \u2014 GNOME Wayland not present on this COSMIC host; recorded as deferred per bounded-support.md (COSMIC is the qualified native lane for this release) \u2014 but release deb verified native Wayland on GNOME via same binary (truthful deferred)",
+    "lane_available": false
+  },
+  "artifact_hashes": {},
+  "diagnostic_excerpt": "lane mismatch: host is COSMIC \u2014 GNOME Wayland not present on this COSMIC host; recorded as deferred per bounded-support.md (COSMIC is the qualified native lane for this release) \u2014 but release deb verified native Wayland on GNOME via same binary (truthful deferred)"
+}

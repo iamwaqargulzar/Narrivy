@@ -1,0 +1,13 @@
+{
+  "id": "p0f-mic-pipewire",
+  "phase": "P0F",
+  "kind": "mic",
+  "checks": [
+    "discovery",
+    "open_start_stop",
+    "hotplug",
+    "suspend_resume",
+    "non_blocking"
+  ],
+  "native_required": true
+}

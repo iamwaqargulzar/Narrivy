@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-SEC-006",
+  "requirement_ids": [
+    "SEC-006"
+  ],
+  "phase": "P9",
+  "scenario_id": "p9-privacy-leak",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p9-14ffd69",
+  "environment": {
+    "id": "cosmic-p9",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": "x86_64",
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": null
+  },
+  "command": "python3 tools/narrivy-qualify/p9_runner.py --scenario p9-privacy-leak --stub",
+  "scenario_hash": "ea0a50ac605aa938f4b02b665e9d6e49f7b52bb91de031f897cf79b29e9c3fd6",
+  "started_at": "2026-08-25T01:31:39.275350+00:00",
+  "ended_at": "2026-08-25T01:31:39.484818+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "harnesses_checked": 4,
+    "all_pass": false,
+    "leak_found": false,
+    "per_harness": {
+      "kill": false,
+      "torn": true,
+      "fd": true,
+      "oom": true
+    }
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "privacy leak check harnesses {'kill': False, 'torn': True, 'fd': True, 'oom': True} leak=False",
+  "tester": "autonomous-agent",
+  "notes": "[0.2.0-p9 stub] privacy-leak wrapper checked 4 harnesses leak_found=False details="
+}

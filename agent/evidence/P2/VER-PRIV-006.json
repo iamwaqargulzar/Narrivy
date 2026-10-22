@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-PRIV-006",
+  "requirement_ids": [
+    "REL-002"
+  ],
+  "phase": "P2",
+  "scenario_id": "p2-log-redaction",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p2-14ffd69",
+  "environment": {
+    "id": "cosmic-native-wayland",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": null,
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": "in-process synthesized silence (no device claimed)"
+  },
+  "command": "python3 tools/narrivy-qualify/p2_runner.py --log-hygiene",
+  "scenario_hash": "0bd131803b8645343fddc099d1428960df0f80239f48cdd74c9a7d6a6a8423d2",
+  "started_at": "2026-08-26T06:42:29.264581+00:00",
+  "ended_at": "2026-08-26T06:42:29.888144+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "scanned_chars": 654,
+    "fixture_leak_hits": 0,
+    "scanned_streams": [
+      "narrivyd stdout/stderr",
+      "narrivy-cli stdout/stderr"
+    ],
+    "needles": "mock fixture phrase (raw, corrected, bare) case-insensitive",
+    "fixture_note": "synthetic fixture string only; no user audio or transcripts exist in this lane"
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "scanned_chars=654 leak_hits=0",
+  "tester": "autonomous-agent",
+  "notes": "Ordinary-log redaction check over one real daemon session: narrivyd and narrivy-cli stdout/stderr contain zero occurrences of the transcript fixture (raw, corrected, or bare forms). Harness log lines are content-free lifecycle/outcome lines; supports REL-002/REL-003 privacy posture alongside scripts/check_log_redaction.py."
+}

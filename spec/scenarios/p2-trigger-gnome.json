@@ -1,0 +1,11 @@
+{
+  "id": "p2-trigger-gnome",
+  "phase": "P2",
+  "kind": "e2e",
+  "scenario": "trigger\u2192mic\u2192ASR\u2192delivery on GNOME",
+  "native_required": true,
+  "requirement_ids": [
+    "FUN-001"
+  ],
+  "verification_id": "VER-P2-GNOME-LANE-DEFERRED"
+}

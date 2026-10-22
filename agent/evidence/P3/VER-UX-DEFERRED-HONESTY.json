@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-UX-DEFERRED-HONESTY",
+  "requirement_ids": [
+    "UX-002"
+  ],
+  "phase": "P3",
+  "scenario_id": "p3-deferred-honesty-audit",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p3-14ffd69",
+  "environment": {
+    "id": "cosmic-native-wayland",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland"
+  },
+  "command": "npx vitest run -t DeferredFeaturesAbsent",
+  "scenario_hash": null,
+  "started_at": "2026-08-26T06:43:15.996151+00:00",
+  "ended_at": "2026-08-26T06:43:18.735578+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "output_tail": "(node:1505343) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set. | (Use `node --trace-warnings ...` to show where the warning was created)",
+    "manual_check_note": "owner-gate P3-005 'Deferred features hidden/labeled' completed via this automated UI audit + source grep (zero rendered Snippets/Integrations)",
+    "refreshed_output_excerpt": "(node:463839) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set. | (Use `node --trace-warnings ...` to show where the warning was created)"
+  },
+  "diagnostic_excerpt": "(node:1505343) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set. | (Use `node --trace-warnings ...` to show where the warning was created)",
+  "notes": "Refreshed 2026-08-26T06:43:18.735578+00:00: re-ran attested command at HEAD 43566eb.",
+  "tester": "autonomous-agent",
+  "artifact_hashes": {}
+}

@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "phase": "P0",
+  "description": "P0 foundation must have pinned toolchain, lockfile, schema validation, owner-gate immutability, evidence/phase-report schemas, and fail-closed gates.",
+  "minimum_checks": [
+    {
+      "id": "P0-001",
+      "description": "BUILD_TARGET.json validates build-target schema",
+      "kind": "schema"
+    },
+    {
+      "id": "P0-002",
+      "description": "Cargo.lock exists and is not hand-authored",
+      "kind": "artifact",
+      "artifact": "Cargo.lock"
+    },
+    {
+      "id": "P0-003",
+      "description": "validate_pack.py performs real JSON Schema validation",
+      "kind": "command",
+      "command": "python3 scripts/validate_pack.py"
+    },
+    {
+      "id": "P0-004",
+      "description": "owner-gate baseline manifest exists and verifies",
+      "kind": "command",
+      "command": "python3 scripts/verify_owner_gates.py"
+    },
+    {
+      "id": "P0-005",
+      "description": "evidence and phase-report schemas exist",
+      "kind": "artifact",
+      "artifact": "spec/schemas/evidence.schema.json"
+    },
+    {
+      "id": "P0-006",
+      "description": "phase-report schema exists",
+      "kind": "artifact",
+      "artifact": "spec/schemas/phase-report.schema.json"
+    },
+    {
+      "id": "P0-007",
+      "description": "cargo fmt check",
+      "kind": "command",
+      "command": "cargo fmt --all -- --check"
+    },
+    {
+      "id": "P0-008",
+      "description": "cargo check workspace locked",
+      "kind": "command",
+      "command": "cargo check --workspace --locked"
+    },
+    {
+      "id": "P0-009",
+      "description": "cargo test workspace locked",
+      "kind": "command",
+      "command": "cargo test --workspace --locked"
+    },
+    {
+      "id": "P0-010",
+      "description": "cargo clippy deny warnings",
+      "kind": "command",
+      "command": "cargo clippy --workspace --all-targets --locked -- -D warnings"
+    },
+    {
+      "id": "P0-011",
+      "description": "cargo deny check with pinned deny.toml",
+      "kind": "command",
+      "command": "cargo deny check"
+    },
+    {
+      "id": "P0-012",
+      "description": "doctor JSON emits structured diagnostics",
+      "kind": "command",
+      "command": "python3 scripts/doctor.py --json"
+    }
+  ],
+  "required_artifacts": [
+    "Cargo.lock",
+    "spec/schemas/evidence.schema.json",
+    "spec/schemas/phase-report.schema.json",
+    "spec/gates/owner/P0.json"
+  ],
+  "required_verification_ids": [
+    "VER-SEC-004",
+    "VER-TEST-001",
+    "VER-TEST-002",
+    "VER-TEST-008"
+  ],
+  "native_required": false,
+  "working_app_required": false
+}

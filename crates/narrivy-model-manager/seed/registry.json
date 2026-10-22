@@ -1,0 +1,181 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "whisper-tiny.en-Q8_0",
+      "family": "whisper",
+      "variant": "tiny.en",
+      "quant": "Q8_0",
+      "size_bytes": 45904544,
+      "sha256": "e8c9b73c06344307d8b346e07fbe93dd88d894627854bcff31523f1ce44394fa",
+      "license": "Apache-2.0",
+      "source_revision": "becb8bcb804405dc97b380a523d9975888820986",
+      "sources": [
+        {
+          "kind": "hf",
+          "repo_or_url": "handy-computer/whisper-tiny.en-gguf",
+          "filename": "whisper-tiny.en-Q8_0.gguf"
+        }
+      ],
+      "capabilities": {
+        "languages": [
+          "en"
+        ],
+        "streaming": false
+      },
+      "pinned": false,
+      "unqualified": false
+    },
+    {
+      "id": "whisper-base.en-Q8_0",
+      "family": "whisper",
+      "variant": "base.en",
+      "quant": "Q8_0",
+      "size_bytes": 83000000,
+      "sha256": null,
+      "license": "Apache-2.0",
+      "source_revision": "cf0804db15fb341d00c9274b90da9cbb4fe2e5c6",
+      "sources": [
+        {
+          "kind": "hf",
+          "repo_or_url": "handy-computer/whisper-base.en-gguf",
+          "filename": "whisper-base.en-Q8_0.gguf"
+        }
+      ],
+      "capabilities": {
+        "languages": [
+          "en"
+        ],
+        "streaming": false
+      },
+      "pinned": false,
+      "unqualified": true
+    },
+    {
+      "id": "whisper-small.en-Q8_0",
+      "family": "whisper",
+      "variant": "small.en",
+      "quant": "Q8_0",
+      "size_bytes": 195000000,
+      "sha256": null,
+      "license": "Apache-2.0",
+      "source_revision": "41b0f75fd44415ba127a5356c5ba9ed450c1debd",
+      "sources": [
+        {
+          "kind": "hf",
+          "repo_or_url": "handy-computer/whisper-small.en-gguf",
+          "filename": "whisper-small.en-Q8_0.gguf"
+        }
+      ],
+      "capabilities": {
+        "languages": [
+          "en"
+        ],
+        "streaming": false
+      },
+      "pinned": false,
+      "unqualified": true
+    },
+    {
+      "id": "parakeet-tdt-0.6b-v3-Q8_0",
+      "family": "parakeet",
+      "variant": "tdt-0.6b-v3",
+      "quant": "Q8_0",
+      "size_bytes": 650000000,
+      "sha256": null,
+      "license": "CC-BY-4.0",
+      "source_revision": "85ac09ea12fc4b1112fa76810059364bc6adc9de",
+      "sources": [
+        {
+          "kind": "hf",
+          "repo_or_url": "handy-computer/parakeet-tdt-0.6b-v3-gguf",
+          "filename": "parakeet-tdt-0.6b-v3-Q8_0.gguf"
+        }
+      ],
+      "capabilities": {
+        "languages": [
+          "en",
+          "multilingual"
+        ],
+        "streaming": true
+      },
+      "pinned": false,
+      "unqualified": true
+    },
+    {
+      "id": "whisper-large-v3-turbo-Q8_0",
+      "family": "whisper",
+      "variant": "large-v3-turbo",
+      "quant": "Q8_0",
+      "size_bytes": 886381760,
+      "sha256": "b2e30cc286bc9f3aba4db9099fc7403543497c05ce7100d0d83091ddfd25a183",
+      "license": "Apache-2.0",
+      "source_revision": "1fa31d318fe6a7c36d3b71134e26dd9c14c11d0b",
+      "sources": [
+        {
+          "kind": "hf",
+          "repo_or_url": "narrivy/store",
+          "filename": "models/gguf/whisper-large-v3-turbo-q8-0/whisper-large-v3-turbo-Q8_0.gguf"
+        }
+      ],
+      "capabilities": {
+        "languages": [
+          "multilingual"
+        ],
+        "streaming": false
+      },
+      "pinned": false,
+      "unqualified": true
+    },
+    {
+      "id": "whisper-large-v3-Q5_K_M",
+      "family": "whisper",
+      "variant": "large-v3",
+      "quant": "Q5_K_M",
+      "size_bytes": 1161143008,
+      "sha256": "6053d0fd69a0fd48b8fea5ea7a52b9e0cde389343566fa30e453a1b2b258dc38",
+      "license": "Apache-2.0",
+      "source_revision": "1fa31d318fe6a7c36d3b71134e26dd9c14c11d0b",
+      "sources": [
+        {
+          "kind": "hf",
+          "repo_or_url": "narrivy/store",
+          "filename": "models/gguf/whisper-large-v3-q5-k-m/whisper-large-v3-Q5_K_M.gguf"
+        }
+      ],
+      "capabilities": {
+        "languages": [
+          "multilingual"
+        ],
+        "streaming": false
+      },
+      "pinned": false,
+      "unqualified": true
+    },
+    {
+      "id": "parakeet-unified-en-0.6b-Q8_0",
+      "family": "parakeet",
+      "variant": "unified-en-0.6b",
+      "quant": "Q8_0",
+      "size_bytes": 731357568,
+      "sha256": "4b50b6dd862bf6e346929aaf4f5eaacec003bfa3f56462d6c874b41ef2f38795",
+      "license": "CC-BY-4.0",
+      "source_revision": "1fa31d318fe6a7c36d3b71134e26dd9c14c11d0b",
+      "sources": [
+        {
+          "kind": "hf",
+          "repo_or_url": "narrivy/store",
+          "filename": "models/gguf/parakeet-unified-en-0.6b-q8-0/parakeet-unified-en-0.6b-Q8_0.gguf"
+        }
+      ],
+      "capabilities": {
+        "languages": [
+          "en"
+        ],
+        "streaming": true
+      },
+      "pinned": false,
+      "unqualified": true
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "schema_version": 3,
+  "target": "linux-1.0",
+  "target_phase": "P11",
+  "phases": [
+    {
+      "id": "P0",
+      "name": "Foundation & Autonomous Control Plane",
+      "spec": "docs/maintainers/phases/phase-00-foundation.md",
+      "prompt": "docs/maintainers/phases/prompts/p0.md",
+      "acceptance": "spec/acceptance/P0.json",
+      "gate": "python3 scripts/phase_gate.py --phase P0",
+      "working_app_required": false,
+      "summary": "P0 establishes reproducible tooling, governance, schema validation, evidence contracts, atomic state, and fail-closed gates. No Linux feasibility claimed."
+    },
+    {
+      "id": "P0F",
+      "name": "Linux Platform Feasibility",
+      "spec": "docs/maintainers/phases/phase-0F-feasibility.md",
+      "prompt": "docs/maintainers/phases/prompts/p0f.md",
+      "acceptance": "spec/acceptance/P0F.json",
+      "gate": "python3 scripts/phase_gate.py --phase P0F",
+      "working_app_required": false,
+      "summary": "P0F uses disposable probes to prove or explicitly limit global activation, text delivery, target identity, microphone/PipeWire capture, and Tauri packaging on Pop!_OS/COSMIC Wayland before architecture hardens (Ubuntu/GNOME is post-release, owner 2026-09-28)."
+    },
+    {
+      "id": "P1",
+      "name": "Core, IPC, Persistence & Privacy Baseline",
+      "spec": "docs/maintainers/phases/phase-01-core-ipc.md",
+      "prompt": "docs/maintainers/phases/prompts/p1.md",
+      "acceptance": "spec/acceptance/P1.json",
+      "gate": "python3 scripts/phase_gate.py --phase P1",
+      "working_app_required": false,
+      "summary": "P1 decides and implements session state machine, cancellation/timeouts, typed outcomes, daemon/client protocol, same-user IPC, crash journal, privacy-policy baseline, persistent store/migrations, daemon lifecycle, and deterministic mock path."
+    },
+    {
+      "id": "P2",
+      "name": "Walking Skeleton",
+      "spec": "docs/maintainers/phases/phase-02-walking-skeleton.md",
+      "prompt": "docs/maintainers/phases/prompts/p2.md",
+      "acceptance": "spec/acceptance/P2.json",
+      "gate": "python3 scripts/phase_gate.py --phase P2",
+      "working_app_required": true,
+      "summary": "P2 delivers the first real plain but working path: trigger \u2192 microphone \u2192 real local ASR \u2192 final text \u2192 external target or Inbox fallback on the Pop!_OS COSMIC lane with cancellation, redacted logs, recoverable text, and CPU correctness."
+    },
+    {
+      "id": "P3",
+      "name": "Desktop Client",
+      "spec": "docs/maintainers/phases/phase-03-desktop-client.md",
+      "prompt": "docs/maintainers/phases/prompts/p3.md",
+      "acceptance": "spec/acceptance/P3.json",
+      "gate": "python3 scripts/phase_gate.py --phase P3",
+      "working_app_required": true,
+      "summary": "P3 builds the Tauri/React client on the proven service path, with onboarding, diagnostics, accessible design system, and capability-driven UI that hides or labels post-1.0 features."
+    },
+    {
+      "id": "P4",
+      "name": "Audio Reliability",
+      "spec": "docs/maintainers/phases/phase-04-audio-pipewire.md",
+      "prompt": "docs/maintainers/phases/prompts/p4.md",
+      "acceptance": "spec/acceptance/P4.json",
+      "gate": "python3 scripts/phase_gate.py --phase P4",
+      "working_app_required": true,
+      "summary": "P4 hardens capture, microphone lifecycle, PipeWire behavior, failure recovery, and only the proven 1.0 audio policies (leave + at least one crash-safe duck or pause)."
+    },
+    {
+      "id": "P5",
+      "name": "Production ASR, Model Manager & Compute Qualification",
+      "spec": "docs/maintainers/phases/phase-05-asr-compute.md",
+      "prompt": "docs/maintainers/phases/prompts/p5.md",
+      "acceptance": "spec/acceptance/P5.json",
+      "gate": "python3 scripts/phase_gate.py --phase P5",
+      "working_app_required": true,
+      "summary": "P5 chooses one reference local ASR engine/runtime for 1.0, provides CPU correctness fallback, qualifies model/runtime/driver/hardware tuples, and handles model download/cache/offline lifecycle with Vulkan/GPU pool and NPU where qualified."
+    },
+    {
+      "id": "P6",
+      "name": "Integrated Dictation Beta",
+      "spec": "docs/maintainers/phases/phase-06-integrated-dictation-beta.md",
+      "prompt": "docs/maintainers/phases/prompts/p6.md",
+      "acceptance": "spec/acceptance/P6.json",
+      "gate": "python3 scripts/phase_gate.py --phase P6",
+      "working_app_required": true,
+      "summary": "P6 turns the already-working product into a strong daily dictation beta and establishes measured latency/reliability baselines that later phases must preserve."
+    },
+    {
+      "id": "P7",
+      "name": "Core Modes & Simple Personalization Only",
+      "spec": "docs/maintainers/phases/phase-07-modes-profiles.md",
+      "prompt": "docs/maintainers/phases/prompts/p7.md",
+      "acceptance": "spec/acceptance/P7.json",
+      "gate": "python3 scripts/phase_gate.py --phase P7",
+      "working_app_required": true,
+      "summary": "P7 prioritizes Raw and Clean modes and simple profiles/settings not dependent on unreliable Wayland introspection; advanced profiles are capability-dependent or deferred."
+    },
+    {
+      "id": "P8",
+      "name": "Privacy, History & Dictionary Essentials",
+      "spec": "docs/maintainers/phases/phase-08-context-privacy.md",
+      "prompt": "docs/maintainers/phases/prompts/p8.md",
+      "acceptance": "spec/acceptance/P8.json",
+      "gate": "python3 scripts/phase_gate.py --phase P8",
+      "working_app_required": true,
+      "summary": "P8 keeps only privacy/personalization essentials for a safe useful 1.0; advanced context, correction learning, project indexing, and fragile workflows are deferred unless proven low-risk."
+    },
+    {
+      "id": "P9",
+      "name": "Reliability, Security, Accessibility & Performance Hardening",
+      "spec": "docs/maintainers/phases/phase-09-hardening.md",
+      "prompt": "docs/maintainers/phases/prompts/p9.md",
+      "acceptance": "spec/acceptance/P9.json",
+      "gate": "python3 scripts/phase_gate.py --phase P9",
+      "working_app_required": true,
+      "summary": "P9 attacks the working product with failure injection, security, accessibility, performance regressions, migration, lifecycle, resource exhaustion, and privacy leakage tests."
+    },
+    {
+      "id": "P10",
+      "name": "Packaging & Reproducible Release Engineering",
+      "spec": "docs/maintainers/phases/phase-10-packaging.md",
+      "prompt": "docs/maintainers/phases/prompts/p10.md",
+      "acceptance": "spec/acceptance/P10.json",
+      "gate": "python3 scripts/phase_gate.py --phase P10",
+      "working_app_required": true,
+      "summary": "P10 produces the .deb (single Linux 1.0 installation artifact \u2014 owner decision 2026-08-22, no AppImage) with immutable builder baselines, dependency inventory, SBOM, notices, checksums, build identity, and provenance."
+    },
+    {
+      "id": "P11",
+      "name": "Linux 1.0 Qualification & Release",
+      "spec": "docs/maintainers/phases/phase-11-qualification.md",
+      "prompt": "docs/maintainers/phases/prompts/p11.md",
+      "acceptance": "spec/acceptance/P11.json",
+      "gate": "python3 scripts/phase_gate.py --phase P11",
+      "working_app_required": true,
+      "summary": "P11 proves release artifacts (not dev builds) on the native Pop!_OS COSMIC reference environment (the only first-release lane, owner 2026-09-28) per bounded support and measured performance protocol."
+    }
+  ]
+}

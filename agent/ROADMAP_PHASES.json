@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "phases": [
+    {
+      "id": "R12",
+      "name": "Advanced Voice, Structured Workflows & Meetings",
+      "spec": "docs/roadmap/phases/R12-advanced-voice-meetings.md"
+    },
+    {
+      "id": "R13",
+      "name": "Native Windows & macOS Proof",
+      "spec": "docs/roadmap/phases/R13-windows-macos.md"
+    },
+    {
+      "id": "R14",
+      "name": "Ecosystem, Domain Packs, Teams & Companion/Compute",
+      "spec": "docs/roadmap/phases/R14-ecosystem.md"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-UX-DEFERRED-HONESTY",
+  "requirement_ids": [
+    "UX-009"
+  ],
+  "phase": "P7",
+  "scenario_id": "p7-modes-profiles",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p7-14ffd69",
+  "environment": {
+    "id": "cosmic-p7",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": "x86_64",
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": null
+  },
+  "command": "python3 tools/narrivy-qualify/p7_runner.py --deferred-audit",
+  "scenario_hash": null,
+  "started_at": "2026-08-26T06:44:25.098194+00:00",
+  "ended_at": "2026-08-26T06:44:26.360181+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "vitest_exit_code": 0,
+    "rendered_source_grep_hits": [],
+    "manual_check_note": "owner-gate P7-003 'Deferred screens hidden/labeled' completed via this automated UI audit + source grep (zero rendered Snippets/Integrations)",
+    "output_tail": [
+      "(node:471625) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.",
+      "(Use `node --trace-warnings ...` to show where the warning was created)"
+    ]
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "",
+  "tester": "autonomous-agent",
+  "notes": "P7 adds no deferred screens; the P3 honesty audit stays green."
+}

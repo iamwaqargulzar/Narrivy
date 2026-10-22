@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "id": "narrivy/whisper-large-v3-turbo-gguf-q8-0",
+  "revision": "2026-09-30.1",
+  "display_name": "Whisper large-v3 turbo (GGUF, Q8_0, 8-bit)",
+  "source": {
+    "provider": "huggingface",
+    "locator": "handy-computer/whisper-large-v3-turbo-gguf",
+    "immutable_revision": "5eaf945c7978e564bae5b28a5b1639dd93c2bfb1",
+    "publisher": "handy-computer"
+  },
+  "engine": {
+    "id": "asr.transcribe-cpp",
+    "min_version": "0.2.3",
+    "max_version": null
+  },
+  "format": {
+    "family": "whisper",
+    "precision": "Q8_0",
+    "conversion_recipe": null
+  },
+  "tasks": [
+    "transcribe"
+  ],
+  "languages": [
+    "multilingual"
+  ],
+  "files": [
+    {
+      "path": "whisper-large-v3-turbo-Q8_0.gguf",
+      "sha256": "b2e30cc286bc9f3aba4db9099fc7403543497c05ce7100d0d83091ddfd25a183",
+      "size_bytes": 886381760,
+      "optional_signature": null
+    }
+  ],
+  "devices": [
+    "CPU",
+    "GPU"
+  ],
+  "runtime_constraints": {
+    "notes": "Quantization: Q8_0 (8-bit). Returns text after you stop. May run on CPU, GPU; a device is used only after this exact model, runtime, driver and device pass qualification on the user's computer."
+  },
+  "license": {
+    "spdx_or_name": "Apache-2.0",
+    "source": "https://huggingface.co/handy-computer/whisper-large-v3-turbo-gguf",
+    "redistribution": "allowed",
+    "notice": "Whisper large-v3 turbo by OpenAI; GGUF conversion by handy-computer. Redistributed unmodified."
+  }
+}

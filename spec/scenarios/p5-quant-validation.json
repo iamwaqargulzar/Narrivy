@@ -1,0 +1,11 @@
+{
+  "id": "p5-quant-validation",
+  "phase": "P5",
+  "kind": "e2e",
+  "scenario": "Quant/compute-variant validation on offline artifacts: identical model decoded on CPU vs Vulkan backends, recorded as versioned qualification tuples",
+  "requirement_ids": [
+    "PERF-009",
+    "TEST-005"
+  ],
+  "verification_id": "VER-PERF-009"
+}

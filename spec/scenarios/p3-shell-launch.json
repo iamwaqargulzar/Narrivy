@@ -1,0 +1,11 @@
+{
+  "id": "p3-shell-launch",
+  "phase": "P3",
+  "kind": "e2e",
+  "scenario": "Desktop shell (GTK4/WebKitGTK6) launches against real daemon on native COSMIC Wayland; overlay non-focus-stealing",
+  "native_required": true,
+  "requirement_ids": [
+    "UX-002"
+  ],
+  "verification_id": "VER-P3-SHELL-LAUNCH"
+}

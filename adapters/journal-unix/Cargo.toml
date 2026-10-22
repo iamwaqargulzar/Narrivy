@@ -1,0 +1,28 @@
+[package]
+publish = false
+name = "narrivy-journal-unix"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Secure Unix filesystem adapter for the recovery journal."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints.rust]
+unsafe_code = "allow"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "deny"
+
+[dependencies]
+narrivy-journal-api.workspace = true
+serde_json.workspace = true
+libc.workspace = true
+tempfile.workspace = true
+
+[dev-dependencies]
+narrivy-types.workspace = true

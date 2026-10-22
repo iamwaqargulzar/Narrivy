@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-TEST-006",
+  "requirement_ids": [
+    "TEST-006"
+  ],
+  "phase": "P9",
+  "scenario_id": "p9-fd-exhaustion",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p9-14ffd69",
+  "environment": {
+    "id": "cosmic-p9",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": "x86_64",
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": null
+  },
+  "command": "python3 tools/narrivy-qualify/p9_runner.py --scenario p9-fd-exhaustion --stub",
+  "scenario_hash": "b523d9d073b16f6db2f95b579aec10cdc303f1736e08135dca4267daad720b78",
+  "started_at": "2026-08-25T01:31:39.100966+00:00",
+  "ended_at": "2026-08-25T01:31:39.106421+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "rlimit_set_to": 32,
+    "attempted_sockets": 40,
+    "socket_successes": 29,
+    "socket_failures": 11,
+    "emfile_count": 11,
+    "failure_details": [
+      [
+        24,
+        "Too many open files"
+      ],
+      [
+        24,
+        "Too many open files"
+      ],
+      [
+        24,
+        "Too many open files"
+      ],
+      [
+        24,
+        "Too many open files"
+      ],
+      [
+        24,
+        "Too many open files"
+      ]
+    ],
+    "open_fds_during": 32,
+    "survivors_inside_pressure": 0,
+    "held_fds": 29,
+    "open_fds_during2": 32,
+    "typed_error_under_pressure": "24:Too many open files",
+    "rlimit_restored": true,
+    "survivor_count": 1,
+    "survivor_ids": [
+      "baseline"
+    ],
+    "typed_ok": true,
+    "baseline_survives": true
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "attempted 40 emfile 11 typed_ok True baseline True restored True survivors ['baseline'] failures [(24, 'Too many open files'), (24, 'Too many open files'), (24, 'Too many open files')]",
+  "tester": "autonomous-agent",
+  "notes": "[0.2.0-p9 stub] RLIMIT_NOFILE clamped soft 1048576->32 socket attempts 40 successes 29 failures 11 emfile 11 RLIMIT restored to 1048576 (orig 1048576) fd_exhaustion mission 40 attempts emfile 11 typed_ok True baseline True restored True survivors 1"
+}

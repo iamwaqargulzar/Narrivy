@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+case "$1" in
+  remove|deconfigure|upgrade|failed-upgrade)
+    # Package scripts run outside user sessions and must not control a
+    # root-owned user manager. User data remains preserved.
+    ;;
+  *)
+    ;;
+esac
+#DEBHELPER#
+exit 0

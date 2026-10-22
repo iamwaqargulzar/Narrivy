@@ -1,0 +1,18 @@
+{
+  "active_phase": "P11",
+  "current_work_item": "Linux 1.0 (Pop!_OS COSMIC) release work, plus Windows (SQ2) brought forward by D36; macOS parked. WP2c v1 features are built (assistant, meetings, clean-up, dictation polish). Open owner question: ship 1.0.0~beta1 before the full gate. Next: answer the beta question, uinput paste chord for COSMIC, re-check the Critical findings, Windows compile proof. See the handoff at the end of agent/completion-plan/PROGRESS.md. Branch cleanup/wp1b, local only.",
+  "last_completed_phase": null,
+  "last_evidence_digest": null,
+  "last_gate_command": "python3 scripts/release_gate.py --target linux-1.0",
+  "last_gate_commit": "482375c",
+  "last_gate_dirty": true,
+  "last_gate_result": "2026-10-19: release_gate.py exit 1, 614 lines, 0 of 93 release requirements accepted. Requirement status: 39 passed, 54 blocked. 140 assertions without a measurement binding (14 requirements), 56 artifact hash mismatches (33), 39 passed rows with evidence from an older commit, 5 missing/unsafe artifact paths, manifest out of date (102 unlisted, 101 changed files), P11 phase report not passing. Measured with only the status edits uncommitted.",
+  "latest_verified_work": "2026-10-02 to 2026-10-18: WP2c v1 features (clean-up on the NPU, assistant with tools and web, meetings, dictation polish, status-bar meters). 2026-10-18: Strict voice filter dropped the owner's speech (set to Normal); overlay live words now about 0.5 s behind (482375c). COSMIC's 15/17 Oct updates ignore wtype modifiers, so Paste fails; the owner's delivery is set to Type for now.",
+  "notes": "The known-phrase acoustic miss (RC55) has a likely test-side cause: playback starts before capture is ready (plan WP4 T4.5 item 13). The VAD change in 1ccafff has no native qualification. ACC-001, ACC-005 and TEST-007 remain blocked (plan T2.10). The first release is Pop!_OS COSMIC only (owner, 2026-09-28); GNOME is post-release. No push was made. 2026-10-19: D36, Windows forward and macOS parked. A wtype paste on COSMIC is reported SubmittedUnverified although nothing was pasted (the clipboard manager's read looks like a paste).",
+  "phase_report": "agent/phase-reports/P11.json",
+  "phase_status": "in_progress",
+  "product_target": "linux-1.0",
+  "release_gate": "blocked",
+  "schema_version": 2,
+  "updated_at": "2026-10-19T06:32:12.900691Z"
+}

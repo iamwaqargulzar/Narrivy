@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Narrivy Writing</title>
+  <link rel="stylesheet" href="ui.css" />
+  <style>
+    body { width: 320px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+    .foot { display: flex; justify-content: space-between; }
+  </style>
+</head>
+<body>
+  <h1><img src="icons/icon-32.png" alt="" />Narrivy Writing</h1>
+  <div class="card">
+    <div class="status"><span class="light" id="light"></span><span id="status">Checking connection…</span></div>
+    <p class="muted" id="model" style="margin-top:4px"></p>
+  </div>
+  <div class="card">
+    <div class="row">
+      <label for="site"><span id="site-label">This site</span><br /><span class="muted" id="site-note"></span></label>
+      <label class="switch"><input type="checkbox" id="site" /><span></span></label>
+    </div>
+    <div class="row">
+      <label for="enabled">Check writing everywhere</label>
+      <label class="switch"><input type="checkbox" id="enabled" /><span></span></label>
+    </div>
+    <div class="row">
+      <label for="dialect">Language</label>
+      <select id="dialect"></select>
+    </div>
+  </div>
+  <p class="muted">Everything is checked on this computer by Narrivy. Nothing you type is sent anywhere.</p>
+  <div class="foot">
+    <button class="link" id="options">All settings</button>
+    <span class="muted">Shortcut: <code>Alt+Shift+G</code></span>
+  </div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

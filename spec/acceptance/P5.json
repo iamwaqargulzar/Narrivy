@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "phase": "P5",
+  "implemented": true,
+  "primary_requirements": [
+    "FUN-003",
+    "FUN-028",
+    "FUN-029",
+    "PERF-005",
+    "PERF-007",
+    "PERF-008",
+    "PERF-009",
+    "PORT-006",
+    "TEST-005",
+    "SEC-007"
+  ],
+  "required_artifacts": [],
+  "commands": [
+    "python3 scripts/verify_traceability.py",
+    "cargo test -p narrivy-model-manager --locked",
+    "cargo test -p narrivy-compute --locked",
+    "cargo test --workspace --locked -- capability_ui"
+  ],
+  "smoke_commands": [
+    "python3 tools/narrivy-qualify/p2_runner.py --e2e-native-wayland",
+    "python3 tools/narrivy-qualify/p5_compute_runner.py --scenario p5-asr-cpu-correctness"
+  ]
+}

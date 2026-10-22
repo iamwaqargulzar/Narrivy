@@ -1,0 +1,128 @@
+{
+  "schema_version": 3,
+  "build_identity": "narrivy-0.1.0+020593a",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": false,
+  "generated_at": "2026-08-26T03:41:48.724704+00:00",
+  "environments": [
+    {
+      "kind": "cosmic-wayland",
+      "os": "Pop!_OS",
+      "os_version": "Pop!_OS 24.04 LTS",
+      "kernel": "7.0.11-76070011-generic",
+      "desktop": "COSMIC",
+      "session": "wayland",
+      "native_or_vm": "native",
+      "cpu": "Intel(R) Core(TM) Ultra 9 288V",
+      "gpu_npu": "Intel Arc LNL iGPU (Vulkan) + Intel NPU (present, runtime absent)",
+      "microphone": "Samson Meteor Mic (default)",
+      "display_scale": "1.0",
+      "package_type": "deb",
+      "package_sha256": "bc15dbf6a42a446bbb1d04f1a46edc77a69bf35f163affaffbd7eca2a1c1f3dc",
+      "e2e_pass": true,
+      "evidence": "agent/evidence/P11/p11-cosmic-native.json",
+      "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+      "scenario_hash": "5df57fde9e7b1f63c44b17ac383b18edfea1ec2281a90c3d849ddd08ff9577b1"
+    },
+    {
+      "kind": "gnome-wayland",
+      "os": "Ubuntu",
+      "os_version": "24.04.2 LTS",
+      "kernel": "7.0.11-76070011-generic",
+      "desktop": "GNOME",
+      "session": "wayland",
+      "native_or_vm": "native",
+      "cpu": "Intel(R) Core(TM) Ultra 9 288V",
+      "gpu_npu": null,
+      "microphone": "Samson Meteor Mic (default)",
+      "display_scale": null,
+      "package_type": "deb",
+      "package_sha256": "bc15dbf6a42a446bbb1d04f1a46edc77a69bf35f163affaffbd7eca2a1c1f3dc",
+      "e2e_pass": true,
+      "evidence": "agent/evidence/P11/p11-gnome-native.json",
+      "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+      "scenario_hash": "4ede6aa28cc443b07644ebd6f58aff2930f7ee203883f39528d3047dcd0dff15"
+    }
+  ],
+  "cpu_fallback_pass": true,
+  "accessibility_pass": true,
+  "privacy_security_pass": true,
+  "accelerator_claims": [],
+  "target_matrix": [
+    {
+      "class": "gtk",
+      "environment_kind": "cosmic-wayland",
+      "result": "supported",
+      "delivery_outcome": "delivered",
+      "evidence": "agent/evidence/P11/p11-cosmic-native.json"
+    },
+    {
+      "class": "qt",
+      "environment_kind": "cosmic-wayland",
+      "result": "supported",
+      "delivery_outcome": "delivered",
+      "evidence": "agent/evidence/P11/p11-cosmic-native.json"
+    },
+    {
+      "class": "firefox",
+      "environment_kind": "cosmic-wayland",
+      "result": "supported",
+      "delivery_outcome": "delivered",
+      "evidence": "agent/evidence/P11/p11-cosmic-native.json"
+    },
+    {
+      "class": "chromium",
+      "environment_kind": "cosmic-wayland",
+      "result": "supported",
+      "delivery_outcome": "delivered",
+      "evidence": "agent/evidence/P11/p11-cosmic-native.json"
+    },
+    {
+      "class": "electron",
+      "environment_kind": "cosmic-wayland",
+      "result": "supported",
+      "delivery_outcome": "delivered",
+      "evidence": "agent/evidence/P11/p11-cosmic-native.json"
+    },
+    {
+      "class": "terminal",
+      "environment_kind": "cosmic-wayland",
+      "result": "supported",
+      "delivery_outcome": "delivered",
+      "evidence": "agent/evidence/P11/p11-cosmic-native.json"
+    },
+    {
+      "class": "libreoffice",
+      "environment_kind": "cosmic-wayland",
+      "result": "supported",
+      "delivery_outcome": "delivered",
+      "evidence": "agent/evidence/P11/p11-cosmic-native.json"
+    },
+    {
+      "class": "xwayland",
+      "environment_kind": "cosmic-wayland",
+      "result": "supported",
+      "delivery_outcome": "delivered",
+      "evidence": "agent/evidence/P11/p11-cosmic-native.json"
+    }
+  ],
+  "performance": {
+    "protocol": "docs/07-testing/performance-benchmark-protocol.md",
+    "pass": true,
+    "evidence": "agent/evidence/P6/VER-PERF-001.json",
+    "metrics": {
+      "hotkey_ack": {
+        "p50_ms": 4.21,
+        "p95_ms": 4.4
+      },
+      "capture_ready": {
+        "p50_ms": 0.014,
+        "p95_ms": 0.02
+      },
+      "trigger_to_listening": {
+        "p50_ms": 0.014,
+        "p95_ms": 0.02
+      }
+    }
+  }
+}

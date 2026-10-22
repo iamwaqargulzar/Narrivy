@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-P0F-ACTIVATION",
+  "requirement_ids": [],
+  "phase": "P0F",
+  "scenario_id": "p0f-activation-cosmic",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p0f-14ffd69",
+  "environment": {
+    "id": "cosmic-native",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": "Intel(R) Core(TM) Ultra 9 288V",
+    "gpu": "Intel(R) Graphics (LNL)",
+    "npu": "/dev/accel0 (intel_vpu)",
+    "microphone": "alsa_input.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__Mic1__source"
+  },
+  "command": "python3 tools/p0f-probes/probe-activation.py --scenario p0f-activation-cosmic",
+  "scenario_hash": "60b7998170449b567ffeb5d488607b187014ab2bf649e1fda609836337ae927c",
+  "started_at": "2026-08-22T10:57:26.259331+00:00",
+  "ended_at": "2026-08-22T10:57:26.781198+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "portal": {
+      "portal_available": true,
+      "globalshortcuts_available": false,
+      "portal_version": "1.18.4-1ubuntu2.24.04.2",
+      "portal_impl": [
+        "cosmic",
+        "gtk"
+      ],
+      "details": [
+        "GlobalShortcuts interface NOT found in portal introspection"
+      ]
+    },
+    "toggle_via_globalshortcuts_available": false,
+    "ptt_key_release_available": false,
+    "repeat_50": {
+      "requested": 50,
+      "succeeded": 50,
+      "failed": 0,
+      "elapsed_s": 0.477,
+      "failed_cycles": [],
+      "pass": true
+    },
+    "restart": {
+      "portal_active": true,
+      "can_restart_via_systemctl": true,
+      "note": "did not restart the portal to avoid session disruption; is-active checked, restart path would be systemctl --user restart"
+    },
+    "permission": {
+      "permission_store_available": true,
+      "globalshortcuts_permission_prompt_testable": false,
+      "note": "permission prompt flow is only testable where the GlobalShortcuts interface exists"
+    },
+    "uinput_used": false,
+    "least_privilege_compliant": true
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "portal_gs=False repeat50=50/50",
+  "tester": "autonomous-agent",
+  "notes": "Activation probe on COSMIC Wayland (portal_version=1.18.4-1ubuntu2.24.04.2, impl=['cosmic', 'gtk']). GlobalShortcuts available=False: GlobalShortcuts interface NOT found in portal introspection. Toggle via portal=unavailable; PTT remains capability-dependent on proven key-release semantics. Repeat 50 cycles: 50/50 in 0.477s. Restart: portal_active=True; permission store=True. No broad input privilege used (no uinput, no input group)."
+}

@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-FUN-009",
+  "requirement_ids": [
+    "FUN-009"
+  ],
+  "phase": "P2",
+  "scenario_id": "p2-inbox-fallback",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p2-14ffd69",
+  "environment": {
+    "id": "cosmic-native-wayland",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": null,
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": "in-process synthesized silence (no device claimed)"
+  },
+  "command": "python3 tools/narrivy-qualify/p2_runner.py --inbox-fallback",
+  "scenario_hash": "fb7d67f120b9676fdc7a3b047a72eaebd3f4b4a9386e9e06e7b10dda854cbd61",
+  "started_at": "2026-08-26T06:42:36.250139+00:00",
+  "ended_at": "2026-08-26T06:42:36.542539+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "states_seen": [],
+    "journal_recoverable": 1,
+    "terminal_state_delivered_count": 0,
+    "log_leak_hits": 0
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "forced failure -> InboxFallback contract",
+  "tester": "autonomous-agent",
+  "notes": "Inbox fallback proven via forced delivery failure"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "p6-e2e-beta",
+  "phase": "P6",
+  "kind": "e2e",
+  "scenario": "integrated dictation beta walkthrough vs real daemon: status caps -> capability checks -> start -> events -> deterministic delivery -> history -> cancel-race -> inbox fallback",
+  "native_required": true,
+  "requirement_ids": [
+    "FUN-001",
+    "FUN-004",
+    "FUN-008",
+    "TEST-009"
+  ],
+  "verification_id": "VER-TEST-009"
+}

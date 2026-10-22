@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "org.narrivy.runtime.example-npu",
+  "version": "0.1.0",
+  "api": {"major": 1, "min_minor": 0},
+  "platform": "linux",
+  "arch": "x86_64",
+  "device_classes": ["npu"],
+  "runtime": {"name":"example-runtime","vendor":"Example Vendor","version":"1.0.0","driver_constraints":[">=1.0"],"kernel_constraints":[]},
+  "artifacts": [{"path":"lib/example-runtime.so","sha256":"0000000000000000000000000000000000000000000000000000000000000000","size_bytes":1}],
+  "capabilities": ["asr.inference"],
+  "model_formats": ["example-ir"],
+  "license": {"spdx":"MIT","redistributable":true,"notice":null},
+  "provenance": null,
+  "signature": null,
+  "self_test": {"command":"narrivy-runtime-selftest --pack org.narrivy.runtime.example-npu","fixture_id":"asr-smoke-v1"}
+}

@@ -1,0 +1,11 @@
+{
+  "id": "p9-migration-interrupt",
+  "phase": "P9",
+  "kind": "failure",
+  "scenario": "migration interrupt: SIGKILL mid-migration write, parent reopens DB, asserts old intact or new fully applied, hash chain sealed (reuse kill harness)",
+  "native_required": true,
+  "requirement_ids": [
+    "TEST-006"
+  ],
+  "verification_id": "VER-TEST-006"
+}

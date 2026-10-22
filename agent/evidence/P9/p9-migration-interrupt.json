@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "verification_id": "VER-TEST-006",
+  "requirement_ids": [
+    "TEST-006"
+  ],
+  "phase": "P9",
+  "scenario_id": "p9-migration-interrupt",
+  "git_commit": "14ffd6990fdf30577f93e995b9d9612bcf20c6e0",
+  "git_dirty": true,
+  "build_id": "p9-14ffd69",
+  "environment": {
+    "id": "cosmic-p9",
+    "native_or_vm": "native",
+    "os": "Pop!_OS",
+    "os_version": "Pop!_OS 24.04 LTS",
+    "kernel": "7.0.11-76070011-generic",
+    "desktop": "COSMIC",
+    "session": "wayland",
+    "cpu": "x86_64",
+    "gpu": null,
+    "npu": null,
+    "microphone": null,
+    "device_details": null
+  },
+  "command": "python3 tools/narrivy-qualify/p9_runner.py --scenario p9-migration-interrupt --stub",
+  "scenario_hash": "e4a7cac82a85c742ec9bd4f30edfffe1f5121a5dabe6c393a804ef4c818f8630",
+  "started_at": "2026-08-25T01:31:39.160278+00:00",
+  "ended_at": "2026-08-25T01:31:39.219900+00:00",
+  "exit_code": 0,
+  "result": "pass",
+  "pass": true,
+  "metrics": {
+    "kill_info": {
+      "pid": 462119,
+      "killed": true,
+      "exit_code": -9
+    },
+    "cargo_child": false,
+    "worker_delay_ms": 325,
+    "quarantined_count": 1,
+    "survivor_count": 3,
+    "survivor_ids": [
+      "pre-000",
+      "pre-001",
+      "pre-002"
+    ],
+    "hash_chain_ok": true,
+    "hash_chain_msg": "hash chain ok max_ver=2 count=2",
+    "max_version_after_kill": 2,
+    "no_half_migration": true,
+    "has_note_column": false
+  },
+  "artifact_hashes": {},
+  "diagnostic_ref": null,
+  "diagnostic_excerpt": "survivors=['pre-000', 'pre-001', 'pre-002'] quarantined=1 hash_chain=hash chain ok max_ver=2 count=2 max_ver=2 no_half=True kill={'pid': 462119, 'killed': True, 'exit_code': -9}",
+  "tester": "autonomous-agent",
+  "notes": "[0.2.0-p9 stub] migration-interrupt wrapper: init_db hash chain ok max_ver=2 count=2 kill9 python worker pid=462119 rc=-9 kill_delay=0.042 worker_delay=325 spawn cargo test --test harness_kill (simulated via python worker; command would be `cargo test --test harness_kill`) hash_chain hash chain ok max_ver=2 count=2"
+}

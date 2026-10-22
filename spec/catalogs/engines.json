@@ -1,0 +1,279 @@
+{
+  "schema_version": 1,
+  "engines": [
+    {
+      "id": "rnnoise",
+      "capabilities": [
+        "audio.denoise"
+      ],
+      "status": "candidate",
+      "description": "Tiny real-time neural denoise",
+      "runtime_notes": "native",
+      "license_notes": "BSD-3-Clause"
+    },
+    {
+      "id": "gtcrn",
+      "capabilities": [
+        "audio.denoise"
+      ],
+      "status": "candidate",
+      "description": "Lightweight streaming neural denoise",
+      "runtime_notes": "onnx/native-worker",
+      "license_notes": "MIT"
+    },
+    {
+      "id": "deepfilternet",
+      "capabilities": [
+        "audio.denoise"
+      ],
+      "status": "optional",
+      "description": "High-quality real-time speech enhancement",
+      "runtime_notes": "native/onnx/openvino",
+      "license_notes": "MIT/Apache-2.0"
+    },
+    {
+      "id": "dpdfnet",
+      "capabilities": [
+        "audio.denoise"
+      ],
+      "status": "optional",
+      "description": "Streaming speech enhancement",
+      "runtime_notes": "onnx",
+      "license_notes": "Apache-2.0"
+    },
+    {
+      "id": "webrtc-apm",
+      "capabilities": [
+        "audio.aec",
+        "audio.denoise",
+        "audio.agc"
+      ],
+      "status": "optional",
+      "description": "Echo cancellation and communications DSP",
+      "runtime_notes": "native",
+      "license_notes": "BSD-style upstream"
+    },
+    {
+      "id": "odas",
+      "capabilities": [
+        "audio.beamform"
+      ],
+      "status": "roadmap",
+      "description": "Source localization/beamforming for arrays",
+      "runtime_notes": "native",
+      "license_notes": "MIT"
+    },
+    {
+      "id": "nara-wpe",
+      "capabilities": [
+        "audio.dereverb"
+      ],
+      "status": "roadmap",
+      "description": "Dereverberation",
+      "runtime_notes": "worker",
+      "license_notes": "MIT"
+    },
+    {
+      "id": "clearervoice",
+      "capabilities": [
+        "audio.separate",
+        "audio.target-speaker",
+        "audio.denoise"
+      ],
+      "status": "roadmap",
+      "description": "Separation, enhancement and target-speaker extraction",
+      "runtime_notes": "worker/onnx",
+      "license_notes": "Apache-2.0"
+    },
+    {
+      "id": "silero-vad",
+      "capabilities": [
+        "speech.vad"
+      ],
+      "status": "optional",
+      "description": "Neural voice activity detection",
+      "runtime_notes": "onnx",
+      "license_notes": "MIT"
+    },
+    {
+      "id": "sherpa-onnx",
+      "capabilities": [
+        "speech.asr",
+        "speech.vad",
+        "speech.language-id",
+        "speech.audio-tagging",
+        "speech.diarization",
+        "text.punctuation",
+        "activation.wake-word"
+      ],
+      "status": "optional",
+      "description": "Offline speech toolkit family",
+      "runtime_notes": "onnx",
+      "license_notes": "Apache-2.0"
+    },
+    {
+      "id": "pyannote-audio",
+      "capabilities": [
+        "speech.diarization"
+      ],
+      "status": "roadmap",
+      "description": "Speaker diarization/embeddings",
+      "runtime_notes": "worker",
+      "license_notes": "MIT code; weights separately reviewed"
+    },
+    {
+      "id": "nemo-text-processing",
+      "capabilities": [
+        "text.itn"
+      ],
+      "status": "optional",
+      "description": "Deterministic text/inverse-text normalization",
+      "runtime_notes": "worker/fst",
+      "license_notes": "Apache-2.0"
+    },
+    {
+      "id": "symspell",
+      "capabilities": [
+        "text.spell"
+      ],
+      "status": "optional",
+      "description": "Fast deterministic spell correction",
+      "runtime_notes": "native",
+      "license_notes": "MIT"
+    },
+    {
+      "id": "hunspell",
+      "capabilities": [
+        "text.spell"
+      ],
+      "status": "optional",
+      "description": "Dictionary/morphology spell checking",
+      "runtime_notes": "native",
+      "license_notes": "MPL/GPL/LGPL tri-license upstream"
+    },
+    {
+      "id": "languagetool",
+      "capabilities": [
+        "text.grammar"
+      ],
+      "status": "optional",
+      "description": "Local grammar/style checking",
+      "runtime_notes": "worker",
+      "license_notes": "LGPL"
+    },
+    {
+      "id": "local-llm",
+      "capabilities": [
+        "text.llm-postprocess",
+        "text.translate"
+      ],
+      "status": "optional",
+      "description": "Small local instruct model family",
+      "runtime_notes": "openvino/onnx/llama.cpp",
+      "license_notes": "model-specific"
+    },
+    {
+      "id": "asr-mock",
+      "capabilities": [
+        "speech.asr"
+      ],
+      "status": "default-fallback",
+      "description": "Deterministic test engine",
+      "runtime_notes": "native-rust",
+      "license_notes": "Narrivy internal",
+      "status_note": "The default engine of a default narrivyd build; deterministic and not a product-quality recognition capability."
+    },
+    {
+      "id": "qwen3-asr",
+      "capabilities": [
+        "ASR"
+      ],
+      "status": "reference",
+      "description": "LLM-based ASR 0.6B/1.7B with language identification; reference OpenVINO ASR engine. OpenVINO 2026.4 officially supports Qwen3-ASR on CPU/GPU; NPU is candidate-only pending exact qualification.",
+      "runtime_notes": "OpenVINO 2026.4 CPU/GPU; NPU only after exact tuple qualification; GGUF / sherpa-onnx alternatives remain model-specific",
+      "license_notes": "Apache-2.0"
+    },
+    {
+      "id": "parakeet",
+      "capabilities": [
+        "ASR"
+      ],
+      "status": "linux-1.0",
+      "description": "NVIDIA Parakeet family. Standard TDT v2/v3 models are offline; explicitly streaming variants such as Parakeet Unified have a separate streaming contract. Owner-fork measurements report 220-240ms warm for the TDT v3 NPU/Eddy lane; this is not a streaming qualification.",
+      "runtime_notes": "transcribe.cpp GGUF on CPU/iGPU/dGPU; openvino (Eddy) on NPU; ONNX via sherpa for earlier versions; capability is model-specific",
+      "license_notes": "CC-BY-4.0 weights; Apache-2.0 Eddy decoder"
+    },
+    {
+      "id": "nemotron-speech",
+      "capabilities": [
+        "ASR"
+      ],
+      "status": "candidate",
+      "description": "NVIDIA Nemotron Speech Streaming 0.6b; cache-aware conformer transducer, 80-160ms chunks, int4 ONNX real-time on CPU",
+      "runtime_notes": "onnxruntime (int4 community exports)",
+      "license_notes": "NVIDIA Open Model License"
+    },
+    {
+      "id": "fun-asr",
+      "capabilities": [
+        "ASR",
+        "text.punctuation",
+        "text.itn"
+      ],
+      "status": "candidate",
+      "description": "Alibaba Fun-ASR-Nano/MLT-Nano 0.8B LLM-based ASR with built-in punctuation+ITN; MLT 31 langs (Hindi yes, Urdu NOT in list \u2014 not Urdu-qualified)",
+      "runtime_notes": "official GGUF (llama.cpp prebuilts)",
+      "license_notes": "Apache-2.0 weights; MIT toolkit"
+    },
+    {
+      "id": "moonshine",
+      "capabilities": [
+        "ASR"
+      ],
+      "status": "candidate",
+      "description": "Moonshine family: offline tiny/base plus distinct Moonshine Streaming tiny/small/medium English variants",
+      "runtime_notes": "transcribe.cpp GGUF candidate; other runtimes remain separately evaluated",
+      "license_notes": "Moonshine Streaming Tiny canary MIT; every other artifact remains independently reviewed"
+    },
+    {
+      "id": "vosk",
+      "capabilities": [
+        "ASR"
+      ],
+      "status": "candidate",
+      "description": "Ultra-light native streaming ASR, 50MB models, 10+ years mature",
+      "runtime_notes": "native C++/C API",
+      "license_notes": "Apache-2.0"
+    },
+    {
+      "id": "ten-vad",
+      "capabilities": [
+        "speech.vad"
+      ],
+      "status": "candidate",
+      "description": "306KB VAD, -32% RTF vs Silero, better ROC claims",
+      "runtime_notes": "onnx",
+      "license_notes": "unverified \u2014 check repo before adoption"
+    },
+    {
+      "id": "turn-detector",
+      "capabilities": [
+        "speech.endpoint"
+      ],
+      "status": "candidate",
+      "description": "EOU/turn classification (livekit turn-detector, pipecat smart-turn family) for endpointing polish",
+      "runtime_notes": "onnx / HF weights",
+      "license_notes": "Apache-2.0 (per card; confirm)"
+    },
+    {
+      "id": "openwakeword",
+      "capabilities": [
+        "activation.wake-word"
+      ],
+      "status": "roadmap",
+      "description": "openWakeWord / microWakeWord on-device wake-word family (roadmap slot)",
+      "runtime_notes": "onnx / tiny native models",
+      "license_notes": "Apache-2.0"
+    }
+  ]
+}

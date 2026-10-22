@@ -1,0 +1,11 @@
+{
+  "id": "p10-sbom",
+  "phase": "P10",
+  "kind": "supply-chain",
+  "scenario": "SBOM generation SPDX-2.3 JSON under artifacts/sbom via cargo cyclonedx fallback manual Cargo.lock inventory, plus dependency inventory and THIRD_PARTY_NOTICES",
+  "native_required": false,
+  "requirement_ids": [
+    "OPS-004"
+  ],
+  "verification_id": "VER-OPS-004"
+}
