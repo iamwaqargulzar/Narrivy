@@ -3,8 +3,12 @@
 Classify:
 - live audio buffers: ephemeral;
 - crash-recovery journal: short TTL;
-- Inbox (recovered text, one private file per unconfirmed delivery in the
-  runtime directory): the journal's 15-minute TTL, and cleared at logout;
+- Inbox (recovered text): one private 0600 file per delivery that failed or
+  whose outcome is uncertain, in the 0700 state directory
+  (`$XDG_STATE_HOME/narrivy/inbox`), so it survives logout and reboot. Kept
+  24 hours and at most 100 files (oldest removed first), pruned at daemon
+  start and after each dictation. A delivery whose typing helper accepted the
+  whole text (`wtype`, portal) leaves no Inbox copy (F-M3, F-M4);
 - history transcript: configurable;
 - history audio: off by default unless product decision changes;
 - learning data: persistent but separately clearable/exportable;

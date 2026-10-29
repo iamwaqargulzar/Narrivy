@@ -138,6 +138,7 @@ impl SessionOutcome {
             RecoveryTerminal::DeliveredInbox(_) | RecoveryTerminal::InboxRecovered(_) => {
                 Self::InboxFallback
             }
+            RecoveryTerminal::SubmittedUnverified(_) => Self::SubmittedUnverified,
             RecoveryTerminal::Cancelled => Self::Cancelled,
             RecoveryTerminal::FailedRecoverable { .. }
             | RecoveryTerminal::FailedTerminal { .. } => Self::Failed,

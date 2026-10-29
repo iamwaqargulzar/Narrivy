@@ -34,9 +34,12 @@ The router learns health/compatibility metadata, never the user's transcript con
 The strict installed lane `linux-mic-routed-inbox` composes the real
 `RoutedThenInboxDelivery` in `narrivyd` with the daemon-owned portal/EIS
 permission handle (`PortalPermissionSubmitter`), the trusted `wtype` helper and
-the clipboard rungs declared unavailable; every non-verified outcome ends in
-exactly one durable Inbox recovery write under the same transaction
-(`DeliveryIntent.backend = routed-then-inbox`).
+the clipboard rungs declared unavailable
+(`DeliveryIntent.backend = routed-then-inbox`). A rung whose helper accepted
+the whole text ends the ladder as `SubmittedUnverified` with no Inbox copy
+(F-M4); every other non-verified outcome (clipboard only, a failure after
+dispatch, nothing qualified) ends in exactly one durable Inbox recovery write
+under the same transaction.
 
 The delivery target is bound once at session admission, before any
 activation/focus change, and consumed immutably by the adapter — it is never

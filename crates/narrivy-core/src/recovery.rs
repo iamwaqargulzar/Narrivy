@@ -253,9 +253,17 @@ pub trait CorrectionPort: Send {
 pub enum RecoveryTerminal {
     DeliveredInbox(DeliveryReport),
     InboxRecovered(DeliveryReport),
+    /// A routed direct rung handed the whole payload to its helper, which
+    /// accepted it, but insertion cannot be verified. No Inbox copy is kept
+    /// (F-M4); the journal records the report's exact attempts.
+    SubmittedUnverified(DeliveryReport),
     Cancelled,
-    FailedRecoverable { code: String },
-    FailedTerminal { code: String },
+    FailedRecoverable {
+        code: String,
+    },
+    FailedTerminal {
+        code: String,
+    },
 }
 
 /// Audio a microphone must have captured before it disappeared for the
@@ -1518,17 +1526,20 @@ impl RecoveryTail<'_> {
                     observe,
                 );
             }
-            // Verified insertion and durable Inbox recovery are two distinct
-            // terminal facts. Both preserve the exact corrected text that was
-            // handed to the delivery adapter; neither can be reached from the
-            // other's report shape.
-            let verified_commit = report.outcome == DeliveryOutcome::Delivered;
+            // Verified insertion, an accepted-but-unverified submission and
+            // durable Inbox recovery are distinct terminal facts. All preserve
+            // the exact corrected text that was handed to the delivery
+            // adapter; none can be reached from another's report shape. A
+            // submission is a finished delivery (it must never be replayed into
+            // the Inbox at startup), and its journaled attempts keep the fact
+            // that it was not verified.
+            let outcome = report.outcome.clone();
             entry.variants.delivered = Some(corrected);
             entry.failure_code = None;
-            entry.state = if verified_commit {
-                JournalEntryState::Delivered
-            } else {
+            entry.state = if outcome == DeliveryOutcome::InboxFallback {
                 JournalEntryState::InboxRecovered
+            } else {
+                JournalEntryState::Delivered
             };
             entry.updated_unix_ms = unix_now_ms();
             if self.journal.write(&entry).is_err() {
@@ -1541,10 +1552,12 @@ impl RecoveryTail<'_> {
             observe_timing(timing, RecoveryTimingStage::TerminalJournalCommitted);
             observe(SessionState::Committed)?;
             observe(SessionState::Idle)?;
-            return Ok(if verified_commit {
-                RecoveryTerminal::DeliveredInbox(report)
-            } else {
-                RecoveryTerminal::InboxRecovered(report)
+            return Ok(match outcome {
+                DeliveryOutcome::Delivered => RecoveryTerminal::DeliveredInbox(report),
+                DeliveryOutcome::SubmittedUnverified => {
+                    RecoveryTerminal::SubmittedUnverified(report)
+                }
+                _ => RecoveryTerminal::InboxRecovered(report),
             });
         }
 
@@ -1702,6 +1715,10 @@ fn is_direct_inbox_recovery_report(mode: RecoveryDeliveryMode, report: &Delivery
 ///   non-empty backend, no Inbox rung anywhere, and the last attempt
 ///   `Delivered` with no fallback reason (a direct backend that observed a
 ///   durable target result);
+/// - unverified submission (F-M4): the same shape, with the report and its
+///   last attempt `SubmittedUnverified` with no fallback reason and every
+///   earlier attempt a bounded `Failed` (a helper accepted the whole payload;
+///   no Inbox copy is kept);
 /// - recovery: zero or more non-Inbox direct attempts, each `SubmittedUnverified`,
 ///   `CopiedOnly` or bounded `Failed`, followed by exactly one final durable
 ///   `inbox` attempt with `InboxFallback` and no failure reason.
@@ -1745,6 +1762,17 @@ fn is_target_routed_delivery_report(mode: RecoveryDeliveryMode, report: &Deliver
             last.backend != "inbox"
                 && last.outcome == DeliveryOutcome::Delivered
                 && last.fallback_reason.is_none()
+        }
+        // Only the submitting rung may have dispatched: every earlier rung
+        // must be a bounded failure, or the report would describe a second
+        // insertion of one transaction.
+        DeliveryOutcome::SubmittedUnverified => {
+            last.backend != "inbox"
+                && last.outcome == DeliveryOutcome::SubmittedUnverified
+                && last.fallback_reason.is_none()
+                && direct
+                    .iter()
+                    .all(|attempt| attempt.outcome == DeliveryOutcome::Failed)
         }
         DeliveryOutcome::InboxFallback => {
             last.backend == "inbox"
@@ -3584,6 +3612,84 @@ mod tests {
             outcome,
             failure_reason: None,
         }
+    }
+
+    #[test]
+    fn routed_unverified_submission_is_a_finished_delivery_without_inbox() -> TestResult {
+        // F-M4: a helper accepted the whole payload. The transaction is
+        // finished (never replayed to the Inbox at startup) and the journal
+        // keeps the fact that it was not verified.
+        let policy = PolicyEngine::from_document(PolicyDocument::default());
+        let run = |txid: &TransactionId, attempts: Vec<DeliveryAttempt>, journal: &TestJournal| {
+            let mut capture = Capture;
+            let mut asr = Asr;
+            let mut correct = Correct;
+            let mut delivery = RoutedReport {
+                report: routed_report(txid, attempts, DeliveryOutcome::SubmittedUnverified),
+            };
+            RecoverySlice {
+                journal,
+                capture: &mut capture,
+                asr: &mut asr,
+                policy: &policy,
+                corrector: &mut correct,
+                delivery: &mut delivery,
+                delivery_mode: RecoveryDeliveryMode::TargetRoutedThenInboxRecovery,
+            }
+            .run(
+                SessionId(23),
+                txid.clone(),
+                "clean".to_owned(),
+                &SessionControl::new(),
+                &mut |_| Ok(()),
+            )
+        };
+
+        let journal = TestJournal::new();
+        let txid = TransactionId::new("tx-routed-submitted");
+        let terminal = run(
+            &txid,
+            vec![
+                routed_attempt("portal-eis-text", DeliveryOutcome::Failed),
+                routed_attempt(
+                    "wtype-virtual-keyboard",
+                    DeliveryOutcome::SubmittedUnverified,
+                ),
+            ],
+            &journal,
+        )?;
+        assert!(matches!(terminal, RecoveryTerminal::SubmittedUnverified(_)));
+        let entry = required(journal.read(txid.as_str())?, "missing submitted entry")?;
+        assert_eq!(entry.state, JournalEntryState::Delivered);
+        assert_eq!(
+            entry.variants.attempts.last().map(|a| &a.outcome),
+            Some(&DeliveryOutcome::SubmittedUnverified)
+        );
+        let mut startup = StartupInbox::default();
+        let summary = recover_unsent_to_inbox(&journal, &mut startup)?;
+        assert_eq!(summary.recovered, 0);
+        assert!(startup.delivered.is_empty());
+
+        // Two dispatching rungs would describe a double insertion: rejected
+        // and kept recoverable.
+        let journal = TestJournal::new();
+        let txid = TransactionId::new("tx-routed-double");
+        let terminal = run(
+            &txid,
+            vec![
+                routed_attempt("clipboard-copy:wl-copy", DeliveryOutcome::CopiedOnly),
+                routed_attempt(
+                    "wtype-virtual-keyboard",
+                    DeliveryOutcome::SubmittedUnverified,
+                ),
+            ],
+            &journal,
+        )?;
+        assert!(matches!(
+            terminal,
+            RecoveryTerminal::FailedRecoverable { .. }
+        ));
+        Ok(())
     }
 
     #[test]

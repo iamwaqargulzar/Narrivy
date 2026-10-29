@@ -29,8 +29,15 @@ Recovery retention is 15 minutes from creation and at most 100 valid records.
 The production journal enforces this at startup and across subsequent access
 and mutation, while explicit synthetic-time fixtures use the undecorated
 adapter. Expired records are removed in every state; count pressure removes
-terminal/non-recoverable records before live recoverable records. This does
-not yet constitute automatic restart-to-Inbox recovery.
+terminal/non-recoverable records before live recoverable records. At daemon
+start, every committed-but-undelivered record is replayed into the Inbox
+(never re-typed), so a crash between commit and delivery loses no text.
+
+The Inbox lives below the same private state root (`narrivy/inbox`, 0700 dir,
+0600 files), never on the runtime tmpfs, so recovered text survives logout and
+reboot. It holds only text whose delivery failed or is uncertain, for at most
+24 hours and 100 files (oldest removed first). Files left in the pre-1.0
+runtime-dir Inbox are moved there at start.
 
 ## Atomicity
 

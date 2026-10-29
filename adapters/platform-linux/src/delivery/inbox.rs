@@ -5,6 +5,11 @@
 //! transaction id is validated against a strict charset so a hostile id can
 //! never escape the inbox directory. Payloads are stored verbatim as UTF-8
 //! text — Unicode and multiline content preserved byte-for-byte.
+//!
+//! Location and retention (F-M3): the daemon keeps the Inbox under its
+//! durable private state root (`$XDG_STATE_HOME/narrivy/inbox`), never under
+//! the runtime dir, so recovered text survives logout and reboot. Retention is
+//! bounded by [`INBOX_RETENTION`] and [`INBOX_MAX_FILES`].
 
 use std::fs::File;
 use std::io::Write;
@@ -13,6 +18,13 @@ use std::path::PathBuf;
 
 use narrivy_types::TransactionId;
 use tempfile::Builder;
+
+/// How long a recovered-text file is kept (F-M3): long enough to outlive a
+/// logout or reboot, short enough that plaintext does not accumulate.
+pub const INBOX_RETENTION: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
+
+/// Upper bound on recovered-text files kept at once; the oldest go first.
+pub const INBOX_MAX_FILES: usize = 100;
 
 /// Errors surfaced by the inbox store. Variants never carry payload text.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -157,19 +169,32 @@ impl InboxStore {
         out
     }
 
-    /// Remove recovered-text files older than `max_age` (F-M4): the Inbox
-    /// keeps undelivered text only as long as the recovery journal does;
-    /// History is the durable copy. Only regular `<txid>.txt` files are
-    /// touched, never through a symlink. Returns how many were removed.
+    /// Remove recovered-text files older than `max_age`. Only regular
+    /// `<txid>.txt` files are touched, never through a symlink. Returns how
+    /// many were removed.
     pub fn prune_older_than(
         &self,
         max_age: std::time::Duration,
+        now: std::time::SystemTime,
+    ) -> usize {
+        self.prune(max_age, usize::MAX, now)
+    }
+
+    /// Enforce the bounded retention (F-M3): remove files older than
+    /// `max_age`, then the oldest files beyond `max_files`. Only regular
+    /// `<txid>.txt` files are touched, never through a symlink. Returns how
+    /// many were removed.
+    pub fn prune(
+        &self,
+        max_age: std::time::Duration,
+        max_files: usize,
         now: std::time::SystemTime,
     ) -> usize {
         let Ok(entries) = std::fs::read_dir(&self.dir) else {
             return 0;
         };
         let mut removed = 0;
+        let mut kept = Vec::new();
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|e| e.to_str()) != Some("txt") {
@@ -181,16 +206,75 @@ impl InboxStore {
             if !metadata.file_type().is_file() {
                 continue;
             }
-            let expired = metadata
-                .modified()
-                .ok()
+            let modified = metadata.modified().ok();
+            let expired = modified
                 .and_then(|modified| now.duration_since(modified).ok())
                 .is_some_and(|age| age > max_age);
-            if expired && std::fs::remove_file(&path).is_ok() {
-                removed += 1;
+            if expired {
+                if std::fs::remove_file(&path).is_ok() {
+                    removed += 1;
+                }
+            } else {
+                kept.push((modified, path));
+            }
+        }
+        if kept.len() > max_files {
+            // Oldest first; an unreadable mtime sorts first and goes first.
+            kept.sort();
+            let excess = kept.len() - max_files;
+            for (_, path) in kept.into_iter().take(excess) {
+                if std::fs::remove_file(&path).is_ok() {
+                    removed += 1;
+                }
             }
         }
         removed
+    }
+
+    /// Move recovered text left in a legacy Inbox (the pre-F-M3 runtime-dir
+    /// location) into this store, keeping each file's id. A file already
+    /// present here is not overwritten. Only regular `<txid>.txt` files with a
+    /// valid id are moved; nothing is read through a symlink. Returns how many
+    /// were moved.
+    pub fn adopt_from(&self, legacy: &std::path::Path) -> usize {
+        if legacy == self.dir.as_path() {
+            return 0;
+        }
+        let Ok(entries) = std::fs::read_dir(legacy) else {
+            return 0;
+        };
+        let mut moved = 0;
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("txt") {
+                continue;
+            }
+            let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
+                continue;
+            };
+            if validate_txid(stem).is_err() {
+                continue;
+            }
+            let Ok(metadata) = std::fs::symlink_metadata(&path) else {
+                continue;
+            };
+            if !metadata.file_type().is_file() {
+                continue;
+            }
+            let txid = TransactionId::new(stem);
+            let already = self.path_for(&txid).is_ok_and(|p| p.exists());
+            if !already {
+                let Ok(text) = std::fs::read_to_string(&path) else {
+                    continue;
+                };
+                if self.store_text(&txid, &text).is_err() {
+                    continue;
+                }
+                moved += 1;
+            }
+            let _ = std::fs::remove_file(&path);
+        }
+        moved
     }
 }
 
@@ -254,6 +338,72 @@ mod prune_tests {
         assert!(fresh.exists());
         assert!(other.exists());
         assert!(std::fs::symlink_metadata(&link).is_ok());
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod retention_tests {
+    use super::{InboxStore, TransactionId};
+    use std::os::unix::fs::PermissionsExt;
+    use std::time::{Duration, SystemTime};
+
+    #[test]
+    fn the_oldest_files_beyond_the_cap_are_removed() -> Result<(), Box<dyn std::error::Error>> {
+        let dir = tempfile::tempdir()?;
+        let now = SystemTime::now();
+        for (index, name) in ["tx-a", "tx-b", "tx-c", "tx-d"].iter().enumerate() {
+            let path = dir.path().join(format!("{name}.txt"));
+            std::fs::write(&path, "text")?;
+            let age = Duration::from_secs(60 * (4 - index as u64));
+            std::fs::File::options()
+                .write(true)
+                .open(&path)?
+                .set_modified(now - age)?;
+        }
+        let store = InboxStore::new(dir.path().to_path_buf());
+        assert_eq!(store.prune(Duration::from_secs(3600), 2, now), 2);
+        assert!(!dir.path().join("tx-a.txt").exists());
+        assert!(!dir.path().join("tx-b.txt").exists());
+        assert!(dir.path().join("tx-c.txt").exists());
+        assert!(dir.path().join("tx-d.txt").exists());
+        Ok(())
+    }
+
+    #[test]
+    fn legacy_inbox_files_move_into_the_private_store() -> Result<(), Box<dyn std::error::Error>> {
+        let outer = tempfile::tempdir()?;
+        let legacy = outer.path().join("runtime-inbox");
+        std::fs::create_dir(&legacy)?;
+        std::fs::write(legacy.join("tx-old.txt"), "recovered text")?;
+        std::fs::write(legacy.join("tx-dup.txt"), "legacy copy")?;
+        std::fs::write(legacy.join(".hidden.txt"), "not a txid")?;
+        let outside = outer.path().join("outside.txt");
+        std::fs::write(&outside, "outside")?;
+        std::os::unix::fs::symlink(&outside, legacy.join("tx-link.txt"))?;
+
+        let store = InboxStore::new(outer.path().join("state-inbox"));
+        let kept = store
+            .store_text(&TransactionId::new("tx-dup"), "durable copy")
+            .map_err(|e| e.to_string())?;
+        assert_eq!(store.adopt_from(&legacy), 1);
+        assert_eq!(
+            store
+                .read_text(&TransactionId::new("tx-old"))
+                .map_err(|e| e.to_string())?,
+            "recovered text"
+        );
+        assert_eq!(std::fs::read_to_string(kept)?, "durable copy");
+        assert!(!legacy.join("tx-old.txt").exists());
+        assert!(!legacy.join("tx-dup.txt").exists());
+        assert!(legacy.join(".hidden.txt").exists());
+        assert!(!store.path_for(&TransactionId::new("tx-link"))?.exists());
+        assert_eq!(std::fs::read_to_string(&outside)?, "outside");
+        let moved = store.path_for(&TransactionId::new("tx-old"))?;
+        assert_eq!(
+            std::fs::metadata(moved)?.permissions().mode() & 0o777,
+            0o600
+        );
         Ok(())
     }
 }
