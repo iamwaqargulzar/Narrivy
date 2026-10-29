@@ -233,14 +233,17 @@ describe('PipelinesScreen', () => {
     expect(within(panel).getByText('Running on the NPU now.')).toBeInTheDocument();
   });
 
-  it('imports and exports pipelines from buttons beside New pipeline, asking for the file', async () => {
+  it('shows import and export beside New pipeline as planned and disabled, because the service never reads saved pipelines', async () => {
     await openPipelines();
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
-    await waitFor(() => expect(bridge.pipelinesExport).toHaveBeenCalledWith('/home/you/pipelines.json'));
-    expect(bridge.pickFile).toHaveBeenCalledWith('Export pipelines', true, 'narrivy-pipelines-export.json');
-    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
-    await waitFor(() => expect(bridge.pipelinesImport).toHaveBeenCalledWith('/home/you/shared.json', false));
-    expect(screen.queryByLabelText('Pipeline file')).toBeNull();
+    for (const name of ['Import', 'Export']) {
+      const button = screen.getByRole('button', { name });
+      expect(button).toBeDisabled();
+      fireEvent.click(button);
+    }
+    expect(screen.getByText('Planned')).toBeInTheDocument();
+    expect(bridge.pickFile).not.toHaveBeenCalled();
+    expect(bridge.pipelinesExport).not.toHaveBeenCalled();
+    expect(bridge.pipelinesImport).not.toHaveBeenCalled();
   });
 
   it('puts each pipeline\'s shortcut in its title row, without the manual command, when Narrivy adds shortcuts', async () => {
