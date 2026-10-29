@@ -311,41 +311,42 @@ impl AsrCapabilities {
                     "requested written language is not supported by the loaded model",
                 ));
             }
-            if let Some(target) = &request.translation_target
-                && !output.matches(target)
-            {
-                return Err(AsrError::new(
-                    CONFLICTING_LANGUAGE_SETTINGS,
-                    "written language does not match the translation target",
-                ));
+            if let Some(target) = &request.translation_target {
+                if !output.matches(target) {
+                    return Err(AsrError::new(
+                        CONFLICTING_LANGUAGE_SETTINGS,
+                        "written language does not match the translation target",
+                    ));
+                }
             }
-            if request.translation_target.is_none()
-                && let SpokenLanguage::Explicit(spoken) = &request.spoken_language
-                && !output.matches(spoken)
-            {
+            if request.translation_target.is_none() {
+                if let SpokenLanguage::Explicit(spoken) = &request.spoken_language {
+                    if !output.matches(spoken) {
+                        return Err(AsrError::new(
+                            CONFLICTING_LANGUAGE_SETTINGS,
+                            "written language differs from spoken language without a translation target",
+                        ));
+                    }
+                }
+            }
+        }
+
+        if let Some(script) = &request.output.script {
+            if !self.supports_script(script) {
                 return Err(AsrError::new(
-                    CONFLICTING_LANGUAGE_SETTINGS,
-                    "written language differs from spoken language without a translation target",
+                    UNSUPPORTED_SCRIPT,
+                    "requested output script is not supported by the loaded model",
                 ));
             }
         }
 
-        if let Some(script) = &request.output.script
-            && !self.supports_script(script)
-        {
-            return Err(AsrError::new(
-                UNSUPPORTED_SCRIPT,
-                "requested output script is not supported by the loaded model",
-            ));
-        }
-
-        if let Some(locale) = &request.locale
-            && !self.supports_locale(locale)
-        {
-            return Err(AsrError::new(
-                UNSUPPORTED_LOCALE,
-                "requested locale or formatting convention is not supported by the loaded model",
-            ));
+        if let Some(locale) = &request.locale {
+            if !self.supports_locale(locale) {
+                return Err(AsrError::new(
+                    UNSUPPORTED_LOCALE,
+                    "requested locale or formatting convention is not supported by the loaded model",
+                ));
+            }
         }
 
         if request.context_bias.is_some() && !self.hotword_biasing {

@@ -1569,3 +1569,23 @@ Owner requests, one at a time, each verified in the dev preview
   toggle then writes Urdu; Pipelines → Transcribe → Dictation language
   (choose/add/remove); Alt+B/Alt+C no longer fail. rc12 checks above still
   open.
+
+## 2026-10-29: portable crates build at MSRV 1.85 again
+
+- The CI job `portable-msrv` failed. `narrivy-asr-api` used let-chains (Rust
+  1.88 and newer). `narrivy-core` used rusqlite 0.41 (needs 1.89, and its
+  libsqlite3-sys 0.39 needs 1.88) and sha2 0.11 (needs 1.88).
+- The let-chains in `crates/narrivy-asr-api/src/request.rs` are now nested
+  `if` statements and behave the same. With the owner's approval, the
+  workspace now uses rusqlite 0.40 (libsqlite3-sys 0.38.2) and sha2 0.10.9.
+  No source code changed for the downgrade. `rust-version` stays 1.85.
+- Guard: the CI job `portable-msrv` already runs. A comment by the
+  `Cargo.toml` pins explains why they must not go past 0.40 and 0.10.
+- Verified: the CI MSRV command on 1.85.0 passes. On the pinned 1.97.1
+  toolchain, clippy `--all-targets -D warnings` is clean and `cargo test`
+  passes for asr-api, core, history, model-manager, process-linux,
+  platform-linux, asr-openvino and narrivyd (1814 passed). One test fails
+  here and on the base commit too: `capability_check_mic_never_promotes_
+  helper_presence_to_signal`, built into 5 test targets. It depends on this
+  machine's microphone, and this cloud machine has no audio. `cargo deny`
+  was not run here.
