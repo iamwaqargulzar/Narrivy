@@ -1569,3 +1569,22 @@ Owner requests, one at a time, each verified in the dev preview
   toggle then writes Urdu; Pipelines → Transcribe → Dictation language
   (choose/add/remove); Alt+B/Alt+C no longer fail. rc12 checks above still
   open.
+
+## 2026-10-29: every review finding re-checked (read-only)
+
+- Each F-C, F-H, F-M and F-L finding (plus a quick look at P-1 to P-10) was
+  checked against `9d5a085` (rc13). The table is in
+  `review-findings-status-2026-10.md`. No product code changed.
+- **Open:** F-C7 (D14 rows not amended, probe code still in the tree),
+  F-H9 (Clean still writes `3. 14`, `example. Com`), F-M7 (D4 base.en
+  never measured), F-M18 (strict-lane SIGKILL test), P-2, P-3, P-8.
+- **Partly fixed:** F-H1, F-H10 (CI skips most governance tests), F-H13
+  (pipeline import/export writes a tmpfs dir no daemon code reads), F-H17
+  (PRIV-003 privacy zones still a gated `must`), F-M12 (app ID, native),
+  F-M16, F-M20, P-7.
+- **Code fixed, native check pending:** F-H2 (unplug), F-H8 (non-ASCII),
+  F-H15 (remove/reinstall).
+- Release gate today: exit 1, 848 lines, 54 requirements blocked, manifest
+  out of date (129 unlisted). Not edited, listed in the status file: the
+  D14 rows in `requirements-traceability.csv`, PRIV-003, and the dated
+  `last_gate_result` in `agent/STATE.json`.
