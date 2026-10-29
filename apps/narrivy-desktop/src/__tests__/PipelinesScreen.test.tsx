@@ -233,10 +233,21 @@ describe('PipelinesScreen', () => {
     expect(within(panel).getByText('Running on the NPU now.')).toBeInTheDocument();
   });
 
-  it('offers each pipeline a shortcut command for the desktop keyboard settings', async () => {
+  it('imports and exports pipelines from buttons beside New pipeline, asking for the file', async () => {
+    await openPipelines();
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    await waitFor(() => expect(bridge.pipelinesExport).toHaveBeenCalledWith('/home/you/pipelines.json'));
+    expect(bridge.pickFile).toHaveBeenCalledWith('Export pipelines', true, 'narrivy-pipelines-export.json');
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    await waitFor(() => expect(bridge.pipelinesImport).toHaveBeenCalledWith('/home/you/shared.json', false));
+    expect(screen.queryByLabelText('Pipeline file')).toBeNull();
+  });
+
+  it('puts each pipeline\'s shortcut in its title row, without the manual command, when Narrivy adds shortcuts', async () => {
     await openPipelines();
     for (const card of cards()) {
-      expect(within(card).getByText(/^\/usr\/bin\/narrivy-cli toggle --pipeline \S+$/)).toBeInTheDocument();
+      expect(within(card.querySelector('.pipe-head') as HTMLElement).getByRole('button', { name: 'Add shortcut' })).toBeInTheDocument();
+      expect(within(card).queryByText(/narrivy-cli toggle/)).toBeNull();
     }
   });
 });
@@ -338,7 +349,12 @@ describe('Shortcut capture', () => {
       bindings: [{ modifiers: ['Super'], key: 'F9', pipeline_id: 'clean' }],
     });
     await openPipelines();
-    fireEvent.click(await screen.findByRole('button', { name: 'Remove shortcut Super + F9' }));
+    const remove = await screen.findByRole('button', { name: 'Remove shortcut Super + F9' });
+    // On the right of the pipeline's title row, with a button for another.
+    const head = remove.closest('.pipe-head') as HTMLElement;
+    expect(head).not.toBeNull();
+    expect(within(head).getByRole('button', { name: 'Add another shortcut' })).toBeInTheDocument();
+    fireEvent.click(remove);
     await waitFor(() => expect(bridge.removeShortcut).toHaveBeenCalledWith(['Super'], 'F9'));
   });
 
@@ -364,24 +380,38 @@ describe('Shortcut capture', () => {
   });
 });
 
-describe('RefineScreen', () => {
-  it('states what the rules do today and keeps the language model as scheduled work', async () => {
-    window.localStorage.setItem('narrivy.onboarded.v1', '1');
-    render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Refine' }));
-    await screen.findByRole('heading', { level: 1, name: 'Refine' });
-    // The five deterministic rules are listed as read from the service.
-    for (const rule of ['Tidy spacing', 'Space after punctuation', 'Capitals', 'Closing punctuation', 'Small numbers as digits']) {
-      expect(screen.getByText(rule)).toBeInTheDocument();
+describe('Refine stage', () => {
+  it('lists the rules, the live clean-up model and the scheduled level, with no Refine screen of its own', async () => {
+    vi.mocked(bridge.languageModels).mockResolvedValue([
+      {
+        id: 's1-mini',
+        name: 'S1-mini',
+        publisher: 'sample',
+        size_bytes: 600_000_000,
+        license: 'Apache-2.0',
+        roles: ['clean_up'],
+        languages: ['en'],
+        recommended_for: ['clean_up'],
+        in_use_for: ['clean_up'],
+        clean_up_state: 'ready:npu',
+      },
+    ]);
+    await openPipelines();
+    // Refine left the side menu (D38).
+    expect(screen.queryByRole('button', { name: 'Refine' })).toBeNull();
+    const first = cards()[0];
+    fireEvent.click(within(first).getByRole('tab', { name: /Refine/ }));
+    const panel = within(within(first).getByRole('tabpanel'));
+    for (const rule of ['Tidy spacing', 'Space after punctuation', 'Capitals', 'Closing punctuation']) {
+      expect(panel.getByText(rule)).toBeInTheDocument();
     }
-    // The language model is scheduled, its choices are not selectable, and
-    // no model is claimed to be installed.
-    expect(screen.getByText('None installed')).toBeInTheDocument();
-    for (const group of screen.getAllByRole('radiogroup')) {
-      expect(group).toHaveAttribute('aria-disabled', 'true');
-    }
-    expect(screen.getAllByText('Coming · T2.20').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Live', { selector: '#refine-model-title *' })).toBeNull();
+    // The clean-up model is read from the service, never claimed absent.
+    expect(await panel.findByText(/^S1-mini · .*NPU/)).toBeInTheDocument();
+    expect(panel.queryByText('None installed')).toBeNull();
+    // The level is scheduled: its choices are not selectable.
+    const level = panel.getByText('Faithful cleanup').closest('[role="radiogroup"]');
+    expect(level).toHaveAttribute('aria-disabled', 'true');
+    expect(panel.getAllByText('Coming · T2.20').length).toBeGreaterThan(0);
   });
 });
 
@@ -441,8 +471,8 @@ describe('ModelsScreen', () => {
     expect(download).toBeEnabled();
     fireEvent.click(download);
     expect(bridge.downloadModel).toHaveBeenCalledWith('published');
-    // A model that is not published for download says where it comes from.
-    expect(within(screen.getByTestId('model-bundled')).getByText('Included with Narrivy')).toBeInTheDocument();
+    // A model with no published download is listed apart and says so.
+    expect(within(screen.getByTestId('model-bundled')).getByText('Not available yet')).toBeInTheDocument();
     expect(within(screen.getByTestId('model-bundled')).queryByRole('button')).toBeNull();
 
     const pack = screen.getByTestId('model-ov-pack');

@@ -24,12 +24,15 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (open) {
-      setQuery('');
-      setSelected(0);
-      // focus after mount
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
+    if (!open) return;
+    setQuery('');
+    setSelected(0);
+    // Focus after mount; give it back to where it was when the palette closes.
+    const previous = document.activeElement as HTMLElement | null;
+    requestAnimationFrame(() => inputRef.current?.focus());
+    return () => {
+      previous?.focus?.();
+    };
   }, [open]);
 
   const actions = useMemo<PaletteAction[]>(() => {
@@ -79,6 +82,11 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     if (e.key === 'Escape') {
       e.preventDefault();
       onClose();
+    } else if (e.key === 'Tab') {
+      // The search box is the only focusable element of this modal dialog:
+      // Tab and Shift+Tab stay in it rather than reaching the page behind
+      // (F-M11). The list is navigated with the arrow keys.
+      e.preventDefault();
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
       setSelected((prev) => (filtered.length === 0 ? 0 : (prev + 1) % filtered.length));

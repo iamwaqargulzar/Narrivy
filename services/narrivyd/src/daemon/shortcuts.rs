@@ -531,10 +531,23 @@ mod tests {
     #[test]
     fn a_cancel_shortcut_runs_cancel() -> TestResult {
         let fx = Fixture::new()?;
-        assert_eq!(fx.service.set(&binding(&["Super", "Alt"], "x", "cancel"), false).outcome, "created");
-        assert!(fx.custom()?.contains("Spawn(\"/usr/bin/narrivy-cli cancel\")"));
+        assert_eq!(
+            fx.service
+                .set(&binding(&["Super", "Alt"], "x", "cancel"), false)
+                .outcome,
+            "created"
+        );
+        assert!(
+            fx.custom()?
+                .contains("Spawn(\"/usr/bin/narrivy-cli cancel\")")
+        );
         let listed = fx.service.list();
-        assert!(listed.bindings.iter().any(|b| b.pipeline_id == "cancel" && b.key == "x"));
+        assert!(
+            listed
+                .bindings
+                .iter()
+                .any(|b| b.pipeline_id == "cancel" && b.key == "x")
+        );
         Ok(())
     }
 

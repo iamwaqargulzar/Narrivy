@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
-import { StatusProvider, useDaemonStatus } from '../state/StatusContext';
+import { LIVE_REFRESH_MS, StatusProvider, useDaemonStatus } from '../state/StatusContext';
 import { bridge, type StatusSnapshot } from '../lib/bridge';
 import { installedRecoveryStatus, readyRecoveryStatus } from '../test/installedRecoveryFixtures';
 
@@ -31,4 +31,22 @@ it('does not let an older awaiting-model response overwrite a newer ready respon
   expect(result.current.status?.installed_model).toEqual(ready.installed_model);
   await act(async () => { resolveOld(installedRecoveryStatus()); });
   expect(result.current.status?.installed_model).toEqual(ready.installed_model);
+});
+
+it('skips a live refresh while the previous status read is still out (F-M10)', async () => {
+  vi.useFakeTimers();
+  try {
+    vi.mocked(bridge.status)
+      .mockResolvedValueOnce(readyRecoveryStatus())
+      .mockReturnValue(new Promise<StatusSnapshot>(() => {}));
+    renderHook(() => useDaemonStatus(), {
+      wrapper: ({ children }) => <StatusProvider>{children}</StatusProvider>,
+    });
+    await act(async () => { await Promise.resolve(); });
+    expect(bridge.status).toHaveBeenCalledTimes(1);
+    await act(async () => { vi.advanceTimersByTime(LIVE_REFRESH_MS * 4); });
+    expect(bridge.status).toHaveBeenCalledTimes(2);
+  } finally {
+    vi.useRealTimers();
+  }
 });

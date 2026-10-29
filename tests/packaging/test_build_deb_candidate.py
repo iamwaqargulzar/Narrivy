@@ -135,8 +135,38 @@ class DisposableDebCandidateTests(unittest.TestCase):
             valid,
             (ROOT / "packaging/linux/deb/narrivy-daemon.service").read_bytes(),
         )
+        # The package types into the focused app through the routed lane
+        # (F-C1), runs only inside the graphical session (F-H5), and does
+        # not authorize the clipboard: it ships typing only. No core dumps
+        # (D37, F-H18).
+        lines = valid.decode().splitlines()
+        self.assertIn("Environment=NARRIVY_RECOVERY_MODE=linux-mic-routed-inbox", lines)
+        self.assertIn("Environment=NARRIVY_DELIVERY_BACKEND=routed-inbox", lines)
+        self.assertNotIn("Environment=NARRIVY_RECOVERY_MODE=linux-mic-inbox", lines)
+        self.assertIn("UnsetEnvironment=NARRIVY_CLIPBOARD_AUTHORIZED", lines)
+        self.assertIn("PartOf=graphical-session.target", lines)
+        self.assertIn("WantedBy=graphical-session.target", lines)
+        self.assertNotIn("WantedBy=default.target", lines)
+        self.assertIn("LimitCORE=0", lines)
+        # A user manager builds these sandboxes in a user namespace where
+        # root is unmapped: root-owned files then look owned by nobody and
+        # every root-ownership check fails, so the daemon cannot start
+        # (F-H6, found natively 2026-10-20). Dropping the bounding set needs
+        # a capability an ordinary user lacks (exit 218).
+        for directive in (
+            "PrivateTmp", "ProtectSystem", "ProtectHome", "PrivateUsers",
+            "PrivateDevices", "ProtectKernelTunables", "ProtectKernelModules",
+            "ProtectControlGroups", "ReadOnlyPaths", "InaccessiblePaths",
+            "TemporaryFileSystem", "BindPaths", "CapabilityBoundingSet",
+        ):
+            self.assertFalse(
+                any(line.startswith(directive + "=") for line in lines), directive
+            )
         for replacement in (
             valid.replace(b"=transcribe-cpp", b"=mock", 1),
+            valid.replace(b"=linux-mic-routed-inbox", b"=linux-mic-inbox", 1),
+            valid.replace(b"BACKEND=routed-inbox", b"BACKEND=inbox", 1),
+            valid.replace(b"PartOf=graphical-session.target\n", b""),
             valid + b"\nEnvironmentFile=-/tmp/optional\n",
             valid + b"\nExecStartPost=/tmp/unreviewed\n",
             valid + b"\nEnvironment=NARRIVY_TRANSCRIBE_RUNTIME=sidecar\n",
@@ -152,6 +182,7 @@ class DisposableDebCandidateTests(unittest.TestCase):
             valid.replace(b"TimeoutStopSec=3s\n", b""),
             valid.replace(b"TimeoutStopFailureMode=kill\n", b""),
             valid.replace(b"SendSIGKILL=yes\n", b""),
+            valid.replace(b"LimitCORE=0\n", b""),
             valid.replace(b"UnsetEnvironment=NARRIVY_TRANSCRIBE_MODEL\n", b""),
         ):
             with self.assertRaises(candidate.CandidateError):

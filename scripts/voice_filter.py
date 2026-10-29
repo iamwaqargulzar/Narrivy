@@ -37,7 +37,8 @@ import sherpa_onnx
 RATE = 16000
 MODELS = Path(os.environ.get("NARRIVY_DIARIZATION_MODELS", Path.home() / ".cache/narrivy/diarization"))
 # Speech is kept with this much around it, so first and last sounds survive.
-PAD = 0.2
+# Soft first sounds ("check", "what") start before Silero is sure.
+PAD = 0.3
 # A piece at least this long is checked against the user's voice; shorter
 # pieces follow the nearest checked piece.
 CHECKED = 1.0
@@ -45,6 +46,11 @@ CHECKED = 1.0
 # people usually below 0.25. Leaning towards keeping: dropping the user's own
 # words is worse than letting a stray voice through.
 SAME_VOICE = 0.3
+# The user's own pieces in one dictation score alike; another person scores
+# far below the user's best piece. A piece is left out only when it is under
+# the threshold AND this far below the best piece of the same dictation, so
+# one weak-sounding clause of the user's own is never cut.
+OTHER_VOICE_GAP = 0.15
 # Training needs this much speech.
 ENROLL_SPEECH = 6.0
 
@@ -125,17 +131,12 @@ def filter_audio(samples: np.ndarray, voice: np.ndarray | None, threshold: float
         return np.zeros(0, dtype=np.float32), 0, 0
     keep = [True] * len(spans)
     if voice is not None:
-        checked = {}
-        for i, (start, end) in enumerate(spans):
-            if end - start >= CHECKED * RATE:
-                checked[i] = float(np.dot(fingerprint(samples[start:end]), voice)) >= threshold
-        if checked:
-            for i in range(len(spans)):
-                if i in checked:
-                    keep[i] = checked[i]
-                else:
-                    nearest = min(checked, key=lambda j: abs(j - i))
-                    keep[i] = checked[nearest]
+        scores = {
+            i: float(np.dot(fingerprint(samples[start:end]), voice))
+            for i, (start, end) in enumerate(spans)
+            if end - start >= CHECKED * RATE
+        }
+        keep = decide(len(spans), scores, threshold)
     gap = np.zeros(int(0.15 * RATE), dtype=np.float32)
     parts, speech_n, other_n = [], 0, 0
     for (start, end), kept in zip(spans, keep):
@@ -148,6 +149,18 @@ def filter_audio(samples: np.ndarray, voice: np.ndarray | None, threshold: float
             other_n += end - start
     out = np.concatenate(parts) if parts else np.zeros(0, dtype=np.float32)
     return out.astype(np.float32), speech_n * 1000 // RATE, other_n * 1000 // RATE
+
+
+def decide(count: int, scores: dict[int, float], threshold: float) -> list[bool]:
+    """Which of `count` pieces to keep, from the voice scores of the pieces
+    long enough to check (by index). Short pieces follow the nearest checked
+    piece. When no piece sounds like the user (another microphone, a cold),
+    everything is kept: dropping the user's own words is the worse mistake."""
+    if not scores or max(scores.values()) < threshold:
+        return [True] * count
+    best = max(scores.values())
+    checked = {i: s >= threshold or s >= best - OTHER_VOICE_GAP for i, s in scores.items()}
+    return [checked[i] if i in checked else checked[min(checked, key=lambda j: abs(j - i))] for i in range(count)]
 
 
 def enroll(samples: np.ndarray, path: str) -> dict:

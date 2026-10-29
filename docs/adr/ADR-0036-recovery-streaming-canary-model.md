@@ -63,6 +63,8 @@ These are one non-release host observation, not a benchmark qualification.
 - The current 30-second engine cap needs deliberate segmentation semantics.
 - Package install/upgrade/removal, offline acquisition policy, model registry,
   core-dump/swap containment, and clean-machine validation remain blocked.
+  (Amended 2026-10-20, D37: core dumps: contained; swap: documented
+  residual.)
 
 ## Alternatives rejected
 

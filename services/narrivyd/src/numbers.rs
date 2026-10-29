@@ -12,15 +12,33 @@ const UNITS: [&str; 10] = [
     "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
 ];
 const TEENS: [&str; 10] = [
-    "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen",
-    "eighteen", "nineteen",
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
 ];
 const TENS: [&str; 8] = [
     "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety",
 ];
 const ORDINALS: [&str; 12] = [
-    "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth",
-    "tenth", "hundredth", "thousandth",
+    "first",
+    "second",
+    "third",
+    "fourth",
+    "fifth",
+    "sixth",
+    "seventh",
+    "eighth",
+    "ninth",
+    "tenth",
+    "hundredth",
+    "thousandth",
 ];
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -61,9 +79,9 @@ struct Token<'a> {
 
 fn token(raw: &str) -> Token<'_> {
     let start = raw.find(|c: char| c.is_alphanumeric()).unwrap_or(raw.len());
-    let end = raw
-        .rfind(|c: char| c.is_alphanumeric())
-        .map_or(start, |i| i + raw[i..].chars().next().map_or(1, char::len_utf8));
+    let end = raw.rfind(|c: char| c.is_alphanumeric()).map_or(start, |i| {
+        i + raw[i..].chars().next().map_or(1, char::len_utf8)
+    });
     Token {
         lead: &raw[..start],
         word: raw[start..end.max(start)].to_lowercase(),
@@ -84,7 +102,10 @@ fn phrase(tokens: &[Token<'_>], i: usize) -> Option<(u64, usize, bool)> {
         // "and" only inside a number: "three hundred and two".
         if t.word == "and" && last == Some(Kind::Hundred) {
             if let Some(next) = tokens.get(i + used + 1)
-                && matches!(word_value(&next.word), Some((Kind::Unit | Kind::Teen | Kind::Tens, _)))
+                && matches!(
+                    word_value(&next.word),
+                    Some((Kind::Unit | Kind::Teen | Kind::Tens, _))
+                )
                 && t.lead.is_empty()
                 && t.trail.is_empty()
             {
@@ -111,8 +132,14 @@ fn phrase(tokens: &[Token<'_>], i: usize) -> Option<(u64, usize, bool)> {
                 (last, kind),
                 (None, _)
                     | (Some(Kind::Tens), Kind::Unit)
-                    | (Some(Kind::Unit | Kind::Teen | Kind::Tens), Kind::Hundred | Kind::Scale)
-                    | (Some(Kind::Hundred), Kind::Unit | Kind::Teen | Kind::Tens | Kind::Scale)
+                    | (
+                        Some(Kind::Unit | Kind::Teen | Kind::Tens),
+                        Kind::Hundred | Kind::Scale
+                    )
+                    | (
+                        Some(Kind::Hundred),
+                        Kind::Unit | Kind::Teen | Kind::Tens | Kind::Scale
+                    )
                     | (Some(Kind::Scale), Kind::Unit | Kind::Teen | Kind::Tens)
             )
         });
@@ -184,13 +211,13 @@ pub fn digits(text: &str) -> String {
         let last = &tokens[i + used - 1];
         let next = tokens.get(i + used);
         let next_word = next.map(|t| t.word.as_str());
-        let previous_number = i > 0
-            && tokens[i - 1].trail.is_empty()
-            && word_value(&tokens[i - 1].word).is_some();
+        let previous_number =
+            i > 0 && tokens[i - 1].trail.is_empty() && word_value(&tokens[i - 1].word).is_some();
         let adjacent_number = previous_number
             || (last.trail.is_empty() && next.is_some_and(|t| word_value(&t.word).is_some()));
         let ordinal = last.trail.is_empty()
-            && next_word.is_some_and(|w| ORDINALS.contains(&w) || (w.ends_with("th") && w.len() > 4));
+            && next_word
+                .is_some_and(|w| ORDINALS.contains(&w) || (w.ends_with("th") && w.len() > 4));
         if adjacent_number || ordinal {
             // Ambiguous: leave the words as said.
             for t in &tokens[i..i + used] {
@@ -250,7 +277,10 @@ mod tests {
     fn number_phrases_become_digits() {
         assert_eq!(digits("we need twenty five chairs"), "we need 25 chairs");
         assert_eq!(digits("three hundred and two people"), "302 people");
-        assert_eq!(digits("about two thousand twenty six words"), "about 2026 words");
+        assert_eq!(
+            digits("about two thousand twenty six words"),
+            "about 2026 words"
+        );
         assert_eq!(digits("it grew five percent."), "it grew 5%.");
         assert_eq!(digits("version one point five"), "version 1.5");
         assert_eq!(digits("twenty-five, then thirty"), "25, then 30");

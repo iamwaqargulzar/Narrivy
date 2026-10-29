@@ -45,7 +45,7 @@ import {
 } from "../../lib/overview";
 import { loadSettings } from "../../lib/settings";
 import { reportedCaptureLimitSeconds } from "../../lib/capturePolicy";
-import { useErrorHandler } from "../../ui/primitives/Toast";
+import { useErrorHandler, useToasts } from "../../ui/primitives/Toast";
 import { t } from "../../i18n";
 import { reportedLanguages } from "../../lib/modelFacts";
 import { useDaemonStatus } from "../../state/StatusContext";
@@ -131,6 +131,10 @@ export function HomeScreen() {
   const report = useErrorHandler();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
+  // The transcript the edit started from: Save never overwrites a newer
+  // one that arrived meanwhile (F-M11).
+  const [editBase, setEditBase] = useState("");
+  const { push } = useToasts();
   const [copied, setCopied] = useState(false);
   // Words the user corrected, offered for their vocabulary.
   const [learn, setLearn] = useState<string[]>([]);
@@ -172,8 +176,7 @@ export function HomeScreen() {
   );
   const latency = latencyFacts(status);
   const resources = resourceFacts(status);
-  const services = serviceFacts(status);
-  const verdict = pipelineVerdict(services);
+  const verdict = pipelineVerdict(serviceFacts(status));
   const selected =
     catalog.pipelines.find((p) => p.id === catalog.selectedId) ?? null;
   const localOnly =
@@ -386,8 +389,12 @@ export function HomeScreen() {
                     className="text-button text-button-strong"
                     onClick={() => {
                       const before = shown ?? "";
-                      session.setLastDelivered(draft);
                       setEditing(false);
+                      if (before !== editBase) {
+                        push(t("home.recent.editStale"));
+                        return;
+                      }
+                      session.setLastDelivered(draft);
                       bridge
                         .vocabulary()
                         .then(
@@ -428,6 +435,7 @@ export function HomeScreen() {
                     onClick={() => {
                       if (!shown) return;
                       setDraft(shown);
+                      setEditBase(shown);
                       setEditing(true);
                     }}
                     disabled={!shown || showLive}
@@ -587,20 +595,6 @@ export function HomeScreen() {
             </div>
           )}
         </div>
-        <h4 className="services-label">{t("home.servicesTitle")}</h4>
-        <ul className="service-grid">
-          {services.map((service) => (
-            <li key={service.id} data-state={service.state}>
-              <span className="dot" aria-hidden="true" />
-              <span className="service-name">
-                {t(`services.${service.id}`)}
-              </span>
-              <span className="service-detail">
-                {t(service.detail, service.values)}
-              </span>
-            </li>
-          ))}
-        </ul>
       </section>
     </div>
   );

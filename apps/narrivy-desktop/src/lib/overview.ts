@@ -141,7 +141,7 @@ export function formatPermille(permille: number | null): string | null {
 export type ServiceState = 'ok' | 'off' | 'warn' | 'unknown';
 
 export interface ServiceFact {
-  /** i18n key suffix under `services.` */
+  /** Which part of the service (used for the Home verdict). */
   id: string;
   state: ServiceState;
   /** i18n key or raw detail for the state line. */

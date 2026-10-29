@@ -71,7 +71,12 @@ fn read_stat(pid: u32) -> Option<StatFields> {
 fn private_resident_bytes(status: &str) -> Option<u64> {
     let field = |name: &str| -> Option<u64> {
         let line = status.lines().find(|l| l.starts_with(name))?;
-        let kib: u64 = line[name.len()..].trim().trim_end_matches("kB").trim().parse().ok()?;
+        let kib: u64 = line[name.len()..]
+            .trim()
+            .trim_end_matches("kB")
+            .trim()
+            .parse()
+            .ok()?;
         Some(kib.saturating_mul(1024))
     };
     Some(field("RssAnon:")?.saturating_add(field("RssShmem:").unwrap_or(0)))
@@ -133,7 +138,10 @@ pub fn process_tree(root: u32) -> HashSet<u32> {
     let mut parents: Vec<(u32, u32)> = Vec::new();
     if let Ok(dir) = fs::read_dir("/proc") {
         for entry in dir.flatten().take(MAX_PROC_ENTRIES) {
-            if let Some(pid) = entry.file_name().to_str().and_then(|name| name.parse::<u32>().ok())
+            if let Some(pid) = entry
+                .file_name()
+                .to_str()
+                .and_then(|name| name.parse::<u32>().ok())
                 && let Some(stat) = read_stat(pid)
             {
                 parents.push((pid, stat.ppid));
@@ -199,7 +207,10 @@ mod private_tests {
     #[test]
     fn mapped_model_files_are_not_counted() {
         let status = "VmRSS:\t 2178536 kB\nRssAnon:\t  741516 kB\nRssFile:\t 1435540 kB\nRssShmem:\t    1480 kB\n";
-        assert_eq!(private_resident_bytes(status), Some((741_516 + 1_480) * 1024));
+        assert_eq!(
+            private_resident_bytes(status),
+            Some((741_516 + 1_480) * 1024)
+        );
         assert_eq!(private_resident_bytes("VmRSS: 5 kB\n"), None);
     }
 }

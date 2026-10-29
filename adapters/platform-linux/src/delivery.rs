@@ -21,9 +21,9 @@
 //! (never a shell), stdin pumped by the child-owning thread then closed, and
 //! a bounded kill-and-reap wait under one absolute deadline.
 //!
-//! P2 will wire this router into the daemon pipeline (journal-before-delivery,
-//! target-aware formatting); P1 only requires it compilable and tested
-//! offline, which the fake-backend unit tests guarantee.
+//! Production delivery is the target-aware ladder in [`routed`] (ADR-0072).
+//! The older PATH-resolving [`router`] is compiled for tests only (F-L2), so
+//! nothing can wire it back into the daemon.
 
 pub mod backend;
 pub mod clipboard_paste;
@@ -31,6 +31,7 @@ pub mod command;
 pub mod inbox;
 pub mod probe;
 pub mod routed;
+#[cfg(test)]
 pub mod router;
 
 pub use backend::{
@@ -38,7 +39,7 @@ pub use backend::{
     DeliveryBackendId, DeliveryCheck, DeliveryRequest, MAX_DIRECT_TEXT_BYTES, UinputBackend,
     WlClipboardOrXclip, WtypeBackend,
 };
-pub use clipboard_paste::{WaylandClipboardHandoff, WtypePasteChord};
+pub use clipboard_paste::{UinputPasteChord, WaylandClipboardHandoff, WtypePasteChord};
 pub use inbox::{InboxError, InboxStore, validate_txid};
 pub use probe::{generate_txid, probe_tool, probe_wtype, probe_wtype_at};
 pub use routed::{
@@ -50,6 +51,7 @@ pub use routed::{
     TargetBinding, TargetBindingSource, UnavailablePreActivationTargetBinding, UnavailableRung,
     WtypeKeyboardRung, wayland_text_input_supported,
 };
+#[cfg(test)]
 pub use router::{
     DeliveryRouter, DeliveryRouterConfig, route_and_deliver, route_and_deliver_tx_with,
     route_and_deliver_with, route_over_backends, route_with_attempts,

@@ -101,12 +101,22 @@ device facts only.
 
 Dependency pins:
 
-- `transcribe-cpp = 0.2.3`, crates.io checksum
-  `b405c121ef674311b9e8eba83e45d859663da681952c7b95b730792ffde358e7`;
-- `transcribe-cpp-sys = 0.2.3`, crates.io checksum
-  `00e81030804f0ce2dd83761ba18e90e0c0c2794d68ca008e24245ed6d2702e`;
+- `transcribe-cpp = 0.4.1`, crates.io checksum
+  `8bab65d30f5a4c3ea0ab6f38236823389f3914b0605bbc0073a4ec88018c0714`;
+- `transcribe-cpp-sys = 0.4.1`, crates.io checksum
+  `23a837974fdb873998a59a21ad2bf5a4b7bbf721c20d03d2a3ab8c221726a444`;
 - both MIT, default features disabled, static CPU build; `Cargo.lock` is
   authoritative for transitive pins.
+
+Version 0.4.1 (2026-10-26, source commit
+`4d7c1ccefd39e5a9ea36cca5f8fefc6dcc14b99b`, tag v0.4.1) replaces 0.2.3. API
+changes taken: `Model::capabilities()` now returns a `Result` (a failure is
+reported as a native startup failure), and `ModelOptions` gained `no_mmap`;
+the worker keeps the default (`false`): the weights are served from the
+hash-checked model file's page cache instead of copied, so the system can
+reclaim them. Also new upstream since 0.2.3: a repetition-loop guard,
+decode-budget fix, VAD and language id in the interface, ggml 0.26, and a
+Windows build fix.
 
 Version 0.2.1 was evaluated and rejected: its published sys source reported
 native version 0.2.2, so the safe wrapper's pre-1.0 ABI gate correctly refused
@@ -132,11 +142,11 @@ transcript file out, exit status), zero `unsafe`, zero new dependencies, no
 root-manifest edits, trivially pinnable (binary sha256 recorded per run), and
 the CPU correctness lane is selected explicitly with `--backend cpu`.
 
-NOT chosen (yet): linking a staticlib through `transcribe-sys`. That stub's
-hand-written `tcpp_*` declarations were pre-licence hypotheses and do NOT
-match the real upstream API. They stay in-tree, uncompiled, as the starting
-point for the P5 static-link option; they must be rewritten against
-`include/transcribe.h` before any use.
+NOT chosen: linking a staticlib through a local `transcribe-sys` stub. Its
+hand-written `tcpp_*` declarations were pre-licence hypotheses that did not
+match the real upstream API; the stub was deleted (F-L1, 2026-10-20). The
+resident worker links the upstream safe Rust wrapper (`transcribe-cpp`)
+instead.
 
 ## Operator contract (env vars)
 

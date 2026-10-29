@@ -328,7 +328,11 @@ impl AudioCapturePort for PipeWireCapture {
     }
 }
 
-fn spawn_pipewire(helper: &StrictHelper, frames: u32, target: &str) -> Result<Child, PlatformError> {
+fn spawn_pipewire(
+    helper: &StrictHelper,
+    frames: u32,
+    target: &str,
+) -> Result<Child, PlatformError> {
     let mut command = helper
         .command(HelperEnvironment::PipeWireCapture)
         .map_err(pipewire_resolve_platform_error)?;

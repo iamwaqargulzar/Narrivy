@@ -2,6 +2,8 @@
 // Every knob defaults to the sentinel 'auto'; explicit choices overwrite it
 // and can be reset back to auto. Resolved values are derived ONLY from
 // daemon capability strings (see resolved.ts).
+import { typingUnavailable } from './resolved';
+
 export const SETTINGS_STORAGE_KEY = 'narrivy.settings.v1';
 
 export type SettingValue = 'auto' | string | number | boolean;
@@ -87,9 +89,12 @@ export const FIELD_SPECS: FieldSpec[] = [
     resolve: (caps) => {
       if (caps.includes('delivery.clipboard')) return 'Clipboard paste';
       if (caps.includes('delivery.route=target-aware')) {
-        return caps.some((c) => c.startsWith('delivery.wtype-helper=ready:'))
+        const helper = caps.find((c) => c.startsWith('delivery.wtype-helper='));
+        return helper?.startsWith('delivery.wtype-helper=ready:')
           ? 'Inbox recovery (target-aware routing, typing unverified)'
-          : 'Inbox recovery only (target-aware routing, typing helper unavailable)';
+          : `Inbox recovery only (target-aware routing, ${typingUnavailable(
+              helper?.slice('delivery.wtype-helper='.length) ?? null,
+            )})`;
       }
       if (
         caps.includes('delivery.inbox-only=available') ||

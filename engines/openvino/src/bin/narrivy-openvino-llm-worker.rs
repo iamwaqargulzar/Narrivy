@@ -45,6 +45,14 @@ struct Arguments {
 }
 
 fn main() -> std::process::ExitCode {
+    // `execve` made this worker dumpable again; it holds audio, transcripts
+    // or text being rewritten (D37, F-H18). Same call as
+    // `narrivy_process_linux::forbid_core_dumps`.
+    if rustix::process::set_dumpable_behavior(rustix::process::DumpableBehavior::NotDumpable)
+        .is_err()
+    {
+        return std::process::ExitCode::from(1);
+    }
     match run() {
         Ok(()) => std::process::ExitCode::SUCCESS,
         Err(()) => std::process::ExitCode::from(1),
@@ -148,7 +156,13 @@ fn run() -> Result<(), ()> {
                     if !opened && !piece.trim().is_empty() {
                         opened = true;
                         if !piece.trim_start().starts_with("<think>")
-                            && refine_protocol::write_frame(&mut writer, STATUS_PARTIAL, id, b"<think>\n").is_err()
+                            && refine_protocol::write_frame(
+                                &mut writer,
+                                STATUS_PARTIAL,
+                                id,
+                                b"<think>\n",
+                            )
+                            .is_err()
                         {
                             write_failed = true;
                         }
@@ -244,7 +258,9 @@ fn request_parts(text: &str) -> Option<(serde_json::Value, bool)> {
                 .get("thinking")
                 .and_then(serde_json::Value::as_bool)
                 .unwrap_or(false);
-            let messages = object.remove("messages").filter(serde_json::Value::is_array)?;
+            let messages = object
+                .remove("messages")
+                .filter(serde_json::Value::is_array)?;
             Some((messages, thinking))
         }
         _ => None,
@@ -294,7 +310,11 @@ fn picture(path: &std::path::Path) -> Option<Picture> {
     let (width, height) = rgb.dimensions();
     let pixels = u64::from(width) * u64::from(height);
     if pixels > u64::from(PICTURE_PIXELS) {
-        #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        #[allow(
+            clippy::cast_precision_loss,
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss
+        )]
         let scale = (f64::from(PICTURE_PIXELS) / pixels as f64).sqrt();
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         let (w, h) = (
@@ -530,14 +550,19 @@ mod tests {
 
     #[test]
     fn a_request_can_ask_to_think() {
-        let (_, thinking) = request_parts(r#"{"messages":[{"role":"user","content":"q"}],"thinking":true}"#)
-            .unwrap_or((serde_json::Value::Null, false));
-        assert!(thinking);
         let (_, thinking) =
-            request_parts(r#"[{"role":"user","content":"q"}]"#).unwrap_or((serde_json::Value::Null, true));
+            request_parts(r#"{"messages":[{"role":"user","content":"q"}],"thinking":true}"#)
+                .unwrap_or((serde_json::Value::Null, false));
+        assert!(thinking);
+        let (_, thinking) = request_parts(r#"[{"role":"user","content":"q"}]"#)
+            .unwrap_or((serde_json::Value::Null, true));
         assert!(!thinking);
         assert!(request_parts(r#"{"thinking":true}"#).is_none());
-        assert_eq!(chat_messages(r#"{"messages":[{"role":"user","content":"q"}],"thinking":true}"#).map(|m| m.len()), Some(1));
+        assert_eq!(
+            chat_messages(r#"{"messages":[{"role":"user","content":"q"}],"thinking":true}"#)
+                .map(|m| m.len()),
+            Some(1)
+        );
     }
 
     #[test]

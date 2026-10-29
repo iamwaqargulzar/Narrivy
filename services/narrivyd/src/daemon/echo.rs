@@ -159,13 +159,19 @@ pub fn capture_target_for(pipeline: Option<&str>) -> Option<String> {
 /// A pipeline's own Voice settings (empty when it follows the defaults).
 #[must_use]
 pub fn pipeline_voice(pipeline: &str) -> PipelineVoice {
-    read_options().pipelines.get(pipeline).copied().unwrap_or_default()
+    read_options()
+        .pipelines
+        .get(pipeline)
+        .copied()
+        .unwrap_or_default()
 }
 
 fn valid_pipeline_id(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= 64
-        && id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_' || b == b'.')
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_' || b == b'.')
 }
 
 /// Give `pipeline` its own Voice settings (`None` follows the default).
@@ -199,7 +205,11 @@ fn wanted() -> bool {
         return false;
     }
     let options = read_options();
-    options.echo_cancel || options.pipelines.values().any(|p| p.echo_cancel == Some(true))
+    options.echo_cancel
+        || options
+            .pipelines
+            .values()
+            .any(|p| p.echo_cancel == Some(true))
 }
 
 /// Set how much background noise is removed; the canceller restarts with it.

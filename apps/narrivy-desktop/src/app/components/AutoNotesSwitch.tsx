@@ -2,24 +2,29 @@
 // detailed notes start by themselves, so they are there when the user opens
 // the meeting. "Go over a recording when it stops": off, a stopped
 // recording is kept as heard (quick and light) until the user asks.
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import { bridge, type MeetingOptions } from "../../lib/bridge";
 import { t } from "../../i18n";
 import { useErrorHandler } from "../../ui/primitives/Toast";
+import { Icon, type IconName } from "../../ui/icons";
 
 function OptionSwitch({
+  icon,
   label,
+  short,
   hint,
   read,
   write,
 }: {
+  icon: IconName;
   label: string;
+  /** The pill's own words; `label` names it for screen readers. */
+  short: string;
   hint?: string;
   read: (o: MeetingOptions) => boolean | undefined;
   write: (on: boolean) => Promise<MeetingOptions>;
 }) {
   const report = useErrorHandler();
-  const labelId = useId();
   const [on, setOn] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -49,27 +54,29 @@ function OptionSwitch({
     }
   };
   return (
-    <div className="meeting-auto-notes" title={hint}>
-      <span id={labelId}>{label}</span>
+    <span className="meeting-option" title={hint ?? label}>
       <button
         type="button"
         role="switch"
-        className="switch"
+        className="meeting-pill"
         aria-checked={on}
-        aria-labelledby={labelId}
+        aria-label={label}
         disabled={saving}
         onClick={() => void toggle()}
       >
-        <span className="switch-thumb" />
+        <Icon name={icon} />
+        {short}
       </button>
-    </div>
+    </span>
   );
 }
 
 export function AutoNotesSwitch() {
   return (
     <OptionSwitch
+      icon="pencil"
       label={t("meetings.autoNotes")}
+      short={t("meetings.autoNotesShort")}
       read={(o) => o.auto_notes}
       write={(on) => bridge.setAutoNotes(on)}
     />
@@ -79,7 +86,9 @@ export function AutoNotesSwitch() {
 export function ProcessOnStopSwitch() {
   return (
     <OptionSwitch
+      icon="refresh"
       label={t("meetings.processOnStop")}
+      short={t("meetings.processOnStopShort")}
       hint={t("meetings.processOnStopHint")}
       read={(o) => o.process_on_stop}
       write={(on) => bridge.setProcessOnStop(on)}

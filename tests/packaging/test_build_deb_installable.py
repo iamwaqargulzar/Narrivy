@@ -44,7 +44,7 @@ SAMPLE_BINARIES = {
 SAMPLE_WORKER = {"sha256": "dd" * 32, "size_bytes": 44}
 SAMPLE_HEAD = "ab" * 20
 SAMPLE_EPOCH = 1_700_000_000
-SAMPLE_VERSION = "0.1.0~rc1"
+SAMPLE_VERSION = "1.0.0~rc1"
 
 
 def _cli_argv(*extra: str) -> list[str]:
@@ -67,8 +67,8 @@ def _cli_argv(*extra: str) -> list[str]:
 
 class InstallableDebBuilderTests(unittest.TestCase):
     def test_control_names_the_maintained_runtime_and_exact_candidate_version(self) -> None:
-        control = installable._control("0.1.0~rc1").decode()
-        self.assertIn("Version: 0.1.0~rc1\n", control)
+        control = installable._control("1.0.0~rc1").decode()
+        self.assertIn("Version: 1.0.0~rc1\n", control)
         self.assertIn("libwebkit2gtk-4.1-0 (>= 2.44)", control)
         self.assertIn("libgtk-layer-shell0 (>= 0.8)", control)
         self.assertNotIn("libwebkitgtk-6.0", control)
@@ -78,8 +78,70 @@ class InstallableDebBuilderTests(unittest.TestCase):
         # Downloads use the system download tool (ADR-0077).
         self.assertIn(" curl,", control)
         self.assertRegex(control, r"Recommends: .*mesa-vulkan-drivers")
+        # Typing into the focused app needs the root-owned system wtype (F-C4).
+        recommends = next(
+            line for line in control.splitlines() if line.startswith("Recommends: ")
+        )
+        self.assertIn("wtype", recommends.removeprefix("Recommends: ").split(", "))
+        # gdbus: the CLI's notification when the daemon cannot start (F-H4).
+        self.assertIn("libglib2.0-bin", recommends.removeprefix("Recommends: ").split(", "))
+        for template in ("packaging/deb/control", "packaging/linux/deb/control"):
+            self.assertRegex(
+                (ROOT / template).read_text(), r"(?m)^Recommends: (.*, )?wtype(,|$)"
+            )
         self.assertIn("systemd", control)
         self.assertNotIn("tauri", control.lower())
+
+    def test_package_identity_is_d3(self) -> None:
+        # F-M6: the owner's maintainer and homepage, no placeholder host, no
+        # invalid `Build-Using` field, and the same identity in the templates.
+        control = installable._control("1.0.0~rc1").decode()
+        for text in (
+            control,
+            (ROOT / "packaging/deb/control").read_text(),
+            (ROOT / "packaging/linux/deb/control").read_text(),
+        ):
+            self.assertIn("Maintainer: Waqar Gulzar <iamwaqargulzar@gmail.com>\n", text)
+            self.assertIn("Homepage: https://github.com/iamwaqargulzar/narrivy\n", text)
+            self.assertNotIn("narrivy.local", text)
+            self.assertNotIn("Build-Using", text)
+        # Versions follow D3 and sort above the 0.2.3 build already installed.
+        for good in ("1.0.0~rc1", "1.0.0~rc12", "1.0.0", "1.2.3"):
+            self.assertTrue(installable.VERSION_RE.fullmatch(good), good)
+        for bad in ("0.1.0~rc-test", "1.0.0~beta1", "1.0", "01.0.0", "1.0.0~rc0", "1.0.0+git"):
+            self.assertIsNone(installable.VERSION_RE.fullmatch(bad), bad)
+
+    def test_maintainer_scripts_stop_and_reload_running_user_daemons(self) -> None:
+        # F-H15: remove/upgrade stop the daemon in every running user manager;
+        # configure reloads and restarts a running one; nothing is enabled
+        # for all users (D5); purge names every user data directory.
+        for directory in ("packaging/deb", "packaging/linux/deb"):
+            prerm = (ROOT / directory / "prerm").read_text()
+            postinst = (ROOT / directory / "postinst").read_text()
+            postrm = (ROOT / directory / "postrm").read_text()
+            installable._validate_script(prerm.encode())
+            installable._validate_script(postinst.encode())
+            installable._validate_script(postrm.encode())
+            self.assertIn("remove|deconfigure|upgrade|failed-upgrade)", prerm)
+            self.assertIn(
+                'timeout 10s systemctl --user -M "$uid@" stop narrivy-daemon.service',
+                prerm,
+            )
+            self.assertIn(
+                'timeout 10s systemctl --user -M "$uid@" try-restart narrivy-daemon.service',
+                postinst,
+            )
+            self.assertIn('systemctl --user -M "$uid@" daemon-reload', postinst)
+            self.assertIn('systemctl --user -M "$uid@" daemon-reload', postrm)
+            for script in (prerm, postinst, postrm):
+                self.assertNotIn("--global", script)
+                self.assertNotRegex(script, r"systemctl[^\n]* enable ")
+                self.assertNotIn("narrivy-migrate", script)
+                for line in script.splitlines():
+                    if "systemctl --user" in line:
+                        self.assertIn("timeout 10s", line)
+                        self.assertTrue(line.rstrip().endswith("|| true"), line)
+            self.assertIn("~/.local/state/narrivy", postrm)
 
     def test_maintainer_script_validation_is_bounded_and_fail_closed(self) -> None:
         installable._validate_script(b"#!/bin/sh\nset -e\nexit 0\n")
@@ -273,6 +335,25 @@ class CleanSourceInstallableTests(unittest.TestCase):
         with self.assertRaises(installable.InstallableError) as failed:
             installable._require_clean_source(repo, head, git=str(failing))
         self.assertIn("failed", str(failed.exception))
+
+    def test_only_a_resident_daemon_is_packaged(self) -> None:
+        # F-M14: the daemon's own `--build-features` report decides.
+        resident = self._write_executable(
+            "resident-narrivyd",
+            "#!/bin/sh\n[ \"$1\" = --build-features ] && echo asr-transcribe-cpp asr-transcribe-resident\n",
+        )
+        installable._require_resident_daemon(resident)
+        for name, body in (
+            ("plain-narrivyd", "#!/bin/sh\necho\n"),
+            ("sidecar-narrivyd", "#!/bin/sh\necho asr-transcribe-cpp\n"),
+            ("failing-narrivyd", "#!/bin/sh\necho asr-transcribe-resident; exit 3\n"),
+            ("hanging-narrivyd", "#!/bin/sh\nsleep 5\n"),
+        ):
+            daemon = self._write_executable(name, body)
+            with self.assertRaises(installable.InstallableError, msg=name):
+                installable._require_resident_daemon(daemon, timeout=0.5)
+        with self.assertRaises(installable.InstallableError):
+            installable._require_resident_daemon(self.root / "missing-narrivyd")
 
     def test_git_environment_is_scrubbed_and_argv_only(self) -> None:
         record = self.root / "git-env.json"

@@ -39,10 +39,16 @@ beforeEach(() => {
   vi.mocked(bridge.cancel).mockReset().mockResolvedValue(undefined);
 });
 
-async function openDictation() {
+async function openHome() {
   render(<App />);
-  fireEvent.click(await screen.findByRole('button', { name: 'Dictation' }));
   return screen.findByTestId('dictation-start');
+}
+
+// Modes are chosen on the Pipelines page; Start lives on Home.
+async function useOtherMode() {
+  fireEvent.click(screen.getByRole('button', { name: 'Pipelines' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Use this pipeline' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Home' }));
 }
 
 describe('InstalledRecoveryPipelineSelection', () => {
@@ -50,22 +56,16 @@ describe('InstalledRecoveryPipelineSelection', () => {
     vi.mocked(bridge.status).mockImplementation(async () => readyRecoveryStatus());
     vi.mocked(bridge.listPipelines).mockImplementation(async () => STRICT_MODES_ENABLED);
 
-    const start = await openDictation();
+    const start = await openHome();
     await waitFor(() => expect(start).toBeEnabled());
 
-    const select = (await screen.findByTestId('dictation-mode-select')) as HTMLSelectElement;
     // The daemon's default mode is the first advertised entry.
-    expect(select.value).toBe(CLEAN_MODE_ID);
-    expect(Array.from(select.options).map((o) => o.value)).toEqual([
-      CLEAN_MODE_ID,
-      RAW_MODE_ID,
-    ]);
     expect(screen.getByTestId('dictation-selected-id')).toHaveTextContent(CLEAN_MODE_ID);
 
     // Selecting the other real mode and starting sends that exact advertised id.
-    fireEvent.change(select, { target: { value: RAW_MODE_ID } });
-    await waitFor(() => expect(select.value).toBe(RAW_MODE_ID));
-    fireEvent.click(start);
+    await useOtherMode();
+    await waitFor(() => expect(screen.getByTestId('dictation-selected-id')).toHaveTextContent(RAW_MODE_ID));
+    fireEvent.click(await screen.findByTestId('dictation-start'));
     await waitFor(() => expect(bridge.start).toHaveBeenCalledTimes(1));
     expect(bridge.start).toHaveBeenCalledWith(RAW_MODE_ID);
   });
@@ -74,7 +74,7 @@ describe('InstalledRecoveryPipelineSelection', () => {
     vi.mocked(bridge.status).mockImplementation(async () => installedRecoveryStatus());
     vi.mocked(bridge.listPipelines).mockImplementation(async () => STRICT_MODES_DISABLED);
 
-    const start = await openDictation();
+    const start = await openHome();
     const notice = await screen.findByTestId('dictation-availability');
     expect(notice).toHaveTextContent(/speech model is not installed/i);
     expect(start).toBeDisabled();
@@ -88,7 +88,7 @@ describe('InstalledRecoveryPipelineSelection', () => {
     vi.mocked(bridge.status).mockImplementation(async () => installedRecoveryStatus());
     vi.mocked(bridge.listPipelines).mockImplementation(async () => []);
 
-    const start = await openDictation();
+    const start = await openHome();
     const notice = await screen.findByTestId('dictation-availability');
     expect(notice).toHaveTextContent(/advertises no dictation modes/i);
     expect(start).toBeDisabled();
@@ -108,7 +108,7 @@ describe('InstalledRecoveryPipelineSelection', () => {
       message: 'listing failed',
     });
 
-    const start = await openDictation();
+    const start = await openHome();
     const notice = await screen.findByTestId('dictation-availability');
     expect(notice).toHaveTextContent(/could not load available modes/i);
 
@@ -135,7 +135,7 @@ describe('InstalledRecoveryPipelineSelection', () => {
     vi.mocked(bridge.status).mockImplementation(async () => readyRecoveryStatus());
     vi.mocked(bridge.listPipelines).mockResolvedValue(STRICT_MODES_ENABLED);
 
-    const start = await openDictation();
+    const start = await openHome();
     await waitFor(() => expect(start).toBeEnabled());
 
     vi.mocked(bridge.listPipelines).mockResolvedValue([]);
@@ -158,7 +158,7 @@ describe('InstalledRecoveryPipelineSelection', () => {
     vi.mocked(bridge.status).mockImplementation(async () => readyRecoveryStatus());
     vi.mocked(bridge.listPipelines).mockResolvedValue(STRICT_MODES_ENABLED);
 
-    const start = await openDictation();
+    const start = await openHome();
     await waitFor(() => expect(start).toBeEnabled());
 
     let resolveRefresh: ((pipelines: PipelineSummary[]) => void) | null = null;
@@ -189,19 +189,18 @@ describe('InstalledRecoveryPipelineSelection', () => {
     vi.mocked(bridge.status).mockImplementation(async () => readyRecoveryStatus());
     vi.mocked(bridge.listPipelines).mockResolvedValue(STRICT_MODES_ENABLED);
 
-    const start = await openDictation();
+    const start = await openHome();
     await waitFor(() => expect(start).toBeEnabled());
 
     vi.mocked(bridge.listPipelines).mockResolvedValue([OTHER_ENABLED, ...STRICT_MODES_ENABLED]);
+    const before = vi.mocked(bridge.listPipelines).mock.calls.length;
     fireEvent.click(screen.getByTestId('dictation-pipelines-refresh'));
-    await waitFor(() => {
-      const select = screen.getByTestId('dictation-mode-select') as HTMLSelectElement;
-      expect(Array.from(select.options).map((o) => o.value)).toEqual([
-        'other-lane',
-        CLEAN_MODE_ID,
-        RAW_MODE_ID,
-      ]);
-      expect(select.value).toBe(CLEAN_MODE_ID);
+    await waitFor(() =>
+      expect(vi.mocked(bridge.listPipelines).mock.calls.length).toBeGreaterThan(before),
+    );
+    await act(async () => {
+      await Promise.resolve();
     });
+    expect(screen.getByTestId('dictation-selected-id')).toHaveTextContent(CLEAN_MODE_ID);
   });
 });

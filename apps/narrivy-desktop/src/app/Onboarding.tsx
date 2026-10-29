@@ -1,4 +1,6 @@
 // Three-step first-run wizard: Welcome → Mic check → First dictation.
+// The last step installs the bundled speech model first when the daemon has
+// none (F-M11: on a clean install Start could never be enabled).
 // Skippable at every step; completing or skipping sets narrivy.onboarded.v1.
 import { useState } from 'react';
 import { Button } from '../ui/primitives/Button';
@@ -11,6 +13,9 @@ import { usePipelines } from '../state/PipelinesContext';
 import { useDaemonStatus } from '../state/StatusContext';
 import { useDictationActions } from '../hooks/useDictationActions';
 import { BrandMark } from '../ui/icons';
+import { provisionFailureText } from './screens/Models';
+import { ShortcutCapture } from './components/ShortcutCapture';
+import { BundledModelSetup } from './components/BundledModelSetup';
 
 type MicState =
   | { kind: 'idle' }
@@ -22,10 +27,13 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const [mic, setMic] = useState<MicState>({ kind: 'idle' });
   const [started, setStarted] = useState(false);
   const [stopped, setStopped] = useState(false);
+  // F-M20: set the dictation shortcut here when the service manages them.
+  const [capturing, setCapturing] = useState(false);
+  const [shortcutSaved, setShortcutSaved] = useState(false);
   const report = useErrorHandler();
   const dictation = useDictationActions();
   const { catalog } = usePipelines();
-  const { status } = useDaemonStatus();
+  const { status, reload } = useDaemonStatus();
   const availabilityKey = availabilityMessageKey(catalog);
   // Truthful activation wording: the exact command is offered only when the
   // daemon reports the atomic toggle and no live portal listener, and it is
@@ -33,6 +41,36 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const activation = activationPresentation(status);
 
   const finish = () => onDone();
+
+  const shortcutsManaged = (status?.capabilities ?? []).includes('activation.shortcuts=managed');
+  const shortcutPipeline = catalog.pipelines.find((p) => p.id === catalog.selectedId) ?? null;
+
+  const modelState = status?.installed_model ?? null;
+  const needsModel =
+    modelState === 'awaiting_model' ||
+    modelState === 'provisioning' ||
+    modelState === 'activation_failed';
+  const provisionState = status?.model_provisioning?.state ?? null;
+
+  const cancelModel = async () => {
+    const operationId = status?.model_provisioning?.operation_id;
+    if (!operationId) return;
+    try {
+      await bridge.cancelModelInstall(operationId);
+      await reload();
+    } catch (err) {
+      report(err);
+    }
+  };
+
+  const installModel = async () => {
+    try {
+      await bridge.installBundledModel();
+      await reload();
+    } catch (err) {
+      report(err, { retry: () => void installModel() });
+    }
+  };
 
   const runMicCheck = async () => {
     setMic({ kind: 'running' });
@@ -84,6 +122,26 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                 {t('onboard.shortcut.listenerReady')}
               </p>
             ) : null}
+            {shortcutsManaged && shortcutPipeline ? (
+              <div className="onboard-shortcut" data-testid="onboard-set-shortcut">
+                <p>{t('onboard.shortcut.setBody')}</p>
+                {shortcutSaved ? (
+                  <p className="source" role="status">{t('onboard.shortcut.saved')}</p>
+                ) : (
+                  <Button onClick={() => setCapturing(true)}>{t('onboard.shortcut.set')}</Button>
+                )}
+              </div>
+            ) : null}
+            {capturing && shortcutPipeline ? (
+              <ShortcutCapture
+                target={{ pipelineId: shortcutPipeline.id, pipelineName: shortcutPipeline.name }}
+                onClose={() => setCapturing(false)}
+                onSaved={() => {
+                  setCapturing(false);
+                  setShortcutSaved(true);
+                }}
+              />
+            ) : null}
             <div className="modal-actions">
               <Button variant="ghost" onClick={finish}>
                 {t('action.skip')}
@@ -131,6 +189,14 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           <>
             <h2>{t('onboard.dictation.title')}</h2>
             <p>{t('onboard.dictation.body')}</p>
+            {needsModel ? (
+              <BundledModelSetup
+                provisionState={provisionState}
+                failureText={provisionFailureText(status?.model_provisioning?.failure)}
+                onInstall={() => void installModel()}
+                onCancel={() => void cancelModel()}
+              />
+            ) : null}
             {availabilityKey ? (
               <p className="source" role="status">
                 {t(availabilityKey)}

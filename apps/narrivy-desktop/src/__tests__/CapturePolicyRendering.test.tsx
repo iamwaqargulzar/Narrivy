@@ -5,7 +5,7 @@
 // content-free reason a session's capture ended. No OS-side capture policy is
 // duplicated here.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import App from '../App';
 import { bridge, type SessionEvent, type StatusSnapshot } from '../lib/bridge';
 import {
@@ -60,9 +60,8 @@ beforeEach(() => {
   vi.mocked(bridge.onSessionEvent).mockReset();
 });
 
-async function openDictation() {
+async function openHome() {
   render(<App />);
-  fireEvent.click(await screen.findByRole('button', { name: 'Dictation' }));
   return screen.findByTestId('dictation-start');
 }
 
@@ -136,7 +135,7 @@ describe('CapturePolicyRendering', () => {
       return () => {};
     });
 
-    await openDictation();
+    await openHome();
     expect(await screen.findByTestId('dictation-capture-limit')).toHaveTextContent('300 s');
     expect(screen.queryByTestId('dictation-capture-end')).not.toBeInTheDocument();
 
@@ -166,7 +165,7 @@ describe('CapturePolicyRendering', () => {
       statusWith(PROBE_CAPTURE_CAPABILITIES),
     );
     vi.mocked(bridge.onSessionEvent).mockImplementation(async () => () => {});
-    await openDictation();
+    await openHome();
     const limit = await screen.findByTestId('dictation-capture-limit');
     expect(limit).toHaveTextContent(/Developer probe window 3 s/);
     expect(limit).toHaveTextContent(/maximum stays 300 s/);
@@ -188,7 +187,7 @@ describe('CapturePolicyRendering', () => {
       return () => {};
     });
 
-    await openDictation();
+    await openHome();
     expect(screen.queryByTestId('dictation-capture-limit')).not.toBeInTheDocument();
 
     await waitFor(() => expect(emit).not.toBeNull());
@@ -223,7 +222,7 @@ describe('CapturePolicyRendering', () => {
       return () => {};
     });
 
-    await openDictation();
+    await openHome();
     await waitFor(() => expect(emit).not.toBeNull());
     await act(async () => {
       emit!({
@@ -238,8 +237,8 @@ describe('CapturePolicyRendering', () => {
     });
 
     const notice = await screen.findByTestId('dictation-capture-end');
-    expect(notice).toHaveTextContent(/audio source ended/i);
-    expect(notice).toHaveTextContent(/recoverable/i);
+    expect(notice).toHaveTextContent(/microphone disconnected/i);
+    expect(notice).toHaveTextContent(/saved in History/i);
     // No transcript-bearing content is fabricated for the failed session.
     expect(screen.queryByText(/full text/)).not.toBeInTheDocument();
   });

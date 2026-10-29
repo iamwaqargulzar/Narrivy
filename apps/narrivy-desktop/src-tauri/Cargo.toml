@@ -1,7 +1,7 @@
 [package]
 publish = false
 name = "narrivy-desktop"
-version = "0.1.0"
+version = "1.0.0-rc.13"
 edition = "2024"
 rust-version = "1.92"
 description = "Narrivy desktop shell (Tauri 2): thin client of narrivyd over narrivy-ipc."

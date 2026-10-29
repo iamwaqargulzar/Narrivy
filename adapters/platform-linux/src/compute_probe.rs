@@ -25,9 +25,14 @@ const CPU_INFO: &str = "/proc/cpuinfo";
 /// How often a running probe is checked against its deadline.
 const POLL: Duration = Duration::from_millis(20);
 
+/// The most of a probe's standard output that is kept. `ldconfig -p` prints
+/// about 100 KB; nothing a probe answers needs more than this.
+const STDOUT_CAP: u64 = 8 * 1024 * 1024;
+
 /// The Linux host: a real device directory, real bounded helpers, a real core
-/// count. Cheap to construct and safe to share; it holds no handle and starts
-/// no thread.
+/// count. Cheap to construct and safe to share; it holds no handle. Each probe
+/// run reads the helper's output on a short-lived thread that ends when the
+/// pipe closes.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct LinuxHostProbe;
 
@@ -92,6 +97,19 @@ impl HostProbe for LinuxHostProbe {
         let mut child = process
             .spawn()
             .map_err(|error| ProbeError::unavailable(command.program(), error.to_string()))?;
+        // Read standard output while the child runs: a helper that prints
+        // more than a pipe holds (`ldconfig -p` prints about 100 KB) would
+        // otherwise block until the deadline killed it (F-H7). The reader
+        // ends when the pipe closes; if a grandchild keeps it open past the
+        // deadline, the reader is left to finish on its own.
+        let (sender, output) = std::sync::mpsc::channel();
+        if let Some(pipe) = child.stdout.take() {
+            std::thread::spawn(move || {
+                let mut stdout = Vec::new();
+                let _ = pipe.take(STDOUT_CAP).read_to_end(&mut stdout);
+                let _ = sender.send(stdout);
+            });
+        }
         let deadline = Instant::now() + timeout;
         let status = loop {
             match child
@@ -107,12 +125,9 @@ impl HostProbe for LinuxHostProbe {
                 None => std::thread::sleep(POLL),
             }
         };
-        // Reading is safe only once the child has exited or been killed: a
-        // probe that fills the pipe buffer would otherwise deadlock here.
-        let mut stdout = Vec::new();
-        if let Some(mut pipe) = child.stdout.take() {
-            let _ = pipe.read_to_end(&mut stdout);
-        }
+        let stdout = output
+            .recv_timeout(deadline.saturating_duration_since(Instant::now()))
+            .unwrap_or_default();
         Ok(ProbeOutcome {
             success: status.success(),
             stdout: String::from_utf8_lossy(&stdout).into_owned(),
@@ -134,5 +149,35 @@ impl HostProbe for LinuxHostProbe {
                 .ok()
                 .map(|cores| cores.get() as u32)
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// F-H7: a helper that prints more than a pipe holds finishes at once
+    /// with all of its output, instead of blocking until the deadline.
+    #[test]
+    fn a_probe_printing_a_mebibyte_completes_well_before_its_deadline() -> Result<(), ProbeError> {
+        let command = ProbeCommand::inheriting_environment("/bin/sh")
+            .args(["-c", "head -c 1048576 /dev/zero"]);
+        let started = Instant::now();
+        let outcome = LinuxHostProbe::new().run_probe(&command, Duration::from_secs(10))?;
+        assert!(outcome.success);
+        assert_eq!(outcome.stdout.len(), 1_048_576);
+        assert!(
+            started.elapsed() < Duration::from_secs(5),
+            "{:?}",
+            started.elapsed()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn a_probe_past_its_deadline_times_out() {
+        let command = ProbeCommand::inheriting_environment("/bin/sh").args(["-c", "sleep 5"]);
+        let result = LinuxHostProbe::new().run_probe(&command, Duration::from_millis(200));
+        assert!(result.is_err());
     }
 }

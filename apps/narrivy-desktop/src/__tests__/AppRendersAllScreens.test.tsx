@@ -20,10 +20,8 @@ describe('AppRendersAllScreens', () => {
 
     const cases: Array<[string, string]> = [
       ['Home', 'Home'],
-      ['Dictation', 'Dictation'],
       ['Pipelines', 'Pipelines'],
       ['Models', 'Models'],
-      ['Refine', 'Refine'],
       ['Applications', 'Applications'],
       ['History', 'History'],
       ['Settings', 'Settings'],

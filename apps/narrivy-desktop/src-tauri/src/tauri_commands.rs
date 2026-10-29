@@ -144,7 +144,9 @@ pub fn daemon_set_only_my_voice(on: bool) -> bridge::CmdResult<narrivy_ipc::Audi
 }
 
 #[tauri::command(async)]
-pub fn daemon_set_noise_suppression(level: String) -> bridge::CmdResult<narrivy_ipc::AudioOptionsDto> {
+pub fn daemon_set_noise_suppression(
+    level: String,
+) -> bridge::CmdResult<narrivy_ipc::AudioOptionsDto> {
     bridge::daemon_set_noise_suppression(level)
 }
 
@@ -228,7 +230,9 @@ pub fn daemon_meeting_import(path: String) -> bridge::CmdResult<narrivy_ipc::Mee
 }
 
 #[tauri::command(async)]
-pub fn daemon_set_delivery_method(method: String) -> bridge::CmdResult<narrivy_ipc::TextOptionsDto> {
+pub fn daemon_set_delivery_method(
+    method: String,
+) -> bridge::CmdResult<narrivy_ipc::TextOptionsDto> {
     bridge::daemon_set_delivery_method(method)
 }
 
@@ -263,13 +267,36 @@ pub fn daemon_set_cleanup_idle(minutes: u32) -> bridge::CmdResult<narrivy_ipc::T
 }
 
 #[tauri::command(async)]
-pub fn daemon_set_voice_strictness(level: String) -> bridge::CmdResult<narrivy_ipc::AudioOptionsDto> {
+pub fn daemon_set_voice_strictness(
+    level: String,
+) -> bridge::CmdResult<narrivy_ipc::AudioOptionsDto> {
     bridge::daemon_set_voice_strictness(level)
 }
 
 #[tauri::command(async)]
 pub fn daemon_set_spoken_breaks(on: bool) -> bridge::CmdResult<narrivy_ipc::TextOptionsDto> {
     bridge::daemon_set_spoken_breaks(on)
+}
+
+#[tauri::command(async)]
+pub fn daemon_set_dictation_language(
+    app: tauri::AppHandle,
+    tag: String,
+) -> bridge::CmdResult<narrivy_ipc::TextOptionsDto> {
+    let options = bridge::daemon_set_dictation_language(tag)?;
+    // The tray's Language submenu shows the current language.
+    crate::tray::refresh_languages(&app);
+    Ok(options)
+}
+
+#[tauri::command(async)]
+pub fn daemon_set_dictation_languages(
+    app: tauri::AppHandle,
+    tags: Vec<String>,
+) -> bridge::CmdResult<narrivy_ipc::TextOptionsDto> {
+    let options = bridge::daemon_set_dictation_languages(tags)?;
+    crate::tray::refresh_languages(&app);
+    Ok(options)
 }
 
 #[tauri::command(async)]
@@ -421,15 +448,25 @@ pub fn daemon_shortcuts_list() -> bridge::CmdResult<narrivy_ipc::ShortcutsDto> {
 
 #[tauri::command(async)]
 pub fn daemon_shortcut_set(
+    app: tauri::AppHandle,
     binding: narrivy_ipc::ShortcutBindingDto,
     replace: bool,
 ) -> bridge::CmdResult<narrivy_ipc::ShortcutSetDto> {
-    bridge::daemon_shortcut_set(binding, replace)
+    let result = bridge::daemon_shortcut_set(binding, replace)?;
+    // The tray's Language submenu lists the shortcuts' languages too.
+    crate::tray::refresh_languages(&app);
+    Ok(result)
 }
 
 #[tauri::command(async)]
-pub fn daemon_shortcut_remove(modifiers: Vec<String>, key: String) -> bridge::CmdResult<()> {
-    bridge::daemon_shortcut_remove(modifiers, key)
+pub fn daemon_shortcut_remove(
+    app: tauri::AppHandle,
+    modifiers: Vec<String>,
+    key: String,
+) -> bridge::CmdResult<()> {
+    bridge::daemon_shortcut_remove(modifiers, key)?;
+    crate::tray::refresh_languages(&app);
+    Ok(())
 }
 
 #[tauri::command(async)]
@@ -531,8 +568,105 @@ pub fn daemon_meeting_slide(id: String, file: String) -> bridge::CmdResult<Strin
 }
 
 #[tauri::command(async)]
-pub fn daemon_assistant_tool_decision(call_id: String, allow: bool, always: bool) -> bridge::CmdResult<()> {
+pub fn daemon_assistant_tool_decision(
+    call_id: String,
+    allow: bool,
+    always: bool,
+) -> bridge::CmdResult<()> {
     bridge::daemon_assistant_tool_decision(call_id, allow, always)
+}
+
+/// Ask the user for a JSON file with the desktop's own chooser (the XDG
+/// portal): one to open, or, with `save`, where to save one (offering
+/// `name`). `None` when they cancel.
+#[tauri::command]
+pub async fn pick_file(
+    title: String,
+    save: bool,
+    name: Option<String>,
+) -> bridge::CmdResult<Option<String>> {
+    #[cfg(target_os = "linux")]
+    {
+        use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
+        let json = FileFilter::new("JSON")
+            .mimetype("application/json")
+            .glob("*.json");
+        let unavailable = |_| {
+            bridge::BridgeError::new(
+                "file_chooser_unavailable",
+                "the desktop's file chooser could not open",
+            )
+        };
+        let request = if save {
+            SelectedFiles::save_file()
+                .title(title.as_str())
+                .current_name(name.as_deref())
+                .filter(json)
+                .modal(true)
+                .send()
+                .await
+                .map_err(unavailable)?
+        } else {
+            SelectedFiles::open_file()
+                .title(title.as_str())
+                .filter(json)
+                .modal(true)
+                .send()
+                .await
+                .map_err(unavailable)?
+        };
+        Ok(request
+            .response()
+            .ok()
+            .and_then(|files| files.uris().first().and_then(|uri| uri.to_file_path().ok()))
+            .map(|path| path.display().to_string()))
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (title, save, name);
+        Err(bridge::BridgeError::new(
+            "file_chooser_unavailable",
+            "no file chooser on this system",
+        ))
+    }
+}
+
+/// Ask the user for an audio or video recording to transcribe, with the
+/// desktop's own chooser. `None` when they cancel.
+#[tauri::command]
+pub async fn pick_recording(title: String) -> bridge::CmdResult<Option<String>> {
+    #[cfg(target_os = "linux")]
+    {
+        use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
+        let media = FileFilter::new("Audio and video")
+            .mimetype("audio/*")
+            .mimetype("video/*");
+        let request = SelectedFiles::open_file()
+            .title(title.as_str())
+            .filter(media)
+            .modal(true)
+            .send()
+            .await
+            .map_err(|_| {
+                bridge::BridgeError::new(
+                    "file_chooser_unavailable",
+                    "the desktop's file chooser could not open",
+                )
+            })?;
+        Ok(request
+            .response()
+            .ok()
+            .and_then(|files| files.uris().first().and_then(|uri| uri.to_file_path().ok()))
+            .map(|path| path.display().to_string()))
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = title;
+        Err(bridge::BridgeError::new(
+            "file_chooser_unavailable",
+            "no file chooser on this system",
+        ))
+    }
 }
 
 /// Ask the user for a folder with the desktop's own chooser (the XDG
@@ -548,7 +682,12 @@ pub async fn pick_folder(title: String) -> bridge::CmdResult<Option<String>> {
             .modal(true)
             .send()
             .await
-            .map_err(|_| bridge::BridgeError::new("folder_chooser_unavailable", "the desktop's folder chooser could not open"))?;
+            .map_err(|_| {
+                bridge::BridgeError::new(
+                    "folder_chooser_unavailable",
+                    "the desktop's folder chooser could not open",
+                )
+            })?;
         Ok(request
             .response()
             .ok()
@@ -558,6 +697,9 @@ pub async fn pick_folder(title: String) -> bridge::CmdResult<Option<String>> {
     #[cfg(not(target_os = "linux"))]
     {
         let _ = title;
-        Err(bridge::BridgeError::new("folder_chooser_unavailable", "no folder chooser on this system"))
+        Err(bridge::BridgeError::new(
+            "folder_chooser_unavailable",
+            "no folder chooser on this system",
+        ))
     }
 }

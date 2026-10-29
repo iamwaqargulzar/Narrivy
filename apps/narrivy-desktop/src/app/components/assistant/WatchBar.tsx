@@ -1,7 +1,7 @@
 // Screen share and screen recording with the assistant. Sharing is live:
-// the open chat sees the screen (and hears what is said) while it lasts,
-// and nothing is kept. Recording keeps a session, transcribed and with its
-// pictures described, to give to a chat later.
+// the open chat sees the screen (and hears what is said) while it lasts.
+// Either is kept as a session once stopped, raw (its sound, live transcript
+// and screens as they are), to give to a chat later: it is gone over then.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../../../ui/icons';
 import { hasMessage, t } from '../../../i18n';

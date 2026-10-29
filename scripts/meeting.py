@@ -720,8 +720,12 @@ class Tail:
 
 # The live view: speech is cut into pieces of at most this many seconds, and
 # a piece still going on is transcribed again this often, so words show up
-# while they are said.
-LIVE_PIECE_SECONDS = 8
+# while they are said. The detector's own longest piece is not a hard limit
+# (a video's talk with music behind ran into 28 s pieces, each shown only
+# once it ended): a piece going on for LIVE_PIECE_SECONDS is cut here, at
+# the quietest moment of its last CUT_LOOK_SECONDS.
+LIVE_PIECE_SECONDS = 6
+CUT_LOOK_SECONDS = 1.5
 PARTIAL_EVERY = 1.5
 # Audio kept to transcribe the piece going on.
 HISTORY_SECONDS = 12
@@ -755,6 +759,9 @@ class LiveStream:
         self.kept_from = 0
         self.fed = 0
         self.speech_from = None
+        # Speech before this sample was already given out as a piece cut
+        # short (see `cut`).
+        self.cut_at = 0
 
     def feed(self, samples) -> None:
         import numpy as np
@@ -782,12 +789,33 @@ class LiveStream:
         """The speech going on now: (start, end, samples), or None."""
         if self.speech_from is None or self.kept is None:
             return None
-        begin = max(self.speech_from, self.kept_from)
+        begin = max(self.speech_from, self.kept_from, self.cut_at)
         samples = self.kept[begin - self.kept_from :]
         # Shorter, Whisper guesses (often in capitals).
         if len(samples) < int(1.5 * RATE):
             return None
         return begin / RATE, self.fed / RATE, samples
+
+    def cut(self):
+        """The speech going on, when it has gone on for LIVE_PIECE_SECONDS:
+        (stream, start, end, samples) up to its quietest moment lately,
+        given out as a finished piece. The rest goes on as a new piece."""
+        import numpy as np
+
+        if self.speech_from is None or self.kept is None:
+            return None
+        begin = max(self.speech_from, self.kept_from, self.cut_at)
+        if self.fed - begin < LIVE_PIECE_SECONDS * RATE:
+            return None
+        samples = self.kept[begin - self.kept_from :]
+        # The quietest 20 ms of the last moments: not in a word.
+        frame = RATE // 50
+        look = int(CUT_LOOK_SECONDS * RATE) // frame * frame
+        tail = samples[len(samples) - look :]
+        energy = np.square(tail.reshape(-1, frame)).mean(axis=1)
+        end = begin + len(samples) - look + int(np.argmin(energy)) * frame + frame // 2
+        self.cut_at = self.speech_from = end
+        return self.stream, begin / RATE, end / RATE, samples[: end - begin]
 
     def flush(self) -> None:
         if self.pending is not None and len(self.pending):
@@ -800,12 +828,18 @@ class LiveStream:
         while not self.vad.empty():
             seg = self.vad.front
             samples = seg.samples
-            found.append((self.stream, seg.start / RATE, (seg.start + len(samples)) / RATE, samples))
+            start, end = seg.start, seg.start + len(samples)
             self.vad.pop()
             # What follows the finished piece starts a new one.
-            end = seg.start + len(samples)
             if self.speech_from is not None:
                 self.speech_from = max(self.speech_from, end)
+            # Only what was not given out already as a piece cut short.
+            if end <= self.cut_at:
+                continue
+            if start < self.cut_at:
+                samples = samples[self.cut_at - start :]
+                start = self.cut_at
+            found.append((self.stream, start / RATE, end / RATE, samples))
         return found
 
     def voice(self, samples) -> int:
@@ -858,9 +892,12 @@ def live(folder: Path, args) -> None:
     import numpy as np
     import sherpa_onnx
 
+    # SIGINT: transcribe what is left, then end (a meeting that stops).
+    # SIGTERM: end now, leaving what is not transcribed yet (a session saved
+    # raw: its chat had the live transcript; the sound is kept).
     stopping = []
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        signal.signal(sig, lambda *_: stopping.append(True))
+    signal.signal(signal.SIGINT, lambda *_: stopping.append(True))
+    signal.signal(signal.SIGTERM, lambda *_: os._exit(0))
     parent = os.getppid()
     extractor = embedder()
     transcriber = Transcriber(
@@ -897,6 +934,10 @@ def live(folder: Path, args) -> None:
                 if final:
                     streams[stream].flush()
                 ready += streams[stream].segments()
+                # Speech going on too long is not left to the detector.
+                piece = None if final else streams[stream].cut()
+                if piece is not None:
+                    ready.append(piece)
             ready.sort(key=lambda seg: seg[1])
             for stream, start, end, samples in ready:
                 if end - start < 0.4:

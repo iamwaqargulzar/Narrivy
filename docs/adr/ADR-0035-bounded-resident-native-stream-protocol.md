@@ -56,7 +56,9 @@ Narrivy intentionally keeps audio and snapshots in bounded process memory and
 private pipes and creates no payload files or ordinary-log payloads. Recovery
 4E does not configure OS core-dump or swap hardening, so crash-dump/swap
 exposure remains a release blocker and the stronger claim that the OS can never
-persist process memory is not made. Recovery 4E does not connect Partial events
+persist process memory is not made. (Amended 2026-10-20, D37: core dumps:
+contained (`LimitCORE=0`, `PR_SET_DUMPABLE` 0 in the daemon and each worker);
+swap: documented residual, see `docs/security/data-retention.md`.) Recovery 4E does not connect Partial events
 to journals, policy, correction, delivery, IPC, desktop state, or evidence.
 
 Engine/worker stream composition is not product streaming. Live PipeWire chunk
@@ -106,4 +108,5 @@ protocol-stable API.
 - daemon/client partial-event protocol and accessible desktop failure UX;
 - latency/accuracy/duplication/resource/cancellation qualification; and
 - package co-installation/integrity, clean-machine, upgrade, and rollback; and
-- worker core-dump/swap containment and crash-path privacy qualification.
+- worker core-dump/swap containment and crash-path privacy qualification
+  (core dumps contained and swap documented as a residual, D37).

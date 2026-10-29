@@ -316,9 +316,6 @@ pub enum AsrEngineKind {
 pub enum DeliveryBackendKind {
     /// P1 null sink: text observed via sink + recovery journal only.
     NullSink,
-    /// narrivy-platform-linux ladder: wtype -> uinput(opt-in) -> clipboard
-    /// -> inbox. Terminal outcome is recorded truthfully per attempt.
-    PlatformRouter,
     /// Recovery 2A: atomic Inbox persistence only. No focused-app, clipboard,
     /// wtype, or uinput route is considered.
     InboxOnly,
@@ -384,7 +381,8 @@ pub struct EngineConfig {
     /// clipboard-paste rung through the Wayland data-control protocol and the
     /// trusted wtype (D29). The legacy PATH-resolved
     /// `wl-copy`/`wl-paste`/`xclip` implementations are still never composed.
-    /// A user setting should supersede this static flag (see the routing ADR).
+    /// The user's delivery method supersedes it once chosen (D37,
+    /// `text_options::paste`), for each dictation and for the status tokens.
     pub clipboard_authorized: bool,
     pub asr_engine: AsrEngineKind,
     pub audio_source: AudioSourceKind,
@@ -453,7 +451,7 @@ impl EngineConfig {
                 "linux-mic-inbox" => cfg.recovery_linux_mic_inbox = true,
                 "linux-mic-wtype-inbox" => cfg.recovery_linux_mic_wtype_inbox = true,
                 "linux-mic-routed-inbox" => cfg.recovery_linux_mic_routed_inbox = true,
-                other => return Err(format!("NARRIVY_RECOVERY_MODE={other:?} is unsupported")),
+                _ => return Err("NARRIVY_RECOVERY_MODE has an unsupported value".to_owned()),
             }
         }
         if let Some(v) = std::env::var_os("NARRIVY_ASR_ENGINE") {
@@ -472,12 +470,22 @@ impl EngineConfig {
                         );
                     }
                 }
-                other => {
-                    return Err(format!(
-                        "NARRIVY_ASR_ENGINE={other:?} (expected mock|transcribe-cpp)"
-                    ));
+                _ => {
+                    return Err(
+                        "NARRIVY_ASR_ENGINE has an invalid value (expected mock|transcribe-cpp)"
+                            .to_owned(),
+                    );
                 }
             };
+        } else {
+            // A hand-started daemon must never return the mock engine's fake
+            // transcripts (F-M13): the mock is chosen explicitly. The
+            // installed unit and `scripts/dev-daemon.sh` set the real engine.
+            return Err(
+                "NARRIVY_ASR_ENGINE is not set (expected mock|transcribe-cpp); start Narrivy \
+                 with `systemctl --user start narrivy-daemon`"
+                    .to_owned(),
+            );
         }
         if let Some(v) = std::env::var_os("NARRIVY_AUDIO_SOURCE") {
             cfg.audio_source = match v.to_string_lossy().as_ref() {
@@ -486,14 +494,14 @@ impl EngineConfig {
                 other if other.starts_with("file:") => {
                     let path = PathBuf::from(&other[5..]);
                     if !path.is_file() {
-                        return Err(format!("NARRIVY_AUDIO_SOURCE file not found: {other:?}"));
+                        return Err(
+                            "NARRIVY_AUDIO_SOURCE names a file that does not exist".to_owned()
+                        );
                     }
                     AudioSourceKind::FileWav(path)
                 }
-                other => {
-                    return Err(format!(
-                        "NARRIVY_AUDIO_SOURCE={other:?} (expected sine-fixture|pipewire|file:<wav>)"
-                    ));
+                _ => {
+                    return Err("NARRIVY_AUDIO_SOURCE has an invalid value (expected sine-fixture|pipewire|file:<wav>)".to_owned());
                 }
             };
         }
@@ -507,14 +515,11 @@ impl EngineConfig {
         if let Some(v) = std::env::var_os("NARRIVY_DELIVERY_BACKEND") {
             cfg.delivery_backend = match v.to_string_lossy().as_ref() {
                 "null" => DeliveryBackendKind::NullSink,
-                "platform" => DeliveryBackendKind::PlatformRouter,
                 "inbox" => DeliveryBackendKind::InboxOnly,
                 "wtype-inbox" => DeliveryBackendKind::WtypeThenInbox,
                 "routed-inbox" => DeliveryBackendKind::RoutedThenInbox,
-                other => {
-                    return Err(format!(
-                        "NARRIVY_DELIVERY_BACKEND={other:?} (expected null|platform|inbox|wtype-inbox|routed-inbox)"
-                    ));
+                _ => {
+                    return Err("NARRIVY_DELIVERY_BACKEND has an invalid value (expected null|inbox|wtype-inbox|routed-inbox)".to_owned());
                 }
             };
         }
@@ -522,10 +527,8 @@ impl EngineConfig {
             cfg.clipboard_authorized = match v.to_string_lossy().as_ref() {
                 "1" | "true" | "yes" => true,
                 "0" | "false" | "" => false,
-                other => {
-                    return Err(format!(
-                        "NARRIVY_CLIPBOARD_AUTHORIZED={other:?} (expected 0|1|true|false)"
-                    ));
+                _ => {
+                    return Err("NARRIVY_CLIPBOARD_AUTHORIZED has an invalid value (expected 0|1|true|false)".to_owned());
                 }
             };
         }
@@ -533,10 +536,11 @@ impl EngineConfig {
             cfg.force_delivery_failure = match v.to_string_lossy().as_ref() {
                 "1" | "true" | "yes" => true,
                 "0" | "false" | "" => false,
-                other => {
-                    return Err(format!(
-                        "NARRIVY_DELIVERY_FAIL={other:?} (expected 0|1|true|false)"
-                    ));
+                _ => {
+                    return Err(
+                        "NARRIVY_DELIVERY_FAIL has an invalid value (expected 0|1|true|false)"
+                            .to_owned(),
+                    );
                 }
             };
         }
@@ -599,10 +603,8 @@ impl EngineConfig {
                         );
                     }
                 }
-                other => {
-                    return Err(format!(
-                        "NARRIVY_TRANSCRIBE_RUNTIME={other:?} (expected sidecar|resident|installed)"
-                    ));
+                _ => {
+                    return Err("NARRIVY_TRANSCRIBE_RUNTIME has an invalid value (expected sidecar|resident|installed)".to_owned());
                 }
             }
         }
@@ -1292,7 +1294,6 @@ pub(crate) fn capability_strings_with_resident(
         caps.push(
             match config.delivery_backend {
                 DeliveryBackendKind::NullSink => "null.delivery",
-                DeliveryBackendKind::PlatformRouter => "platform.delivery.router",
                 DeliveryBackendKind::InboxOnly => "inbox.delivery",
                 DeliveryBackendKind::WtypeThenInbox => "wtype.inbox-recovery.delivery",
                 DeliveryBackendKind::RoutedThenInbox => "routed.inbox-recovery.delivery",
@@ -1934,16 +1935,53 @@ mod p2_config_tests {
     #[test]
     fn capabilities_track_lane_selection() {
         let cfg = EngineConfig {
-            delivery_backend: DeliveryBackendKind::PlatformRouter,
+            delivery_backend: DeliveryBackendKind::InboxOnly,
             ..EngineConfig::new()
         };
         assert_eq!(
             capability_strings(&cfg, None),
             vec![
                 "mock.asr".to_owned(),
-                "platform.delivery.router".to_owned(),
+                "inbox.delivery".to_owned(),
                 DEVICE_UNAVAILABLE_CAPABILITY.to_owned(),
             ]
+        );
+    }
+
+    /// The packaged user unit selects the routed lane with the installed
+    /// runtime (F-C1). That exact combination must pass startup validation,
+    /// or the installed daemon would refuse to start.
+    #[cfg(feature = "asr-transcribe-resident")]
+    #[test]
+    fn packaged_unit_routed_installed_composition_is_accepted() {
+        let unit = include_str!("../../../../packaging/deb/narrivy-daemon.service");
+        let lines: Vec<&str> = unit.lines().collect();
+        for line in [
+            "Environment=NARRIVY_RECOVERY_MODE=linux-mic-routed-inbox",
+            "Environment=NARRIVY_DELIVERY_BACKEND=routed-inbox",
+            "Environment=NARRIVY_ASR_ENGINE=transcribe-cpp",
+            "Environment=NARRIVY_AUDIO_SOURCE=pipewire",
+            "Environment=NARRIVY_DELIVERY_FAIL=0",
+            "Environment=NARRIVY_TRANSCRIBE_RUNTIME=installed",
+            "Environment=NARRIVY_TRANSCRIBE_MODEL_ID=whisper-tiny.en-Q8_0",
+            "UnsetEnvironment=NARRIVY_TRANSCRIBE_MODEL",
+        ] {
+            assert!(lines.contains(&line), "packaged unit lacks {line}");
+        }
+        let packaged = EngineConfig {
+            recovery_linux_mic_routed_inbox: true,
+            asr_engine: AsrEngineKind::TranscribeCpp,
+            audio_source: AudioSourceKind::PipeWire,
+            delivery_backend: DeliveryBackendKind::RoutedThenInbox,
+            transcribe_resident: true,
+            transcribe_installed: true,
+            transcribe_model_id: Some("whisper-tiny.en-Q8_0".into()),
+            ..EngineConfig::new()
+        };
+        assert_eq!(packaged.validate_strict_recovery_configuration(), Ok(()));
+        assert_eq!(
+            packaged.strict_recovery_lane(),
+            Some(StrictRecoveryLane::TargetRouted)
         );
     }
 
@@ -2359,10 +2397,6 @@ mod p2_config_tests {
                 ..valid.clone()
             },
             EngineConfig {
-                delivery_backend: DeliveryBackendKind::PlatformRouter,
-                ..valid.clone()
-            },
-            EngineConfig {
                 delivery_backend: DeliveryBackendKind::InboxOnly,
                 ..valid.clone()
             },
@@ -2498,10 +2532,6 @@ mod p2_config_tests {
             },
             EngineConfig {
                 delivery_backend: DeliveryBackendKind::NullSink,
-                ..valid.clone()
-            },
-            EngineConfig {
-                delivery_backend: DeliveryBackendKind::PlatformRouter,
                 ..valid.clone()
             },
             EngineConfig {

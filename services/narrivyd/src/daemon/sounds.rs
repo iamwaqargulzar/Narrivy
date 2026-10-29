@@ -49,7 +49,8 @@ pub fn enabled() -> bool {
 /// `audio_options_unavailable` when the choice cannot be saved.
 pub fn set_enabled(on: bool) -> Result<(), &'static str> {
     let path = options_path().ok_or("audio_options_unavailable")?;
-    let bytes = serde_json::to_vec(&Options { enabled: on }).map_err(|_| "audio_options_unavailable")?;
+    let bytes =
+        serde_json::to_vec(&Options { enabled: on }).map_err(|_| "audio_options_unavailable")?;
     std::fs::write(path, bytes).map_err(|_| "audio_options_unavailable")
 }
 

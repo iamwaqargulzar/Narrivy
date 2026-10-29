@@ -1,6 +1,7 @@
-// Models → Language models (D32): the language models on this computer,
-// separate from speech-to-text models, and which one each job uses. Clean-up
-// polishes every dictation; the assistant answers in the Assistant screen.
+// Models → Correction and Language models (D32): the language models on this
+// computer, separate from speech-to-text models, and which one each job uses.
+// Clean-up (Correction) polishes every dictation; the assistant answers in
+// the Assistant screen. Each section shows its own jobs and models.
 // Nothing ships with Narrivy: models are downloaded, and "Recommended" marks
 // the one the app suggests first (D31).
 import { useCallback, useEffect, useState } from 'react';
@@ -10,7 +11,7 @@ import { t } from '../../i18n';
 import { useErrorHandler } from '../../ui/primitives/Toast';
 
 const ROLES = ['clean_up', 'assistant'] as const;
-type Role = (typeof ROLES)[number];
+export type Role = (typeof ROLES)[number];
 
 function formatBytes(bytes: number): string {
   if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
@@ -18,7 +19,7 @@ function formatBytes(bytes: number): string {
 }
 
 /** The clean-up model's state, in words. */
-function cleanUpState(state: string | undefined): { label: string; ok: boolean } | null {
+export function cleanUpState(state: string | undefined): { label: string; ok: boolean } | null {
   if (!state) return null;
   if (state === 'loading') return { label: t('lm.state.loading'), ok: false };
   if (state.startsWith('ready:')) {
@@ -36,7 +37,7 @@ function assistantState(state: string | undefined): { label: string; ok: boolean
   return { label: t('assistant.model.unloaded'), ok: false };
 }
 
-export function LanguageModelsPanel() {
+export function LanguageModelsPanel({ roles = ROLES, listRole }: { roles?: readonly Role[]; listRole?: Role }) {
   const report = useErrorHandler();
   const [models, setModels] = useState<LanguageModel[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -78,10 +79,12 @@ export function LanguageModelsPanel() {
     return <p className="source">{t('common.loading')}</p>;
   }
 
+  const listed = listRole ? models.filter((model) => model.roles.includes(listRole)) : models;
+
   return (
     <>
       <div className="lm-jobs">
-        {ROLES.map((role) => {
+        {roles.map((role) => {
           const able = models.filter((model) => model.roles.includes(role));
           const current = models.find((model) => model.in_use_for.includes(role)) ?? null;
           const state = role === 'clean_up' ? cleanUpState(current?.clean_up_state) : assistantState(current?.assistant_state);
@@ -139,10 +142,10 @@ export function LanguageModelsPanel() {
       <section className="model-section">
         <div className="model-section-head">
           <h3>{t('lm.onComputer')}</h3>
-          <span className="model-count">{models.length}</span>
+          <span className="model-count">{listed.length}</span>
           <span className="model-section-hint">{t('lm.onComputerHint')}</span>
         </div>
-        {models.length === 0 ? (
+        {listed.length === 0 ? (
           <div className="panel empty-state">
             <Icon name="models" />
             <strong>{t('lm.emptyTitle')}</strong>
@@ -150,7 +153,7 @@ export function LanguageModelsPanel() {
           </div>
         ) : (
           <ul className="model-rows">
-            {models.map((model) => (
+            {listed.map((model) => (
               <li key={model.id} className="model-row" data-testid={`lm-${model.id}`}>
                 <div className="model-row-main">
                   <div className="model-row-title">

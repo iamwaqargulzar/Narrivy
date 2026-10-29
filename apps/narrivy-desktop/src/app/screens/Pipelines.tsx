@@ -44,6 +44,7 @@ import {
 } from "../../lib/pipelinePrefs";
 import {
   bridge,
+  type LanguageModel,
   type ModelInfo,
   type PipelineCompute,
   type PipelineSummary,
@@ -66,13 +67,18 @@ import {
   REPORTED,
   planned,
 } from "../components/StandingOptions";
-import { PipelinesIoSection } from "../components/PipelinesIo";
+import { PipelinesIoButtons } from "../components/PipelinesIo";
 import { RecognitionSettingsCard } from "../components/SettingsCompute/RecognitionSettingsCard";
 import "../components/SettingsCompute/SettingsCompute.css";
 import { EchoCancelCard } from "../components/SettingsCompute/EchoCancelCard";
 import { VoiceCard } from "../components/SettingsCompute/VoiceCard";
-import { bridge as audioBridge, type AudioOptions } from "../../lib/bridge";
+import {
+  bridge as audioBridge,
+  type AudioOptions,
+  type TextOptions,
+} from "../../lib/bridge";
 import { VocabularyEditor } from "../components/VocabularyEditor";
+import { cleanUpState } from "./LanguageModels";
 
 type StageId = "mic" | "noise" | "transcribe" | "refine" | "deliver";
 
@@ -813,6 +819,7 @@ function TranscribePanel({
         <p className="pipe-option-hint">{t("pipe.lang.hint")}</p>
         <RecognitionSettingsCard />
       </div>
+      <DictationLanguage status={status} />
       <LanguageShortcuts
         status={status}
         pipelineId={pipeline.id}
@@ -823,6 +830,114 @@ function TranscribePanel({
 }
 
 /** Shortcuts that start this pipeline in a set spoken and written language. */
+/** The language dictation writes in, for every pipeline (the daemon keeps
+ * it): Automatic or one of the user's languages. The tray's Language menu
+ * chooses from the same list. Hidden on a daemon without it. */
+function DictationLanguage({ status }: { status: StatusSnapshot | null }) {
+  const report = useErrorHandler();
+  const options = recognitionOptions(status);
+  const [text, setText] = useState<TextOptions | null>(null);
+  const [adding, setAdding] = useState("");
+  useEffect(() => {
+    let alive = true;
+    audioBridge.textOptions().then(
+      (o) => alive && setText(o),
+      () => alive && setText(null),
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  if (!text || text.dictation_languages === undefined) {
+    return null;
+  }
+  const current = text.dictation_language ?? null;
+  const listed = text.dictation_languages;
+  const addable = options.languages.filter((tag) => !listed.includes(tag));
+  const save = (change: Promise<TextOptions>) =>
+    change.then(setText, (error: unknown) => report(error));
+
+  return (
+    <div className="pipe-sub">
+      <h5>
+        {t("pipe.lang.current")}
+        <Badge standing={LIVE} />
+      </h5>
+      <p className="pipe-option-hint">{t("pipe.lang.currentHint")}</p>
+      <div role="radiogroup" aria-label={t("pipe.lang.current")}>
+        {[null, ...listed].map((tag) => {
+          const name = tag ? languageName(tag) : t("pipe.lang.auto");
+          return (
+            <div key={tag ?? "auto"} className="pipe-lang-row">
+              <label className="pipe-lang-pair">
+                <input
+                  type="radio"
+                  name="dictation-language"
+                  checked={current === tag}
+                  onChange={() =>
+                    void save(audioBridge.setDictationLanguage(tag ?? "auto"))
+                  }
+                />{" "}
+                {name}
+              </label>
+              <span className="card-head-spacer" />
+              {tag ? (
+                <button
+                  type="button"
+                  className="icon-btn icon-btn-danger"
+                  aria-label={t("pipe.lang.removeLanguage", { name })}
+                  title={t("pipe.lang.removeLanguage", { name })}
+                  onClick={() =>
+                    void save(
+                      audioBridge.setDictationLanguages(
+                        listed.filter((other) => other !== tag),
+                      ),
+                    )
+                  }
+                >
+                  <Icon name="trash" />
+                </button>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+      {listed.length === 0 ? (
+        <p className="pipe-option-hint">{t("pipe.lang.noLanguages")}</p>
+      ) : null}
+      {addable.length > 0 && options.languages.length > 1 ? (
+        <div className="pipe-lang-add">
+          <select
+            value={adding}
+            onChange={(e) => setAdding(e.target.value)}
+            aria-label={t("pipe.lang.pick")}
+          >
+            <option value="">{t("pipe.lang.pick")}</option>
+            {addable.map((tag) => (
+              <option key={tag} value={tag}>
+                {languageName(tag)}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn"
+            disabled={!adding}
+            onClick={() => {
+              const tag = adding;
+              setAdding("");
+              void save(audioBridge.setDictationLanguages([...listed, tag]));
+            }}
+          >
+            <Icon name="plus" />
+            {t("pipe.lang.addLanguage")}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function LanguageShortcuts({
   status,
   pipelineId,
@@ -974,7 +1089,11 @@ function DeliveryMethodOption() {
     <>
       <Option
         label={t("pipe.deliver.method")}
-        hint={t("pipe.deliver.methodLive")}
+        hint={
+          method === "paste-keyboard"
+            ? t("pipe.deliver.keyboardHint")
+            : t("pipe.deliver.methodLive")
+        }
         standing={LIVE}
       >
         <Choices
@@ -984,6 +1103,7 @@ function DeliveryMethodOption() {
           disabled={saving}
           options={[
             { id: "paste", label: t("pipe.deliver.paste") },
+            { id: "paste-keyboard", label: t("pipe.deliver.pasteKeyboard") },
             { id: "type", label: t("pipe.deliver.type") },
           ]}
         />
@@ -991,11 +1111,11 @@ function DeliveryMethodOption() {
       <Option
         label={t("pipe.deliver.restore")}
         hint={
-          method === "paste"
+          method !== "type"
             ? t("pipe.deliver.restoreLive")
             : t("pipe.deliver.restoreType")
         }
-        value={method === "paste" ? t("pipe.on") : t("pipe.notNeeded")}
+        value={method !== "type" ? t("pipe.on") : t("pipe.notNeeded")}
         standing={LIVE}
       />
     </>
@@ -1137,8 +1257,52 @@ function NumbersOption({ clean }: { clean: boolean }) {
   );
 }
 
+/** The language model that cleans up each dictation in the Clean pipeline
+ * (D31), chosen in Models → Correction (D32). */
+function CleanupModelOption({ clean }: { clean: boolean }) {
+  const { navigate } = useNav();
+  const [models, setModels] = useState<LanguageModel[] | null>(null);
+  useEffect(() => {
+    bridge.languageModels().then(setModels, () => setModels(null));
+  }, []);
+  if (models === null) return null;
+  const current = models.find((m) => m.in_use_for.includes("clean_up"));
+  const state = cleanUpState(current?.clean_up_state);
+  const value = current
+    ? state
+      ? `${current.name} · ${state.label}`
+      : current.name
+    : t("pipe.refine.cleanupNone");
+  return (
+    <Option
+      label={t("pipe.refine.cleanupModel")}
+      hint={
+        clean ? t("pipe.refine.cleanupModelHint") : t("pipe.refine.numbersRaw")
+      }
+      value={value}
+      standing={LIVE}
+    >
+      <button
+        type="button"
+        className="link-action link-quiet"
+        onClick={() => navigate("models")}
+      >
+        {t("pipe.refine.chooseModel")}
+        <Icon name="arrowRight" />
+      </button>
+    </Option>
+  );
+}
+
+/** The deterministic corrector's rules, in the order it applies them; the
+ * last one, numbers, is the live NumbersOption. */
+const REFINE_RULES = ["spacing", "punctuation", "capitals", "ending"] as const;
+
+/** Refine (D23, D38): the deterministic rules, which always run on this
+ * computer, then the optional clean-up language model. */
 function RefinePanel({ pipelineId }: { pipelineId: string }) {
   const clean = pipelineId === "clean";
+  const rulesValue = clean ? t("pipe.on") : t("pipe.off");
   return (
     <>
       <Option
@@ -1149,38 +1313,90 @@ function RefinePanel({ pipelineId }: { pipelineId: string }) {
         value={clean ? t("pipe.refine.clean") : t("pipe.refine.raw")}
         standing={REPORTED}
       />
-      <Option
-        label={t("pipe.refine.punct")}
-        hint={t("pipe.refine.punctHint")}
-        value={clean ? t("pipe.on") : t("pipe.off")}
-        standing={REPORTED}
-      />
+      <div className="pipe-sub">
+        <h5>{t("refine.rules.title")}</h5>
+        <p className="pipe-option-hint">{t("refine.rules.lead")}</p>
+      </div>
+      {REFINE_RULES.map((rule) => (
+        <Option
+          key={rule}
+          label={t(`refine.rule.${rule}`)}
+          hint={t(`refine.rule.${rule}Hint`)}
+          value={rulesValue}
+          standing={REPORTED}
+        />
+      ))}
       <NumbersOption clean={clean} />
       {clean ? <SpokenBreaksOption /> : null}
-      {clean ? <CleanupIdleOption /> : null}
+      <Option
+        label={t("refine.rules.perRule")}
+        hint={t("refine.rules.perRuleHint")}
+        standing={planned("T2.20")}
+      />
       <Option
         label={t("pipe.refine.hints")}
         hint={t("pipe.refine.hintsHint")}
         standing={LIVE}
       />
+      <div className="pipe-sub">
+        <h5>{t("refine.model.title")}</h5>
+        <p className="pipe-option-hint">{t("refine.model.lead")}</p>
+      </div>
+      <CleanupModelOption clean={clean} />
       <Option
-        label={t("pipe.refine.polish")}
-        hint={t("pipe.refine.polishHint")}
+        label={t("pipe.model.accel")}
+        hint={t("refine.model.whereHint")}
+        standing={planned("T2.20")}
+      >
+        <Choices
+          current="auto"
+          options={[
+            { id: "auto", label: t("pipe.model.compute.auto") },
+            { id: "npu", label: "NPU" },
+            { id: "gpu", label: "GPU" },
+            { id: "cpu", label: "CPU" },
+          ]}
+        />
+      </Option>
+      <Option
+        label={t("refine.level.title")}
+        hint={t("refine.level.hint")}
         standing={planned("T2.20")}
       >
         <Choices
           current="off"
           options={[
             { id: "off", label: t("pipe.off") },
-            { id: "local", label: t("pipe.refine.polishLocal") },
+            {
+              id: "faithful",
+              label: t("refine.level.faithful"),
+              note: t("refine.level.faithfulNote"),
+            },
+            {
+              id: "polish",
+              label: t("refine.level.polish"),
+              note: t("refine.level.polishNote"),
+            },
+            {
+              id: "rewrite",
+              label: t("refine.level.rewrite"),
+              note: t("refine.level.rewriteNote"),
+            },
           ]}
         />
       </Option>
       <Option
         label={t("pipe.refine.guard")}
-        hint={t("pipe.refine.guardHint")}
-        standing={planned("T2.20")}
+        hint={t("pipe.refine.guardLive")}
+        standing={LIVE}
       />
+      <Option
+        label={t("refine.privacy")}
+        hint={t("refine.privacyHint")}
+        value={t("refine.localOnly")}
+        standing={LIVE}
+      />
+      {clean ? <CleanupIdleOption /> : null}
     </>
   );
 }
@@ -1368,15 +1584,18 @@ export function PipelinesScreen() {
             <h2 className="page-title">{t("nav.pipelines")}</h2>
             <p className="page-lead">{t("pipe.lead")}</p>
           </div>
-          <button
-            type="button"
-            className="btn btn-default"
-            disabled
-            title={t("fm.status.proposedTitle")}
-          >
-            <Icon name="plus" />
-            {t("pipelinesPage.new")}
-          </button>
+          <div className="page-head-actions">
+            <PipelinesIoButtons />
+            <button
+              type="button"
+              className="btn btn-default"
+              disabled
+              title={t("fm.status.proposedTitle")}
+            >
+              <Icon name="plus" />
+              {t("pipelinesPage.new")}
+            </button>
+          </div>
         </div>
 
         <ol className="pipe-list" onDragLeave={() => setDropIndex(null)}>
@@ -1481,6 +1700,69 @@ export function PipelinesScreen() {
                     </span>
                   ) : null}
                   <span className="card-head-spacer" />
+                  {managed ? (
+                    <div
+                      className="pipe-keys"
+                      role="group"
+                      aria-label={t("pipe.shortcut.title")}
+                      title={t("pipe.shortcut.hint")}
+                    >
+                      {(() => {
+                        const bindings = (shortcutsInfo?.bindings ?? []).filter(
+                          (b) =>
+                            b.pipeline_id === pipeline.id &&
+                            b.spoken_language === undefined &&
+                            b.output_language === undefined,
+                        );
+                        const add = () =>
+                          setCaptureTarget({
+                            pipelineId: pipeline.id,
+                            pipelineName: name,
+                          });
+                        return (
+                          <>
+                            {bindings.map((binding) => (
+                              <span
+                                key={comboLabel(binding)}
+                                className="pipe-key-binding"
+                              >
+                                <KeyChips parts={comboParts(binding)} />
+                                <button
+                                  type="button"
+                                  className="icon-btn"
+                                  aria-label={t("pipe.shortcut.remove", {
+                                    keys: comboLabel(binding),
+                                  })}
+                                  title={t("pipe.shortcut.remove", {
+                                    keys: comboLabel(binding),
+                                  })}
+                                  onClick={() => void removeShortcut(binding)}
+                                >
+                                  <Icon name="close" />
+                                </button>
+                              </span>
+                            ))}
+                            {bindings.length ? (
+                              <button
+                                type="button"
+                                className="icon-btn pipe-key-add"
+                                aria-label={t("pipe.shortcut.addAnother")}
+                                title={t("pipe.shortcut.addAnother")}
+                                onClick={add}
+                              >
+                                <Icon name="plus" />
+                              </button>
+                            ) : (
+                              <button type="button" className="btn btn-ghost" onClick={add}>
+                                <Icon name="keyboard" />
+                                {t("pipe.shortcut.add")}
+                              </button>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  ) : null}
                   {!active && pipeline.enabled ? (
                     <button
                       type="button"
@@ -1554,75 +1836,29 @@ export function PipelinesScreen() {
                   </div>
                 ) : null}
 
-                <div className="pipe-shortcut">
-                  <span className="pipe-shortcut-label">
-                    <Icon name="keyboard" />
-                    {t("pipe.shortcut.title")}
-                    <Badge standing={LIVE} />
-                  </span>
-                  <span className="pipe-option-hint">
-                    {managed
-                      ? t("pipe.shortcut.hint")
-                      : t("pipe.shortcut.manualOnly")}
-                  </span>
-                  {managed ? (
-                    <div className="pipe-keys">
-                      {(shortcutsInfo?.bindings ?? [])
-                        .filter(
-                          (b) =>
-                            b.pipeline_id === pipeline.id &&
-                            b.spoken_language === undefined &&
-                            b.output_language === undefined,
-                        )
-                        .map((binding) => (
-                          <span
-                            key={comboLabel(binding)}
-                            className="pipe-key-binding"
-                          >
-                            <KeyChips parts={comboParts(binding)} />
-                            <button
-                              type="button"
-                              className="icon-btn"
-                              aria-label={t("pipe.shortcut.remove", {
-                                keys: comboLabel(binding),
-                              })}
-                              title={t("pipe.shortcut.remove", {
-                                keys: comboLabel(binding),
-                              })}
-                              onClick={() => void removeShortcut(binding)}
-                            >
-                              <Icon name="close" />
-                            </button>
-                          </span>
-                        ))}
-                      <button
-                        type="button"
-                        className="btn"
-                        onClick={() =>
-                          setCaptureTarget({
-                            pipelineId: pipeline.id,
-                            pipelineName: name,
-                          })
-                        }
-                      >
-                        <Icon name="plus" />
-                        {t("pipe.shortcut.add")}
-                      </button>
-                    </div>
-                  ) : null}
-                  <details className="pipe-manual" open={!managed}>
-                    <summary>{t("pipe.shortcut.manual")}</summary>
-                    <CopyCommand
-                      command={shortcutCommand(
-                        pipeline.id,
-                        "auto",
-                        "auto",
-                        shortcutsInfo?.manual_command,
-                      )}
-                      label={t("pipe.shortcut.copy")}
-                    />
-                  </details>
-                </div>
+                {!managed ? (
+                  <div className="pipe-shortcut">
+                    <span className="pipe-shortcut-label">
+                      <Icon name="keyboard" />
+                      {t("pipe.shortcut.title")}
+                    </span>
+                    <span className="pipe-option-hint">
+                      {t("pipe.shortcut.manualOnly")}
+                    </span>
+                    <details className="pipe-manual" open>
+                      <summary>{t("pipe.shortcut.manual")}</summary>
+                      <CopyCommand
+                        command={shortcutCommand(
+                          pipeline.id,
+                          "auto",
+                          "auto",
+                          shortcutsInfo?.manual_command,
+                        )}
+                        label={t("pipe.shortcut.copy")}
+                      />
+                    </details>
+                  </div>
+                ) : null}
               </li>
             );
           })}
@@ -1635,10 +1871,6 @@ export function PipelinesScreen() {
         </ol>
         <p className="pipe-footnote">{t("pipe.footnote")}</p>
 
-        <h3 className="section-title">{t("settings.pipelines.title")}</h3>
-        <section className="card">
-          <PipelinesIoSection />
-        </section>
         {captureTarget ? (
           <ShortcutCapture
             target={captureTarget}

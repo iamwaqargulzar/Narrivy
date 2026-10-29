@@ -57,6 +57,9 @@ const INVENTED: [&str; 9] = [
 struct FilterReply {
     kept: usize,
     speech_ms: u64,
+    /// Speech left out as another person's voice.
+    #[serde(default)]
+    other_ms: u64,
 }
 
 #[derive(Deserialize)]
@@ -136,6 +139,12 @@ impl Worker {
             .chunks_exact(4)
             .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
             .collect();
+        // Durations only: how much was kept and how much left out, so a
+        // dropped word can be traced to the filter without any content.
+        eprintln!(
+            "narrivyd: voice filter kept {} ms of speech, left out {} ms",
+            reply.speech_ms, reply.other_ms
+        );
         Some((kept, reply.speech_ms))
     }
 
@@ -395,7 +404,8 @@ pub fn train() -> Result<(), &'static str> {
 /// Record the microphone the way dictation does (through the echo canceller
 /// when that is on), as 16 kHz mono samples.
 fn record(seconds: u16) -> Result<Vec<f32>, String> {
-    let target = super::echo::capture_target().unwrap_or_else(|| "@DEFAULT_AUDIO_SOURCE@".to_owned());
+    let target =
+        super::echo::capture_target().unwrap_or_else(|| "@DEFAULT_AUDIO_SOURCE@".to_owned());
     let frames = u32::from(seconds) * RATE;
     let mut child = Command::new("pw-record")
         .args([
@@ -491,10 +501,18 @@ impl PlainMic {
         if !only_me {
             return None;
         }
-        let target = super::echo::chosen_microphone()
-            .unwrap_or_else(|| "@DEFAULT_AUDIO_SOURCE@".to_owned());
+        let target =
+            super::echo::chosen_microphone().unwrap_or_else(|| "@DEFAULT_AUDIO_SOURCE@".to_owned());
         let mut child = Command::new("pw-record")
-            .args(["--raw", "--rate", "16000", "--channels", "1", "--format", "f32"])
+            .args([
+                "--raw",
+                "--rate",
+                "16000",
+                "--channels",
+                "1",
+                "--format",
+                "f32",
+            ])
             .args(["--target", &target, "-"])
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
@@ -648,7 +666,15 @@ impl VoiceFiltered {
                 .recognise(session, audio, cancellation, request, &vocabulary)
                 .map(finish);
         };
-        let transcript = self.speech(session, audio, samples, speech_ms, cancellation, request, &vocabulary)?;
+        let transcript = self.speech(
+            session,
+            audio,
+            samples,
+            speech_ms,
+            cancellation,
+            request,
+            &vocabulary,
+        )?;
         if !transcript.text.trim().is_empty() {
             return Ok(finish(transcript));
         }
@@ -664,8 +690,16 @@ impl VoiceFiltered {
         let Some((samples, speech_ms)) = filtered(&plain, self.pipeline.as_deref()) else {
             return Ok(transcript);
         };
-        self.speech(session, &plain, samples, speech_ms, cancellation, request, &vocabulary)
-            .map(finish)
+        self.speech(
+            session,
+            &plain,
+            samples,
+            speech_ms,
+            cancellation,
+            request,
+            &vocabulary,
+        )
+        .map(finish)
     }
 
     /// Recognise the speech the filter kept; empty when there was none or

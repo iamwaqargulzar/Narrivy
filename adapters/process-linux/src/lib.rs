@@ -1981,6 +1981,13 @@ impl TrustedExecutable {
         if environment == HelperEnvironment::PipeWireCapture {
             command.env("PIPEWIRE_NO_CONFIG", "true");
         }
+        if environment == HelperEnvironment::WaylandTextInput {
+            // `wtype` converts its text with the C library's multibyte
+            // functions; in the default "C" locale anything beyond ASCII
+            // (é, ’, —, Urdu) fails to convert (F-H8). A constant, never
+            // inherited.
+            command.env("LC_ALL", "C.UTF-8");
+        }
         install_child_hardening(&mut command, false, None);
         command
     }
@@ -2198,6 +2205,19 @@ fn group_is_absent(group: rustix::process::Pid) -> Result<bool, ProcessError> {
     }
 }
 
+/// Make the calling process non-dumpable (`PR_SET_DUMPABLE` 0): no core file
+/// is written for it, and other processes of the same user cannot ptrace it
+/// or read its private `/proc` entries (`environ`, `mem`, `fd`). Call it
+/// first thing in `main`: `execve` resets the attribute for an ordinary
+/// binary, so every worker the daemon starts calls it again itself.
+///
+/// # Errors
+/// The kernel's error, which callers treat as fatal.
+pub fn forbid_core_dumps() -> io::Result<()> {
+    rustix::process::set_dumpable_behavior(rustix::process::DumpableBehavior::NotDumpable)
+        .map_err(|error| io::Error::from_raw_os_error(error.raw_os_error()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2209,6 +2229,60 @@ mod tests {
     use std::sync::mpsc;
 
     type TestResult = Result<(), Box<dyn std::error::Error>>;
+
+    const NON_DUMPABLE_CHILD: &str = "NARRIVY_TEST_NON_DUMPABLE_CHILD";
+
+    /// `forbid_core_dumps` in a child copy of this test binary: the child
+    /// reports itself non-dumpable, another process of the same user is
+    /// refused its `environ`, and its `status` (what the resource sampler
+    /// reads) stays readable.
+    #[test]
+    fn forbid_core_dumps_hides_the_process_from_the_same_user() -> TestResult {
+        if std::env::var_os(NON_DUMPABLE_CHILD).is_some() {
+            forbid_core_dumps()?;
+            let behavior = rustix::process::dumpable_behavior()?;
+            if behavior != rustix::process::DumpableBehavior::NotDumpable {
+                return Err(format!("still dumpable: {behavior:?}").into());
+            }
+            println!("ready");
+            let mut rest = Vec::new();
+            io::stdin().read_to_end(&mut rest)?;
+            return Ok(());
+        }
+        let mut child = Command::new(std::env::current_exe()?)
+            .args([
+                "--exact",
+                "tests::forbid_core_dumps_hides_the_process_from_the_same_user",
+                "--nocapture",
+                "--test-threads=1",
+            ])
+            .env(NON_DUMPABLE_CHILD, "1")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()?;
+        let mut stdout = child.stdout.take().ok_or("no stdout")?;
+        let mut seen = String::new();
+        let mut byte = [0_u8; 1];
+        while !seen.contains("ready\n") {
+            if stdout.read(&mut byte)? == 0 {
+                break;
+            }
+            seen.push(char::from(byte[0]));
+        }
+        let pid = child.id();
+        let environ = std::fs::read(format!("/proc/{pid}/environ"));
+        let status = std::fs::read_to_string(format!("/proc/{pid}/status"));
+        drop(child.stdin.take());
+        let exit = child.wait()?;
+        assert!(seen.contains("ready\n"), "child output: {seen:?}");
+        assert!(exit.success(), "child failed: {exit:?}");
+        if !rustix::process::geteuid().is_root() {
+            let error = environ.err().ok_or("environ was readable")?;
+            assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
+        }
+        assert!(status?.contains("VmRSS:"));
+        Ok(())
+    }
 
     /// Resident worker parent-death hardening must follow the thread that
     /// calls `spawn`: a worker created by a bounded provisioning or recovery
@@ -3557,6 +3631,8 @@ mod tests {
         }
         assert!(!output.contains("PATH="));
         assert!(!output.contains("LD_PRELOAD="));
+        // F-H8: the typing helper always gets a UTF-8 locale.
+        assert!(output.lines().any(|line| line == "LC_ALL=C.UTF-8"));
         Ok(())
     }
 

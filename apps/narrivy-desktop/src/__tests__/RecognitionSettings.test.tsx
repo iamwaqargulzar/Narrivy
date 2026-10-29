@@ -23,7 +23,10 @@ vi.mock('../state/PipelinesContext', () => ({
     refresh: controls.refresh,
   }),
 }));
-vi.mock('../state/SessionContext', () => ({ useSession: () => ({ phase: 'idle' }) }));
+vi.mock('../state/SessionContext', async () => {
+  const { pinnedSession } = await import('../test/sessionHookMock');
+  return { useSession: () => pinnedSession('idle') };
+});
 vi.mock('../state/StatusContext', () => ({
   useDaemonStatus: () => ({ status: controls.status }),
 }));

@@ -36,7 +36,7 @@ afterEach(() => {
 });
 
 describe('LiveStatusStrip', () => {
-  it('shows the memory, graphs of CPU, GPU and NPU, and that it stays on this computer', async () => {
+  it('shows the memory, graphs of CPU, GPU and NPU, and no privacy note (owner, 2026-10-25)', async () => {
     window.localStorage.setItem('narrivy.onboarded.v1', '1');
     vi.mocked(bridge.status).mockResolvedValue(
       statusWith([
@@ -55,7 +55,7 @@ describe('LiveStatusStrip', () => {
     expect(meter('gpu')).toHaveTextContent('GPU25%');
     expect(meter('npu')).toHaveTextContent('NPU60%');
     expect(meter('cpu')?.querySelector('svg.strip-graph')).not.toBeNull();
-    expect(within(strip()).getByText('Private to this computer')).toBeInTheDocument();
+    expect(within(strip()).queryByText('Private to this computer')).toBeNull();
     // Where recognition runs is shown under the models, not repeated here;
     // the dictation latency is no longer shown.
     expect(within(strip()).queryByText(/Runs on/)).toBeNull();
@@ -94,5 +94,48 @@ describe('LiveStatusStrip', () => {
       await vi.advanceTimersByTimeAsync(LIVE_REFRESH_MS);
     });
     expect(within(strip()).getByText('RAM 200 MB')).toBeInTheDocument();
+  });
+
+  it('says the service failed when the first read is superseded by a failing background read', async () => {
+    // Seen natively: the first read waited out the on-demand start while the
+    // 3 s poll replaced it, and the app said "Connecting" forever.
+    window.localStorage.setItem('narrivy.onboarded.v1', '1');
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout'] });
+    const failed = {
+      code: 'daemon_failed',
+      message: "Narrivy's background service could not start. For details run: journalctl --user -u narrivy-daemon",
+    };
+    vi.mocked(bridge.status)
+      .mockImplementationOnce(() => new Promise(() => {}))
+      .mockRejectedValue(failed);
+    render(<App />);
+    expect(within(strip()).getByText('Connecting…')).toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(LIVE_REFRESH_MS);
+    });
+    expect(within(strip()).getByText(failed.message)).toBeInTheDocument();
+    expect(screen.getAllByText('Service failed').length).toBeGreaterThan(0);
+  });
+
+  it('keeps the last status for one failed refresh and goes offline after two', async () => {
+    window.localStorage.setItem('narrivy.onboarded.v1', '1');
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout'] });
+    vi.mocked(bridge.status).mockResolvedValue(statusWith(['diagnostics.resources.rss_bytes=209715200']));
+    render(<App />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(within(strip()).getByText('RAM 200 MB')).toBeInTheDocument();
+
+    vi.mocked(bridge.status).mockRejectedValue({ code: 'daemon_unavailable', message: 'gone' });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(LIVE_REFRESH_MS);
+    });
+    expect(within(strip()).getByText('RAM 200 MB')).toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(LIVE_REFRESH_MS);
+    });
+    expect(within(strip()).queryByText('RAM 200 MB')).toBeNull();
+    expect(within(strip()).getByText('Offline')).toBeInTheDocument();
   });
 });

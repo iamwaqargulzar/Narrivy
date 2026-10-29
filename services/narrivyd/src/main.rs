@@ -369,7 +369,27 @@ impl Drop for StartupSocketGuard {
     }
 }
 
+/// Cargo features compiled into this binary, for `--build-features`.
+const BUILD_FEATURES: &[&str] = &[
+    #[cfg(feature = "asr-transcribe-cpp")]
+    "asr-transcribe-cpp",
+    #[cfg(feature = "asr-transcribe-resident")]
+    "asr-transcribe-resident",
+];
+
 fn main() -> std::process::ExitCode {
+    // No core file and no same-user `/proc` reads of transcripts, audio or
+    // the clipboard held in memory (D37, F-H18). Before anything is read.
+    if let Err(err) = narrivy_process_linux::forbid_core_dumps() {
+        eprintln!("narrivyd: cannot turn off core dumps: {err}");
+        return exit_code(EXIT_FAILURE);
+    }
+    // The package builder checks what this binary was built with (F-M14):
+    // a daemon without the resident engine must never be packaged.
+    if std::env::args().nth(1).as_deref() == Some("--build-features") {
+        println!("{}", BUILD_FEATURES.join(" "));
+        return std::process::ExitCode::SUCCESS;
+    }
     let socket_path = match std::env::var_os("NARRIVY_SOCKET") {
         Some(v) if !v.is_empty() => std::path::PathBuf::from(v),
         _ => narrivy_ipc_unix::default_socket_path(),
@@ -414,24 +434,25 @@ fn main() -> std::process::ExitCode {
     // `history.optional=disabled:not_composed` truthful, and turns the History
     // commands into typed rejections. Refusing to start instead would trade
     // every other capability for an optional store.
-    let history = match daemon::retained_history::retention_preference(&state_dir).and_then(|retention| {
-        daemon::retained_history::open_retained_history(&state_dir, retention)
-    }) {
-        Ok(service) => {
-            // Composition is not logged. The store's presence, effective
-            // retention and entry count are already advertised as content-free
-            // `history.*` capability tokens, which is how a client discovers
-            // them. An unconditional line here would also put a filesystem path
-            // on the ordinary diagnostic channel, and would make a fail-closed
-            // startup emit anything other than its single fatal error, which
-            // the candidate builder's negative probe asserts.
-            Some(Arc::new(service))
-        }
-        Err(reason) => {
-            eprintln!("narrivyd: optional history unavailable: {reason}");
-            None
-        }
-    };
+    let history =
+        match daemon::retained_history::retention_preference(&state_dir).and_then(|retention| {
+            daemon::retained_history::open_retained_history(&state_dir, retention)
+        }) {
+            Ok(service) => {
+                // Composition is not logged. The store's presence, effective
+                // retention and entry count are already advertised as content-free
+                // `history.*` capability tokens, which is how a client discovers
+                // them. An unconditional line here would also put a filesystem path
+                // on the ordinary diagnostic channel, and would make a fail-closed
+                // startup emit anything other than its single fatal error, which
+                // the candidate builder's negative probe asserts.
+                Some(Arc::new(service))
+            }
+            Err(reason) => {
+                eprintln!("narrivyd: optional history unavailable: {reason}");
+                None
+            }
+        };
 
     // One total stop budget for the whole daemon, fixed before any signal can
     // be handled. The IPC server arms it on the first shutdown request, so the
@@ -495,6 +516,7 @@ fn main() -> std::process::ExitCode {
             return exit_code(EXIT_FAILURE);
         }
     }
+    daemon::session::prune_inbox(inbox_dir.clone());
     engine_config.inbox_dir = Some(inbox_dir);
 
     let state = Arc::new(DaemonState::new());

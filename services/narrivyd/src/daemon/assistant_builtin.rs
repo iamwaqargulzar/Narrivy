@@ -9,8 +9,8 @@
 
 use std::ffi::OsStr;
 use std::io::Read;
-use std::path::{Path, PathBuf};
 use std::os::unix::process::CommandExt;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -21,8 +21,7 @@ use super::assistant_tools::Tool;
 pub const WEB: &str = "web";
 pub const COMPUTER: &str = "computer";
 
-const USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36";
+const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36";
 const PAGE_TEXT: usize = 7000;
 const PAGE_BYTES: &str = "4000000";
 const SEARCH_RESULTS: usize = 8;
@@ -69,7 +68,13 @@ fn failure(text: &str) -> Outcome {
     }
 }
 
-fn tool(server: &str, server_name: &str, name: &str, description: &str, schema: serde_json::Value) -> Tool {
+fn tool(
+    server: &str,
+    server_name: &str,
+    name: &str,
+    description: &str,
+    schema: serde_json::Value,
+) -> Tool {
     Tool {
         server_id: server.to_owned(),
         server_name: server_name.to_owned(),
@@ -95,33 +100,129 @@ fn props(fields: &[(&str, &str, &str)], required: &[&str]) -> serde_json::Value 
 pub fn tools(server: &str) -> Vec<Tool> {
     match server {
         WEB => vec![
-            tool(WEB, "Web", "web_search", "Search the web. Returns titles, links and snippets. Search again with other words when the results are thin.",
-                props(&[("query", "string", "What to search for")], &["query"])),
-            tool(WEB, "Web", "open_page", "Read a web page: its title and text. Use it on the most relevant results before answering.",
-                props(&[("url", "string", "The page's address, http or https")], &["url"])),
+            tool(
+                WEB,
+                "Web",
+                "web_search",
+                "Search the web. Returns titles, links and snippets. Search again with other words when the results are thin.",
+                props(&[("query", "string", "What to search for")], &["query"]),
+            ),
+            tool(
+                WEB,
+                "Web",
+                "open_page",
+                "Read a web page: its title and text. Use it on the most relevant results before answering.",
+                props(
+                    &[("url", "string", "The page's address, http or https")],
+                    &["url"],
+                ),
+            ),
         ],
         COMPUTER => vec![
-            tool(COMPUTER, "Computer", "list_folder", "List a folder's files and folders (~ is the home folder).",
-                props(&[("path", "string", "The folder")], &["path"])),
-            tool(COMPUTER, "Computer", "find_files", "Find files whose names contain some text, under a folder.",
-                props(&[("folder", "string", "Where to look"), ("name", "string", "Text the file name contains")], &["folder", "name"])),
-            tool(COMPUTER, "Computer", "read_file", "Read a text file.",
-                props(&[("path", "string", "The file")], &["path"])),
-            tool(COMPUTER, "Computer", "write_file", "Write a text file (created or replaced). The user approves it first. \
+            tool(
+                COMPUTER,
+                "Computer",
+                "list_folder",
+                "List a folder's files and folders (~ is the home folder).",
+                props(&[("path", "string", "The folder")], &["path"]),
+            ),
+            tool(
+                COMPUTER,
+                "Computer",
+                "find_files",
+                "Find files whose names contain some text, under a folder.",
+                props(
+                    &[
+                        ("folder", "string", "Where to look"),
+                        ("name", "string", "Text the file name contains"),
+                    ],
+                    &["folder", "name"],
+                ),
+            ),
+            tool(
+                COMPUTER,
+                "Computer",
+                "read_file",
+                "Read a text file.",
+                props(&[("path", "string", "The file")], &["path"]),
+            ),
+            tool(
+                COMPUTER,
+                "Computer",
+                "write_file",
+                "Write a text file (created or replaced). The user approves it first. \
 For a long file (more than about 200 lines) write only its first part here, then add the rest with append_file.",
-                props(&[("path", "string", "The file"), ("content", "string", "The new text")], &["path", "content"])),
-            tool(COMPUTER, "Computer", "append_file", "Add text to the end of a file, to write a long file in parts of about 200 lines. The user approves it first.",
-                props(&[("path", "string", "The file"), ("content", "string", "The text to add")], &["path", "content"])),
-            tool(COMPUTER, "Computer", "run_command", "Run a shell command in the working folder and return its output. The user approves it first.",
-                props(&[("command", "string", "The bash command")], &["command"])),
-            tool(COMPUTER, "Computer", "open", "Open a link, file or app with the desktop's default app. The user approves it first.",
-                props(&[("target", "string", "A URL, a file path, or an app's .desktop name")], &["target"])),
-            tool(COMPUTER, "Computer", "view_page", "Open a web page or a local HTML file in a browser of your own (out of sight, \
+                props(
+                    &[
+                        ("path", "string", "The file"),
+                        ("content", "string", "The new text"),
+                    ],
+                    &["path", "content"],
+                ),
+            ),
+            tool(
+                COMPUTER,
+                "Computer",
+                "append_file",
+                "Add text to the end of a file, to write a long file in parts of about 200 lines. The user approves it first.",
+                props(
+                    &[
+                        ("path", "string", "The file"),
+                        ("content", "string", "The text to add"),
+                    ],
+                    &["path", "content"],
+                ),
+            ),
+            tool(
+                COMPUTER,
+                "Computer",
+                "run_command",
+                "Run a shell command in the working folder and return its output. The user approves it first.",
+                props(&[("command", "string", "The bash command")], &["command"]),
+            ),
+            tool(
+                COMPUTER,
+                "Computer",
+                "open",
+                "Open a link, file or app with the desktop's default app. The user approves it first.",
+                props(
+                    &[(
+                        "target",
+                        "string",
+                        "A URL, a file path, or an app's .desktop name",
+                    )],
+                    &["target"],
+                ),
+            ),
+            tool(
+                COMPUTER,
+                "Computer",
+                "view_page",
+                "Open a web page or a local HTML file in a browser of your own (out of sight, \
 nothing signed in) and get a picture of the whole page and the errors in its console. Use it to check pages you make.",
-                props(&[("target", "string", "An http(s) address, or an HTML file's path"),
-                        ("width", "integer", "The window's width in pixels (default 1280; 390 to see it as on a phone)")], &["target"])),
-            tool(COMPUTER, "Computer", "look_at_screen", "See the screen: the user chooses which screen or window to share, and you get a picture of it.",
-                props(&[], &[])),
+                props(
+                    &[
+                        (
+                            "target",
+                            "string",
+                            "An http(s) address, or an HTML file's path",
+                        ),
+                        (
+                            "width",
+                            "integer",
+                            "The window's width in pixels (default 1280; 390 to see it as on a phone)",
+                        ),
+                    ],
+                    &["target"],
+                ),
+            ),
+            tool(
+                COMPUTER,
+                "Computer",
+                "look_at_screen",
+                "See the screen: the user chooses which screen or window to share, and you get a picture of it.",
+                props(&[], &[]),
+            ),
         ],
         _ => Vec::new(),
     }
@@ -142,8 +243,16 @@ pub fn approval(server: &str, name: &str) -> Approval {
 /// Run a built-in tool. `folder` is the chat's working folder: paths that
 /// are not absolute are in it, and commands run there (the home folder when
 /// none is set or it is gone).
-pub fn call(server: &str, name: &str, arguments: &serde_json::Value, scratch: &Path, folder: Option<&Path>) -> Outcome {
-    let base = folder.filter(|f| f.is_absolute() && f.is_dir()).map_or_else(home, Path::to_path_buf);
+pub fn call(
+    server: &str,
+    name: &str,
+    arguments: &serde_json::Value,
+    scratch: &Path,
+    folder: Option<&Path>,
+) -> Outcome {
+    let base = folder
+        .filter(|f| f.is_absolute() && f.is_dir())
+        .map_or_else(home, Path::to_path_buf);
     let base = base.as_path();
     let text = |key: &str| {
         arguments
@@ -247,10 +356,27 @@ fn fetch_with(
         .command(HelperEnvironment::HttpsDownload)
         .map_err(|_| "The download tool (curl) is missing.")?;
     command
-        .args(["-q", "-sS", "-L", "--max-redirs", "5", "--proto", "=https,http"])
-        .args(["--proto-redir", "=https,http", "--compressed", "--max-time", "25"])
+        .args([
+            "-q",
+            "-sS",
+            "-L",
+            "--max-redirs",
+            "5",
+            "--proto",
+            "=https,http",
+        ])
+        .args([
+            "--proto-redir",
+            "=https,http",
+            "--compressed",
+            "--max-time",
+            "25",
+        ])
         .args(["--max-filesize", PAGE_BYTES, "-A", USER_AGENT])
-        .args(["-H", "Accept: text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5"])
+        .args([
+            "-H",
+            "Accept: text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5",
+        ])
         .args(["-H", "Accept-Language: en-US,en;q=0.8"])
         .args(["-w", "\n\u{1}%{url_effective}\u{2}%{http_code}"]);
     if headers.is_some() {
@@ -258,8 +384,13 @@ fn fetch_with(
     } else {
         command.stdin(Stdio::null());
     }
-    command.arg(url).stdout(Stdio::piped()).stderr(Stdio::null());
-    let mut child = command.spawn().map_err(|_| "The download tool (curl) failed.")?;
+    command
+        .arg(url)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null());
+    let mut child = command
+        .spawn()
+        .map_err(|_| "The download tool (curl) failed.")?;
     if let (Some(headers), Some(mut stdin)) = (headers, child.stdin.take()) {
         use std::io::Write as _;
         let _ = stdin.write_all(headers.as_bytes());
@@ -290,7 +421,9 @@ fn fetch_with(
 fn percent_encode(text: &str) -> String {
     text.bytes()
         .map(|b| match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => (b as char).to_string(),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                (b as char).to_string()
+            }
             b' ' => "+".to_owned(),
             _ => format!("%{b:02X}"),
         })
@@ -324,8 +457,12 @@ pub fn unguessed(query: &str, question: &str) -> String {
         let digits = core.chars().filter(char::is_ascii_digit).count();
         let version = digits > 0
             && core.contains('.')
-            && core.trim_start_matches(['v', 'V']).chars().all(|c| c.is_ascii_digit() || c == '.');
-        let year = core.len() == 4 && digits == 4 && (core.starts_with("19") || core.starts_with("20"));
+            && core
+                .trim_start_matches(['v', 'V'])
+                .chars()
+                .all(|c| c.is_ascii_digit() || c == '.');
+        let year =
+            core.len() == 4 && digits == 4 && (core.starts_with("19") || core.starts_with("20"));
         (version || year) && !question.contains(core)
     };
     let kept: Vec<&str> = query.split_whitespace().filter(|w| !guessed(w)).collect();
@@ -355,7 +492,9 @@ fn web_search(query: &str) -> Outcome {
                 let text = results
                     .iter()
                     .enumerate()
-                    .map(|(i, (title, link, snippet))| format!("{}. {title}\n{link}\n{snippet}", i + 1))
+                    .map(|(i, (title, link, snippet))| {
+                        format!("{}. {title}\n{link}\n{snippet}", i + 1)
+                    })
                     .collect::<Vec<_>>()
                     .join("\n\n");
                 let listed: Vec<serde_json::Value> = results
@@ -371,11 +510,14 @@ fn web_search(query: &str) -> Outcome {
         }
     }
     Outcome {
-        text: "No results. The search engines may be limiting searches for a while; try other words, \
+        text:
+            "No results. The search engines may be limiting searches for a while; try other words, \
 or open a page you know."
-            .to_owned(),
+                .to_owned(),
         failed: true,
-        detail: Some(serde_json::json!({"kind": "search", "query": query, "results": [], "tried": tried})),
+        detail: Some(
+            serde_json::json!({"kind": "search", "query": query, "results": [], "tried": tried}),
+        ),
         picture: None,
     }
 }
@@ -426,7 +568,9 @@ fn brave_search(query: &str) -> Result<Results, &'static str> {
                         collapse(&decode_entities(&strip_tags(r.get("title")?.as_str()?))),
                         r.get("url")?.as_str()?.to_owned(),
                         collapse(&decode_entities(&strip_tags(
-                            r.get("description").and_then(|d| d.as_str()).unwrap_or_default(),
+                            r.get("description")
+                                .and_then(|d| d.as_str())
+                                .unwrap_or_default(),
                         ))),
                     ))
                 })
@@ -453,7 +597,10 @@ fn searxng_search(base: &str, query: &str) -> Result<Results, &'static str> {
                     Some((
                         r.get("title")?.as_str()?.to_owned(),
                         r.get("url")?.as_str()?.to_owned(),
-                        r.get("content").and_then(|c| c.as_str()).unwrap_or_default().to_owned(),
+                        r.get("content")
+                            .and_then(|c| c.as_str())
+                            .unwrap_or_default()
+                            .to_owned(),
                     ))
                 })
                 .take(SEARCH_RESULTS)
@@ -464,8 +611,14 @@ fn searxng_search(base: &str, query: &str) -> Result<Results, &'static str> {
 
 fn duckduckgo_search(query: &str) -> Result<Results, &'static str> {
     for url in [
-        format!("https://lite.duckduckgo.com/lite/?q={}", percent_encode(query)),
-        format!("https://html.duckduckgo.com/html/?q={}", percent_encode(query)),
+        format!(
+            "https://lite.duckduckgo.com/lite/?q={}",
+            percent_encode(query)
+        ),
+        format!(
+            "https://html.duckduckgo.com/html/?q={}",
+            percent_encode(query)
+        ),
     ] {
         let Ok((page, _)) = fetch(&url) else {
             continue;
@@ -505,7 +658,9 @@ fn wikipedia_search(query: &str) -> Result<Results, &'static str> {
                         percent_encode(&title.replace(' ', "_")).replace('+', "_")
                     );
                     let snippet = collapse(&decode_entities(&strip_tags(
-                        r.get("snippet").and_then(|s| s.as_str()).unwrap_or_default(),
+                        r.get("snippet")
+                            .and_then(|s| s.as_str())
+                            .unwrap_or_default(),
                     )));
                     Some((format!("{title} — Wikipedia"), link, snippet))
                 })
@@ -617,7 +772,10 @@ pub fn set_web_settings(value: &str) -> Result<String, &'static str> {
         serde_json::from_str(value).map_err(|_| "assistant_library_bad_value")?;
     let mut settings = web_settings();
     if let Some(provider) = change.get("provider").and_then(serde_json::Value::as_str) {
-        if !matches!(provider, "auto" | "brave" | "searxng" | "duckduckgo" | "wikipedia") {
+        if !matches!(
+            provider,
+            "auto" | "brave" | "searxng" | "duckduckgo" | "wikipedia"
+        ) {
             return Err("assistant_library_bad_value");
         }
         settings.provider = provider.to_owned();
@@ -694,7 +852,9 @@ fn open_page(url: &str) -> Outcome {
     };
     let (title, text) = page_text(&page);
     if text.is_empty() {
-        return failure("The page has no readable text (it may need JavaScript, or not be a web page).");
+        return failure(
+            "The page has no readable text (it may need JavaScript, or not be a web page).",
+        );
     }
     let mut cut: String = text.chars().take(PAGE_TEXT).collect();
     if text.chars().count() > PAGE_TEXT {
@@ -749,7 +909,17 @@ fn page_text_skipping(html: &str, skip_chrome: bool) -> (String, String) {
         if bytes[i] == b'<' {
             let rest = &lower[i..];
             let chrome: &[&str] = if skip_chrome {
-                &["<script", "<style", "<noscript", "<svg", "<nav", "<footer", "<header", "<form", "<template"]
+                &[
+                    "<script",
+                    "<style",
+                    "<noscript",
+                    "<svg",
+                    "<nav",
+                    "<footer",
+                    "<header",
+                    "<form",
+                    "<template",
+                ]
             } else {
                 &["<script", "<style", "<noscript", "<svg", "<template"]
             };
@@ -771,9 +941,26 @@ fn page_text_skipping(html: &str, skip_chrome: bool) -> (String, String) {
             }
             let end = lower[i..].find('>').map_or(html.len(), |e| i + e + 1);
             let tag = &lower[i..end];
-            if ["<p", "<br", "<div", "<li", "<h1", "<h2", "<h3", "<h4", "<tr", "</p", "</div", "</li", "</h", "</tr", "<section", "</section"]
-                .iter()
-                .any(|t| tag.starts_with(t))
+            if [
+                "<p",
+                "<br",
+                "<div",
+                "<li",
+                "<h1",
+                "<h2",
+                "<h3",
+                "<h4",
+                "<tr",
+                "</p",
+                "</div",
+                "</li",
+                "</h",
+                "</tr",
+                "<section",
+                "</section",
+            ]
+            .iter()
+            .any(|t| tag.starts_with(t))
             {
                 out.push('\n');
             } else if tag.starts_with("<td") || tag.starts_with("<th") {
@@ -879,7 +1066,11 @@ fn expand(path: &str, base: &Path) -> PathBuf {
         return home().join(rest);
     }
     let path = PathBuf::from(path);
-    if path.is_absolute() { path } else { base.join(path) }
+    if path.is_absolute() {
+        path
+    } else {
+        base.join(path)
+    }
 }
 
 fn list_folder(path: &str, base: &Path) -> Outcome {
@@ -898,18 +1089,33 @@ fn list_folder(path: &str, base: &Path) -> Outcome {
             )
         })
         .collect();
-    entries.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.to_lowercase().cmp(&b.0.to_lowercase())));
+    entries.sort_by(|a, b| {
+        b.1.cmp(&a.1)
+            .then(a.0.to_lowercase().cmp(&b.0.to_lowercase()))
+    });
     let total = entries.len();
     let folders = entries.iter().filter(|e| e.1).count();
     entries.truncate(LIST_ENTRIES);
     let text = entries
         .iter()
-        .map(|(name, dir, size)| if *dir { format!("{name}/") } else { format!("{name} ({size} bytes)") })
+        .map(|(name, dir, size)| {
+            if *dir {
+                format!("{name}/")
+            } else {
+                format!("{name} ({size} bytes)")
+            }
+        })
         .collect::<Vec<_>>()
         .join("\n");
     let names: Vec<String> = entries
         .iter()
-        .map(|(name, dir, _)| if *dir { format!("{name}/") } else { name.clone() })
+        .map(|(name, dir, _)| {
+            if *dir {
+                format!("{name}/")
+            } else {
+                name.clone()
+            }
+        })
         .collect();
     outcome(
         format!(
@@ -945,13 +1151,22 @@ fn find_files(folder: &str, name: &str, base: &Path) -> Outcome {
             if file_name.to_lowercase().contains(&needle) {
                 found.push(path.display().to_string());
             }
-            if is_dir && depth < 8 && !file_name.starts_with('.') && file_name != "node_modules" && file_name != "target" {
+            if is_dir
+                && depth < 8
+                && !file_name.starts_with('.')
+                && file_name != "node_modules"
+                && file_name != "target"
+            {
                 stack.push((path, depth + 1));
             }
         }
     }
     outcome(
-        if found.is_empty() { "Nothing found.".to_owned() } else { found.join("\n") },
+        if found.is_empty() {
+            "Nothing found.".to_owned()
+        } else {
+            found.join("\n")
+        },
         serde_json::json!({"kind": "files", "path": root.display().to_string(), "entries": found, "total": found.len()}),
     )
 }
@@ -1000,10 +1215,18 @@ fn append_file(path: &str, content: &str, base: &Path) -> Outcome {
     let written = std::fs::OpenOptions::new()
         .append(true)
         .open(&path)
-        .and_then(|mut file| file.write_all(content.as_bytes()).and_then(|()| file.metadata()));
+        .and_then(|mut file| {
+            file.write_all(content.as_bytes())
+                .and_then(|()| file.metadata())
+        });
     match written {
         Ok(meta) => outcome(
-            format!("Added {} bytes to {} (now {} bytes).", content.len(), path.display(), meta.len()),
+            format!(
+                "Added {} bytes to {} (now {} bytes).",
+                content.len(),
+                path.display(),
+                meta.len()
+            ),
             serde_json::json!({"kind": "write", "path": path.display().to_string(), "bytes": content.len()}),
         ),
         Err(_) => failure("The file could not be added to. Write its first part with write_file."),
@@ -1073,7 +1296,9 @@ fn run_command(command: &str, base: &Path) -> Outcome {
     Outcome {
         text: format!("Exit: {exit}\n{cut}"),
         failed: code != Some(0),
-        detail: Some(serde_json::json!({"kind": "command", "command": command, "exit": exit, "output": cut})),
+        detail: Some(
+            serde_json::json!({"kind": "command", "command": command, "exit": exit, "output": cut}),
+        ),
         picture: None,
     }
 }
@@ -1108,7 +1333,8 @@ fn open(target: &str, base: &Path) -> Outcome {
 fn look_at_screen(scratch: &Path) -> Outcome {
     let (Some(script), python) = (
         std::env::var_os(super::meetings::SCREEN_SCRIPT_ENV),
-        std::env::var_os(super::meetings::SCREEN_PYTHON_ENV).unwrap_or_else(|| "/usr/bin/python3".into()),
+        std::env::var_os(super::meetings::SCREEN_PYTHON_ENV)
+            .unwrap_or_else(|| "/usr/bin/python3".into()),
     ) else {
         return failure("Looking at the screen is not set up.");
     };
@@ -1127,7 +1353,8 @@ fn look_at_screen(scratch: &Path) -> Outcome {
         return failure("The screen was not shared.");
     }
     Outcome {
-        text: "Here is the screen the user shared (the picture comes with this message).".to_owned(),
+        text: "Here is the screen the user shared (the picture comes with this message)."
+            .to_owned(),
         failed: false,
         detail: Some(serde_json::json!({"kind": "screen"})),
         picture: Some(picture),
@@ -1236,7 +1463,9 @@ fn view_page_in(
     {
         return failure("The page could not be opened.");
     }
-    let stamp = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_millis());
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis());
     let picture = folder.join(format!("page-{stamp}.png"));
     let (mut command, seen) = match (&chromium, &firefox) {
         (Some(chromium), _) => {
@@ -1258,11 +1487,17 @@ fn view_page_in(
                 .arg(format!("--window-size={width},{CHROMIUM_HEIGHT}"))
                 .arg(format!("--screenshot={}", picture.display()))
                 .arg(&url);
-            (command, format!("the top {CHROMIUM_HEIGHT} pixels of the page"))
+            (
+                command,
+                format!("the top {CHROMIUM_HEIGHT} pixels of the page"),
+            )
         }
         (None, Some(firefox)) => {
             let mut command = std::process::Command::new(firefox);
+            // A crashed Firefox otherwise starts its crash reporter, which
+            // outlives it holding the console pipes open.
             command
+                .env("MOZ_CRASHREPORTER_DISABLE", "1")
                 .args(["--headless", "--no-remote", "-profile"])
                 .arg(&profile)
                 .arg(format!("--window-size={width},900"))
@@ -1282,43 +1517,61 @@ fn view_page_in(
     let Ok(mut child) = child else {
         return failure("The browser could not start.");
     };
-    // The console comes on both.
+    // The console comes on both. Each pipe is read on its own thread and
+    // handed back through a channel, so a helper that escaped the browser's
+    // process group and still holds a pipe cannot block this call (seen:
+    // Firefox's crash reporter kept a test waiting forever).
     let read = |pipe: Option<Box<dyn Read + Send>>| {
+        let (sender, receiver) = std::sync::mpsc::channel();
         std::thread::spawn(move || {
             let mut out = Vec::new();
             if let Some(pipe) = pipe {
                 let _ = pipe.take(500_000).read_to_end(&mut out);
             }
-            out
-        })
+            let _ = sender.send(out);
+        });
+        receiver
     };
-    let out_reader = read(child.stdout.take().map(|p| Box::new(p) as Box<dyn Read + Send>));
-    let err_reader = read(child.stderr.take().map(|p| Box::new(p) as Box<dyn Read + Send>));
+    let out_reader = read(
+        child
+            .stdout
+            .take()
+            .map(|p| Box::new(p) as Box<dyn Read + Send>),
+    );
+    let err_reader = read(
+        child
+            .stderr
+            .take()
+            .map(|p| Box::new(p) as Box<dyn Read + Send>),
+    );
     let started = Instant::now();
     loop {
         match child.try_wait() {
             Ok(Some(_)) | Err(_) => break,
-            Ok(None) if started.elapsed() > PAGE_BOUND => {
-                // The browser and its page processes.
-                let _ = std::process::Command::new("kill")
-                    .args(["-KILL", &format!("-{}", child.id())])
-                    .status();
-                let _ = child.wait();
-                break;
-            }
+            Ok(None) if started.elapsed() > PAGE_BOUND => break,
             Ok(None) => std::thread::sleep(Duration::from_millis(100)),
         }
     }
-    let mut bytes = out_reader.join().unwrap_or_default();
+    // The browser and every page process it left in its group, whether it
+    // finished or ran out of time.
+    let _ = std::process::Command::new("kill")
+        .args(kill_group_args(child.id()))
+        .stderr(Stdio::null())
+        .status();
+    let _ = child.wait();
+    let drain = Duration::from_secs(2);
+    let mut bytes = out_reader.recv_timeout(drain).unwrap_or_default();
     bytes.push(b'\n');
-    bytes.extend(err_reader.join().unwrap_or_default());
+    bytes.extend(err_reader.recv_timeout(drain).unwrap_or_default());
     let output = String::from_utf8_lossy(&bytes).into_owned();
     let _ = std::fs::remove_dir_all(&profile);
     if !picture.is_file() {
         return failure("The page did not open in time.");
     }
     let console = page_console(&output);
-    let mut text = format!("Here is {url} at {width} pixels wide (a picture of {seen} comes with this message).");
+    let mut text = format!(
+        "Here is {url} at {width} pixels wide (a picture of {seen} comes with this message)."
+    );
     if console.is_empty() {
         text.push_str(" Its console has no errors.");
     } else {
@@ -1333,9 +1586,58 @@ fn view_page_in(
     }
 }
 
+/// `kill` arguments that signal the process group `group` and nothing else.
+/// The `--` matters: without it procps `kill` reads a group such as `-14`
+/// or `-1028059` as the option `-1` and signals every process of the user,
+/// which ends the whole desktop session.
+fn kill_group_args(group: u32) -> [String; 3] {
+    ["-KILL".to_owned(), "--".to_owned(), format!("-{group}")]
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn the_group_kill_can_never_be_read_as_every_process() {
+        for group in [1_u32, 14, 7, 1_028_059] {
+            let args = kill_group_args(group);
+            assert_eq!(args[1], "--");
+            assert_eq!(args[2], format!("-{group}"));
+        }
+    }
+
     use super::*;
+
+    /// A helper that leaves the browser's process group still holding the
+    /// console pipe (Firefox's crash reporter did) cannot hang the call.
+    #[test]
+    fn a_helper_holding_the_console_open_does_not_hang_the_picture() -> std::io::Result<()> {
+        use std::os::unix::fs::PermissionsExt;
+        let folder = tempfile::tempdir()?;
+        std::fs::write(folder.path().join("index.html"), "<h1>Hi</h1>")?;
+        let browser = folder.path().join("fake-firefox");
+        std::fs::write(
+            &browser,
+            "#!/bin/sh\nwhile [ \"$1\" != --screenshot ]; do shift; done\n\
+             printf png > \"$2\"\nsetsid sleep 30 &\nexit 0\n",
+        )?;
+        std::fs::set_permissions(&browser, std::fs::Permissions::from_mode(0o755))?;
+        let started = Instant::now();
+        let seen = view_page_in(
+            None,
+            Some(browser),
+            "index.html",
+            Some(390),
+            folder.path(),
+            folder.path(),
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(10),
+            "took {:?}",
+            started.elapsed()
+        );
+        assert!(!seen.failed, "{}", seen.text);
+        Ok(())
+    }
 
     /// Where Firefox is there, a page is pictured with its console errors.
     #[test]
@@ -1347,10 +1649,21 @@ mod tests {
         let page = folder.path().join("index.html");
         std::fs::write(&page, "<h1>Hi</h1><script>missing();</script>")?;
         let firefox = Some(PathBuf::from("/usr/bin/firefox"));
-        let seen = view_page_in(None, firefox, "index.html", Some(390), folder.path(), folder.path());
+        let seen = view_page_in(
+            None,
+            firefox,
+            "index.html",
+            Some(390),
+            folder.path(),
+            folder.path(),
+        );
         assert!(!seen.failed, "{}", seen.text);
         assert!(seen.picture.is_some_and(|p| p.is_file()));
-        assert!(seen.text.contains("missing is not defined"), "{}", seen.text);
+        assert!(
+            seen.text.contains("missing is not defined"),
+            "{}",
+            seen.text
+        );
         Ok(())
     }
 
@@ -1365,7 +1678,11 @@ mod tests {
             .into_iter()
             .flatten()
             .flatten()
-            .map(|entry| entry.path().join("chrome-headless-shell-linux64/chrome-headless-shell"))
+            .map(|entry| {
+                entry
+                    .path()
+                    .join("chrome-headless-shell-linux64/chrome-headless-shell")
+            })
             .find(|path| path.is_file())
         else {
             return Ok(());
@@ -1375,11 +1692,22 @@ mod tests {
             folder.path().join("index.html"),
             "<h1>Hi</h1><script>console.error('boom'); setTimeout(() => missing(), 500);</script>",
         )?;
-        let seen = view_page_in(Some(shell), None, "index.html", None, folder.path(), folder.path());
+        let seen = view_page_in(
+            Some(shell),
+            None,
+            "index.html",
+            None,
+            folder.path(),
+            folder.path(),
+        );
         assert!(!seen.failed, "{}", seen.text);
         assert!(seen.picture.is_some_and(|p| p.is_file()));
         assert!(seen.text.contains("\"boom\""), "{}", seen.text);
-        assert!(seen.text.contains("missing is not defined"), "{}", seen.text);
+        assert!(
+            seen.text.contains("missing is not defined"),
+            "{}",
+            seen.text
+        );
         Ok(())
     }
 
@@ -1389,9 +1717,15 @@ mod tests {
         std::fs::write(folder.path().join("index.html"), "<h1>Hi</h1>")?;
         assert_eq!(
             page_url("index.html", folder.path()),
-            Ok(format!("file://{}", folder.path().join("index.html").display()))
+            Ok(format!(
+                "file://{}",
+                folder.path().join("index.html").display()
+            ))
         );
-        assert_eq!(page_url("https://example.org/", folder.path()), Ok("https://example.org/".to_owned()));
+        assert_eq!(
+            page_url("https://example.org/", folder.path()),
+            Ok("https://example.org/".to_owned())
+        );
         assert!(page_url("missing.html", folder.path()).is_err());
         let output = "*** You are running in headless mode.\n\
 console.error: Region.sys.mjs: \"Error fetching region\"\n\
@@ -1404,8 +1738,10 @@ JavaScript error: resource://gre/modules/X.sys.mjs, line 2: TypeError\n\
             page_console(output),
             vec![
                 "console.error: \"boom\"".to_owned(),
-                "JavaScript error: file:///a/index.html, line 1: ReferenceError: f is not defined".to_owned(),
-                "\"Uncaught ReferenceError: g is not defined\", source: file:///a/index.html (1)".to_owned(),
+                "JavaScript error: file:///a/index.html, line 1: ReferenceError: f is not defined"
+                    .to_owned(),
+                "\"Uncaught ReferenceError: g is not defined\", source: file:///a/index.html (1)"
+                    .to_owned(),
             ]
         );
         Ok(())
@@ -1415,13 +1751,35 @@ JavaScript error: resource://gre/modules/X.sys.mjs, line 2: TypeError\n\
     fn paths_and_commands_are_in_the_working_folder() -> std::io::Result<()> {
         let folder = tempfile::tempdir()?;
         std::fs::write(folder.path().join("notes.txt"), "hello")?;
-        assert_eq!(expand("notes.txt", folder.path()), folder.path().join("notes.txt"));
-        assert_eq!(expand("/etc/hosts", folder.path()), PathBuf::from("/etc/hosts"));
+        assert_eq!(
+            expand("notes.txt", folder.path()),
+            folder.path().join("notes.txt")
+        );
+        assert_eq!(
+            expand("/etc/hosts", folder.path()),
+            PathBuf::from("/etc/hosts")
+        );
         assert_eq!(expand("", folder.path()), folder.path());
         let args = serde_json::json!({"command": "pwd"});
-        let out = call(COMPUTER, "run_command", &args, folder.path(), Some(folder.path()));
-        assert!(out.text.contains(&folder.path().display().to_string()), "{}", out.text);
-        let read = call(COMPUTER, "read_file", &serde_json::json!({"path": "notes.txt"}), folder.path(), Some(folder.path()));
+        let out = call(
+            COMPUTER,
+            "run_command",
+            &args,
+            folder.path(),
+            Some(folder.path()),
+        );
+        assert!(
+            out.text.contains(&folder.path().display().to_string()),
+            "{}",
+            out.text
+        );
+        let read = call(
+            COMPUTER,
+            "read_file",
+            &serde_json::json!({"path": "notes.txt"}),
+            folder.path(),
+            Some(folder.path()),
+        );
         assert!(read.text.contains("hello"), "{}", read.text);
         Ok(())
     }
@@ -1433,7 +1791,10 @@ JavaScript error: resource://gre/modules/X.sys.mjs, line 2: TypeError\n\
             unguessed("Rust 1.85 release date stable 2025", question),
             "Rust release date stable"
         );
-        assert_eq!(unguessed("Python 3.12 changes", "What changed in Python 3.12?"), "Python 3.12 changes");
+        assert_eq!(
+            unguessed("Python 3.12 changes", "What changed in Python 3.12?"),
+            "Python 3.12 changes"
+        );
         assert_eq!(unguessed("1.85", question), "1.85");
     }
 
@@ -1471,7 +1832,8 @@ JavaScript error: resource://gre/modules/X.sys.mjs, line 2: TypeError\n\
             "Hello world, this is the page's main text.\nSecond line of it, long enough to keep."
         );
         // A page whose only words are in its header still reads.
-        let (_, text) = page_text("<body><header><h1>404</h1><p>This page does not exist.</p></header></body>");
+        let (_, text) =
+            page_text("<body><header><h1>404</h1><p>This page does not exist.</p></header></body>");
         assert_eq!(text, "404\nThis page does not exist.");
     }
 }

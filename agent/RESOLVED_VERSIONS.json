@@ -6,7 +6,7 @@
   "portable_msrv": "1.85.0",
   "portable_msrv_verified": "cargo +1.85.0 check --locked for the exact nine portable packages passed 2026-09-04 after the desktop-only plist/quick-xml/time advisory update",
   "cargo_deny": "0.20.2 (cargo install --locked, 2026-08-21, allow-wildcard-paths=true)",
-  "transcribe_cpp_resident": "Rust wrapper/sys 0.2.3 exact; package source commit 63a44d9239d610b3908e8a66b384924cd4a77217; MIT; isolated CPU worker; fixes Parakeet buffered-stream tail loss and releases native scheduler/compute scratch memory after each run; Narrivy protocol v4 remains private",
+  "transcribe_cpp_resident": "Rust wrapper/sys 0.4.1 exact; package source commit 4d7c1ccefd39e5a9ea36cca5f8fefc6dcc14b99b (tag v0.4.1); MIT; isolated CPU/Vulkan worker; model weights memory-mapped (no_mmap=false); adds repetition-loop guard, VAD and language id, ggml 0.26; Narrivy protocol v4 remains private",
   "recovery_streaming_canary": {
     "status": "candidate-only; native protocol observation complete; not default/package/release-qualified",
     "model": "handy-computer/moonshine-streaming-tiny-gguf/moonshine-streaming-tiny-Q8_0.gguf",

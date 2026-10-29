@@ -537,8 +537,10 @@ Protocol minor 38 adds the delivery method: `SetTextOptions { delivery_method }`
 (`paste` or `type`) and `TextOptions.delivery_method`. Paste puts the text on
 the clipboard through the Wayland data-control protocol, presses Shift+Insert
 and puts the user's clipboard back; type uses the virtual keyboard. Until the
-user chooses, `NARRIVY_CLIPBOARD_AUTHORIZED` decides. Undeliverable text is
-kept in the Inbox either way.
+user chooses, `NARRIVY_CLIPBOARD_AUTHORIZED` decides (the package leaves it
+unset, so it types). The choice is the clipboard authorization (D37): the
+next dictation's ladder and the `delivery.*clipboard*` status tokens follow
+it. Undeliverable text is kept in the Inbox either way.
 
 Protocol minor 39 adds meeting options: `GetMeetingOptions` and
 `SetMeetingOptions { auto_notes }` reply `MeetingOptions`. With `auto_notes`
@@ -673,15 +675,31 @@ default; the meeting gains `raw`). With it off, stopping finishes the live
 transcript and the meeting is `ready` with `raw` set: its transcript is the
 live one and its screens are not described. `ProcessMeeting` goes over it
 (transcribing again, describing the screens) and clears `raw`. Older
-services always go over a recording when it stops.
+services always go over a recording when it stops. A session started from
+the assistant (a live share, or a session recorded with sound chosen for
+it) is always kept raw, whatever `process_on_stop` says, and at once: the
+live worker is stopped where it is instead of finishing what is left (its
+chat already had the live transcript), and the screen's portal session is
+closed. The desktop goes over a raw session when it is given to a chat.
 
 Protocol minor 53 shows the words being said now while a meeting is
 recorded: the live worker cuts speech into pieces of at most a few seconds
 and, while a piece is still going on, transcribes it again every second or
 two. `GetMeeting` on a recording meeting then ends its turns with one whose
 `partial` is set (no speaker yet); it is replaced by the final turn when the
-piece ends. Partial turns are never saved, exported or given to the
-assistant.
+piece ends. Partial turns are never saved or exported. A chat sharing the
+recording live is given the partial turn too, marked as still being spoken,
+so what it hears is seconds old rather than a whole piece behind.
+
+Protocol minor 54 adds the dictation language: `dictation_language` (a
+language tag, or `auto`) and `dictation_languages` (the user's list, at most
+16) to `SetTextOptions`, and the same fields to `TextOptions` (`null` is
+automatic). A start that names no language of its own (the plain toggle,
+Start, press and hold) is dictated in it; a language shortcut keeps its own.
+Choosing a language adds it to the list; taking the current one off the list
+returns to automatic. Separately, a written language with no spoken language
+and no translation is now dictated as that spoken language, since the engines
+take only the spoken language.
 
 ## Bounds
 

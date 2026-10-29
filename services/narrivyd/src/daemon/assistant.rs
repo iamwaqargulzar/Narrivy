@@ -270,7 +270,9 @@ fn current_dir_unlocked() -> Option<PathBuf> {
 #[must_use]
 pub fn request(messages: &serde_json::Value, thinking: Option<&str>) -> String {
     let note = match thinking {
-        Some("short") => "Think briefly before answering: a few short sentences of reasoning at most.",
+        Some("short") => {
+            "Think briefly before answering: a few short sentences of reasoning at most."
+        }
         Some("deep") => {
             "Think it through carefully before answering: work step by step, consider other \
 readings of the question, and check your reasoning."
@@ -280,8 +282,13 @@ readings of the question, and check your reasoning."
     let mut messages = messages.clone();
     if let Some(list) = messages.as_array_mut() {
         match list.first_mut() {
-            Some(first) if first.get("role").and_then(serde_json::Value::as_str) == Some("system") => {
-                let content = first.get("content").and_then(serde_json::Value::as_str).unwrap_or_default();
+            Some(first)
+                if first.get("role").and_then(serde_json::Value::as_str) == Some("system") =>
+            {
+                let content = first
+                    .get("content")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_default();
                 first["content"] = format!("{content}\n\n{note}").into();
             }
             _ => list.insert(0, serde_json::json!({"role": "system", "content": note})),
@@ -786,12 +793,14 @@ mod tests {
         let messages = serde_json::json!([{"role": "system", "content": "Be kind."}, {"role": "user", "content": "q"}]);
         assert_eq!(request(&messages, None), messages.to_string());
         assert_eq!(request(&messages, Some("off")), messages.to_string());
-        let deep: serde_json::Value = serde_json::from_str(&request(&messages, Some("deep"))).unwrap_or_default();
+        let deep: serde_json::Value =
+            serde_json::from_str(&request(&messages, Some("deep"))).unwrap_or_default();
         assert_eq!(deep["thinking"], true);
         let system = deep["messages"][0]["content"].as_str().unwrap_or_default();
         assert!(system.starts_with("Be kind.") && system.contains("step by step"));
         let bare = serde_json::json!([{"role": "user", "content": "q"}]);
-        let short: serde_json::Value = serde_json::from_str(&request(&bare, Some("short"))).unwrap_or_default();
+        let short: serde_json::Value =
+            serde_json::from_str(&request(&bare, Some("short"))).unwrap_or_default();
         assert_eq!(short["messages"][0]["role"], "system");
     }
 }

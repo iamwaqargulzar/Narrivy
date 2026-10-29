@@ -39,6 +39,22 @@ describe('PaletteOpensAndExecutes', () => {
     );
   });
 
+  it('keeps Tab inside the palette and gives focus back when it closes', async () => {
+    presetOnboarded();
+    render(<App />);
+    const opener = await screen.findByRole('button', { name: 'Models' });
+    opener.focus();
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    await screen.findByRole('dialog', { name: /command palette/i });
+    const input = screen.getByPlaceholderText(/type a command/i);
+    await waitFor(() => expect(document.activeElement).toBe(input));
+    const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    input.dispatchEvent(tab);
+    expect(tab.defaultPrevented).toBe(true);
+    fireEvent.keyDown(input, { key: 'Escape' });
+    await waitFor(() => expect(document.activeElement).toBe(opener));
+  });
+
   it('executes the run-all-diagnostics action', async () => {
     presetOnboarded();
     render(<App />);

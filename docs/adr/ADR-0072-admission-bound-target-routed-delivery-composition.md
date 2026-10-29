@@ -265,3 +265,19 @@ clipboard-paste rung, ahead of the virtual-keyboard rung:
   the ladder continue, as a policy-denied payload already did.
 - **The delivery result** is published on the `committed` state event
   (protocol minor 18), derived from the journaled attempts.
+
+## Amendment, 2026-10-20: the user's delivery method authorizes the clipboard (D37)
+
+- **The package selects the routed lane** (F-C1) and still unsets
+  `NARRIVY_CLIPBOARD_AUTHORIZED`, so it types by default.
+- **The user's method is the authorization.** Choosing `paste` or
+  `paste-keyboard` in Pipelines → Deliver (`SetTextOptions`) authorizes the
+  clipboard for each later dictation; choosing `type` withdraws it, whatever
+  the unit sets. The static flag applies only until the user chooses.
+- **Status follows the same rule:** the `delivery.backend.clipboard`,
+  `delivery.clipboard-restore` and `delivery.rung.clipboard-*` tokens are
+  rendered from the effective authorization, so the app never reports the
+  clipboard as unauthorized while a dictation would paste.
+- `paste-keyboard` still needs `/dev/uinput` access, which a clean user
+  lacks; without it that rung is unqualified (`uinput_no_access`) and the
+  ladder types.

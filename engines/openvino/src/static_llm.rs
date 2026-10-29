@@ -99,7 +99,7 @@ struct Api {
 impl Api {
     fn load(runtime: &Runtime) -> Result<Self, GenAiError> {
         let core = runtime
-            .library("libopenvino_c.so.2640")
+            .library(&runtime.versioned("libopenvino_c.so"))
             .ok_or(GenAiError::Runtime)?;
         // SAFETY: each symbol is read with the type its 2026.4 header
         // declares; the library stays loaded inside `Runtime`.

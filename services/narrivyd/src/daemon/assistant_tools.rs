@@ -363,7 +363,9 @@ fn calls_in(text: &str) -> Vec<Call> {
             };
             let key = head[..close].trim().to_owned();
             let value_start = &head[close + 1..];
-            let value_end = value_start.find("</parameter>").unwrap_or(value_start.len());
+            let value_end = value_start
+                .find("</parameter>")
+                .unwrap_or(value_start.len());
             let raw = value_start[..value_end].trim_matches('\n');
             // Numbers, booleans, lists and objects are written as JSON.
             let value = serde_json::from_str::<serde_json::Value>(raw)
@@ -374,7 +376,11 @@ fn calls_in(text: &str) -> Vec<Call> {
             body = &value_start[value_end..];
         }
         if !name.is_empty() {
-            calls.push(Call { name, arguments, complete });
+            calls.push(Call {
+                name,
+                arguments,
+                complete,
+            });
         }
     }
     calls
@@ -454,8 +460,16 @@ pub fn answer(
     std::thread::Builder::new()
         .name("narrivy-assistant-tools".into())
         .spawn(move || {
-            let (outcome, text, uses) =
-                rounds(&assistant, &state, &turn_id, &chat_id, &question, &pictures, speak, live.as_deref());
+            let (outcome, text, uses) = rounds(
+                &assistant,
+                &state,
+                &turn_id,
+                &chat_id,
+                &question,
+                &pictures,
+                speak,
+                live.as_deref(),
+            );
             assistant_library::finish_with_tools(&chat_id, &turn_id, &outcome, &text, uses);
             // A spoken question hears only the final answer, not the
             // thinking between tool calls.
@@ -489,10 +503,13 @@ fn rounds(
 ) -> (String, String, Vec<ToolUse>) {
     let chat = assistant_library::chat(chat_id).unwrap_or_default();
     let mut tools = tools_of(&chat.tools);
-    let builtin = [super::assistant_builtin::WEB, super::assistant_builtin::COMPUTER]
-        .into_iter()
-        .filter(|id| chat.tools.iter().any(|t| t == id))
-        .collect::<Vec<_>>();
+    let builtin = [
+        super::assistant_builtin::WEB,
+        super::assistant_builtin::COMPUTER,
+    ]
+    .into_iter()
+    .filter(|id| chat.tools.iter().any(|t| t == id))
+    .collect::<Vec<_>>();
     for id in &builtin {
         tools.extend(super::assistant_builtin::tools(id));
     }
@@ -501,7 +518,10 @@ fn rounds(
         let mut prompt = tools_prompt(&tools);
         prompt.push_str(&agent_guidance(&builtin, speak));
         if builtin.contains(&super::assistant_builtin::COMPUTER) {
-            let folder = chat.folder.clone().or_else(super::assistant::default_folder);
+            let folder = chat
+                .folder
+                .clone()
+                .or_else(super::assistant::default_folder);
             prompt.push_str(&working_folder(folder.as_deref()));
         }
         prompt
@@ -524,14 +544,25 @@ fn rounds(
         .join(format!("agent-{turn_id}"));
     {
         use std::os::unix::fs::DirBuilderExt;
-        let _ = std::fs::DirBuilder::new().recursive(true).mode(0o700).create(&scratch);
+        let _ = std::fs::DirBuilder::new()
+            .recursive(true)
+            .mode(0o700)
+            .create(&scratch);
     }
-    let max_rounds = if builtin.is_empty() { MAX_ROUNDS } else { AGENT_ROUNDS };
+    let max_rounds = if builtin.is_empty() {
+        MAX_ROUNDS
+    } else {
+        AGENT_ROUNDS
+    };
     let mut messages = prepared.messages;
     let mut visible = String::new();
     let mut uses = Vec::new();
     // A spoken answer is read as it comes: no thinking first.
-    let thinking = if speak { None } else { chat.thinking.as_deref() };
+    let thinking = if speak {
+        None
+    } else {
+        chat.thinking.as_deref()
+    };
     // With the web on, a question about the world is searched straight
     // away: the model's memory is often out of date, and left to itself it
     // may answer from it or say it cannot look. Not during a live share,
@@ -614,8 +645,17 @@ further part.\n</tool_response>",
                 continue;
             }
             let call_id = format!("{turn_id}-t{round}{n}");
-            let (result, record, picture) =
-                run_call(state, turn_id, chat_id, &call_id, &found, &tools, &mut allowed, &scratch, &chat);
+            let (result, record, picture) = run_call(
+                state,
+                turn_id,
+                chat_id,
+                &call_id,
+                &found,
+                &tools,
+                &mut allowed,
+                &scratch,
+                &chat,
+            );
             uses.push(record);
             seen.extend(picture);
             responses.push(format!("<tool_response>\n{result}\n</tool_response>"));
@@ -650,7 +690,8 @@ fn shared_screen(
     let copy = scratch.join("shared-screen.png");
     std::fs::copy(first, &copy).ok()?;
     Some(super::assistant_builtin::Outcome {
-        text: "Here is the screen the user is sharing (the picture comes with this message).".to_owned(),
+        text: "Here is the screen the user is sharing (the picture comes with this message)."
+            .to_owned(),
         failed: false,
         detail: Some(serde_json::json!({"kind": "screen"})),
         picture: Some(copy),
@@ -682,8 +723,10 @@ fn without_written_text(content: &str) -> Option<String> {
 
 /// A reply cut after its last tool call.
 fn up_to_last_call(text: &str) -> String {
-    text.rfind("</tool_call>")
-        .map_or_else(|| text.to_owned(), |end| text[..end + "</tool_call>".len()].to_owned())
+    text.rfind("</tool_call>").map_or_else(
+        || text.to_owned(),
+        |end| text[..end + "</tool_call>".len()].to_owned(),
+    )
 }
 
 /// Whether a question asks for work on the computer (make, write, fix or
@@ -691,18 +734,35 @@ fn up_to_last_call(text: &str) -> String {
 fn is_computer_task(question: &str) -> bool {
     let lower = question.to_lowercase();
     let doing = [
-        "create", "make", "build", "write", "fix", "edit", "change", "update", "delete", "remove", "rename",
-        "move", "copy", "run", "install", "open", "list", "find", "read", "check", "save", "add",
+        "create", "make", "build", "write", "fix", "edit", "change", "update", "delete", "remove",
+        "rename", "move", "copy", "run", "install", "open", "list", "find", "read", "check",
+        "save", "add",
     ];
     let things = [
-        "file", "folder", "page", "website", "site", "script", "code", "html", "css", "app", "program", "command",
-        "document", "project", "directory",
+        "file",
+        "folder",
+        "page",
+        "website",
+        "site",
+        "script",
+        "code",
+        "html",
+        "css",
+        "app",
+        "program",
+        "command",
+        "document",
+        "project",
+        "directory",
     ];
     let words: Vec<&str> = lower
         .split(|c: char| !c.is_alphanumeric())
         .filter(|w| !w.is_empty())
         .collect();
-    words.iter().any(|w| doing.contains(w)) && words.iter().any(|w| things.iter().any(|t| w.starts_with(t)))
+    words.iter().any(|w| doing.contains(w))
+        && words
+            .iter()
+            .any(|w| things.iter().any(|t| w.starts_with(t)))
 }
 
 /// Whether a question is worth a web search before the model answers: not
@@ -710,9 +770,19 @@ fn is_computer_task(question: &str) -> bool {
 fn worth_searching(question: &str) -> bool {
     let words = question.split_whitespace().count();
     let lower = question.to_lowercase();
-    let small_talk = ["thank", "thanks", "hello", "hi ", "hey", "good morning", "bye", "okay", "ok "]
-        .iter()
-        .any(|w| lower.starts_with(w));
+    let small_talk = [
+        "thank",
+        "thanks",
+        "hello",
+        "hi ",
+        "hey",
+        "good morning",
+        "bye",
+        "okay",
+        "ok ",
+    ]
+    .iter()
+    .any(|w| lower.starts_with(w));
     words >= 4 && !small_talk
 }
 
@@ -723,9 +793,11 @@ fn working_folder(folder: Option<&str>) -> String {
             "\n\nYour working folder is {folder}. Work there unless the user names another place: \
 paths that do not start with / or ~ are inside it, commands run in it, and new files go in it."
         ),
-        None => "\n\nNo working folder is set: paths that do not start with / are in the home folder, \
+        None => {
+            "\n\nNo working folder is set: paths that do not start with / are in the home folder, \
 and commands run there."
-            .to_owned(),
+                .to_owned()
+        }
     }
 }
 
@@ -788,8 +860,7 @@ fn compact(messages: &mut serde_json::Value) {
         };
         if content.starts_with("<tool_response>") && content.len() > 1200 {
             let short: String = content.chars().take(1000).collect();
-            message["content"] =
-                format!("{short}\n[… shortened]\n</tool_response>").into();
+            message["content"] = format!("{short}\n[… shortened]\n</tool_response>").into();
             message.as_object_mut().map(|m| m.remove("images"));
         } else if message.get("role").and_then(serde_json::Value::as_str) == Some("assistant")
             && let Some(short) = without_written_text(content)
@@ -815,16 +886,17 @@ fn run_call(
     let arguments = serde_json::Value::Object(found.arguments.clone());
     let tool = tools.iter().find(|t| t.name == found.name);
     let server = tool.map_or_else(String::new, |t| t.server_name.clone());
-    let event = |state_name: &str, summary: Option<String>, detail: Option<String>| Event::AssistantTool {
-        turn_id: turn_id.to_owned(),
-        call_id: call_id.to_owned(),
-        server: server.clone(),
-        tool: found.name.clone(),
-        arguments: arguments.to_string(),
-        state: state_name.to_owned(),
-        summary,
-        detail,
-    };
+    let event =
+        |state_name: &str, summary: Option<String>, detail: Option<String>| Event::AssistantTool {
+            turn_id: turn_id.to_owned(),
+            call_id: call_id.to_owned(),
+            server: server.clone(),
+            tool: found.name.clone(),
+            arguments: arguments.to_string(),
+            state: state_name.to_owned(),
+            summary,
+            detail,
+        };
     let mut record = ToolUse {
         server: server.clone(),
         tool: found.name.clone(),
@@ -835,8 +907,15 @@ fn run_call(
     };
     let Some(tool) = tool else {
         record.state = "failed".to_owned();
-        publish(state, event("failed", Some("No such tool".to_owned()), None));
-        return (format!("There is no tool named {}.", found.name), record, None);
+        publish(
+            state,
+            event("failed", Some("No such tool".to_owned()), None),
+        );
+        return (
+            format!("There is no tool named {}.", found.name),
+            record,
+            None,
+        );
     };
     let builtin = tool.server_id == super::assistant_builtin::WEB
         || tool.server_id == super::assistant_builtin::COMPUTER;
@@ -884,12 +963,31 @@ fn run_call(
         .then(|| shared_screen(chat, scratch))
         .flatten();
     let result = if let Some(outcome) = shared_now {
-        Ok((outcome.text, outcome.failed, outcome.detail, outcome.picture))
+        Ok((
+            outcome.text,
+            outcome.failed,
+            outcome.detail,
+            outcome.picture,
+        ))
     } else if builtin {
-        let folder = chat.folder.clone().or_else(super::assistant::default_folder);
+        let folder = chat
+            .folder
+            .clone()
+            .or_else(super::assistant::default_folder);
         let folder = folder.as_deref().map(std::path::Path::new);
-        let outcome = super::assistant_builtin::call(&tool.server_id, &tool.name, &arguments, scratch, folder);
-        Ok((outcome.text, outcome.failed, outcome.detail, outcome.picture))
+        let outcome = super::assistant_builtin::call(
+            &tool.server_id,
+            &tool.name,
+            &arguments,
+            scratch,
+            folder,
+        );
+        Ok((
+            outcome.text,
+            outcome.failed,
+            outcome.detail,
+            outcome.picture,
+        ))
     } else {
         call(tool, &arguments).map(|(text, failed)| (text, failed, None, None))
     };
@@ -923,7 +1021,11 @@ fn run_call(
 
 /// The first line of a result, short, for the card.
 fn summary_of(text: &str) -> String {
-    let line = text.lines().find(|l| !l.trim().is_empty()).unwrap_or_default().trim();
+    let line = text
+        .lines()
+        .find(|l| !l.trim().is_empty())
+        .unwrap_or_default()
+        .trim();
     let lines = text.lines().filter(|l| !l.trim().is_empty()).count();
     let mut short: String = line.chars().take(100).collect();
     if line.chars().count() > 100 {
@@ -960,7 +1062,9 @@ mod tests {
 
     #[test]
     fn small_talk_is_not_searched() {
-        assert!(worth_searching("What is the latest stable version of Python?"));
+        assert!(worth_searching(
+            "What is the latest stable version of Python?"
+        ));
         assert!(!worth_searching("Thanks, that helps a lot"));
         assert!(!worth_searching("ok"));
     }
@@ -988,7 +1092,9 @@ mod tests {
 
     #[test]
     fn questions_about_the_world_are_searched_but_computer_tasks_are_not() {
-        assert!(is_computer_task("Can you create me a single website about computer repair?"));
+        assert!(is_computer_task(
+            "Can you create me a single website about computer repair?"
+        ));
         assert!(is_computer_task("fix the css in index.html"));
         assert!(!is_computer_task("What is the latest version of Rust?"));
         assert!(!is_computer_task("Who won the match yesterday?"));

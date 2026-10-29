@@ -334,6 +334,11 @@ export interface TextOptions {
   cleanup_idle_minutes?: number;
   /** "new line" / "new paragraph" as line breaks on Clean (protocol minor 42). */
   spoken_breaks?: boolean;
+  /** The language a start without its own is dictated in; absent or null is
+   * automatic (protocol minor 54). */
+  dictation_language?: string | null;
+  /** The user's languages to choose from; absent before protocol minor 54. */
+  dictation_languages?: string[];
 }
 
 /** Press and hold (protocol minor 32). */
@@ -561,6 +566,10 @@ export interface BridgeApi {
   assistantUnload(): Promise<void>;
   /** The desktop's folder chooser; null when cancelled. */
   pickFolder(title: string): Promise<string | null>;
+  /** An audio or video file to transcribe; null when cancelled. */
+  pickRecording(title: string): Promise<string | null>;
+  /** A JSON file to open, or with `save` where to save one; null when cancelled. */
+  pickFile(title: string, save: boolean, name?: string): Promise<string | null>;
   /** Language models on this computer (daemon protocol minor 20). */
   languageModels(): Promise<LanguageModel[]>;
   /** Use model `id` for `role` (`clean_up`, `assistant`), or none with null. */
@@ -588,6 +597,9 @@ export interface BridgeApi {
   setDeliveryMethod(method: string): Promise<TextOptions>;
   setCleanupIdle(minutes: number): Promise<TextOptions>;
   setSpokenBreaks(on: boolean): Promise<TextOptions>;
+  /** A language tag, or `auto`. */
+  setDictationLanguage(tag: string): Promise<TextOptions>;
+  setDictationLanguages(tags: string[]): Promise<TextOptions>;
   setHistoryRetention(retention: string): Promise<void>;
   clearHistory(): Promise<void>;
   setHoldKey(key: number | null): Promise<HoldKey>;
@@ -762,6 +774,12 @@ class TauriBridge implements BridgeApi {
   pickFolder(title: string): Promise<string | null> {
     return invoke<string | null>("pick_folder", { title });
   }
+  pickRecording(title: string): Promise<string | null> {
+    return invoke<string | null>("pick_recording", { title });
+  }
+  pickFile(title: string, save: boolean, name?: string): Promise<string | null> {
+    return invoke<string | null>("pick_file", { title, save, name: name ?? null });
+  }
   languageModels(): Promise<LanguageModel[]> {
     return invoke<LanguageModel[]>("daemon_language_models");
   }
@@ -826,6 +844,12 @@ class TauriBridge implements BridgeApi {
   }
   setSpokenBreaks(on: boolean): Promise<TextOptions> {
     return invoke<TextOptions>("daemon_set_spoken_breaks", { on });
+  }
+  setDictationLanguage(tag: string): Promise<TextOptions> {
+    return invoke<TextOptions>("daemon_set_dictation_language", { tag });
+  }
+  setDictationLanguages(tags: string[]): Promise<TextOptions> {
+    return invoke<TextOptions>("daemon_set_dictation_languages", { tags });
   }
   setHistoryRetention(retention: string): Promise<void> {
     return invoke<void>("daemon_set_history_retention", { retention });
@@ -1453,6 +1477,12 @@ export class FakeBridge implements BridgeApi {
   pickFolder(_title: string): Promise<string | null> {
     return Promise.resolve("/home/you/Projects/website");
   }
+  pickRecording(_title: string): Promise<string | null> {
+    return Promise.resolve(null);
+  }
+  pickFile(_title: string, save: boolean, name?: string): Promise<string | null> {
+    return Promise.resolve(save ? `/home/you/${name ?? "export.json"}` : "/home/you/narrivy-pipelines-export.json");
+  }
   assistantUnload(): Promise<void> {
     this.languageModelList = this.languageModelList.map((model) =>
       model.assistant_state ? { ...model, assistant_state: "unloaded" } : model,
@@ -1563,7 +1593,31 @@ export class FakeBridge implements BridgeApi {
   holdKey(): Promise<HoldKey> {
     return Promise.resolve({ ...this.hold });
   }
-  text: TextOptions = { numbers_as_digits: true, delivery_method: "paste" };
+  text: TextOptions = {
+    numbers_as_digits: true,
+    delivery_method: "paste",
+    dictation_language: null,
+    dictation_languages: [],
+  };
+  setDictationLanguage(tag: string): Promise<TextOptions> {
+    const listed = this.text.dictation_languages ?? [];
+    this.text = {
+      ...this.text,
+      dictation_language: tag === "auto" ? null : tag,
+      dictation_languages:
+        tag === "auto" || listed.includes(tag) ? listed : [...listed, tag],
+    };
+    return Promise.resolve({ ...this.text });
+  }
+  setDictationLanguages(tags: string[]): Promise<TextOptions> {
+    const current = this.text.dictation_language ?? null;
+    this.text = {
+      ...this.text,
+      dictation_languages: tags,
+      dictation_language: current && tags.includes(current) ? current : null,
+    };
+    return Promise.resolve({ ...this.text });
+  }
   setDeliveryMethod(method: string): Promise<TextOptions> {
     this.text = { ...this.text, delivery_method: method };
     return Promise.resolve({ ...this.text });
@@ -1846,7 +1900,8 @@ export class FakeBridge implements BridgeApi {
       duration_ms: Date.now() - meeting.started_unix_ms,
       progress: 1000,
       speakers: 3,
-      raw: !this.processOnStop,
+      // A session from the assistant is always kept raw.
+      raw: meeting.share !== undefined || !this.processOnStop,
     });
     this.meetingDetails[meeting.id] = {
       ...this.meetingDetails[meeting.id],

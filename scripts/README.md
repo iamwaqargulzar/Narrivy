@@ -45,6 +45,13 @@ python3 scripts/verify_dependency_boundaries.py
 
 Dependency-boundary checking requires Cargo and a valid lockfile.
 
+Windows compile check of the portable crates (PORT-001, SQ2 step 1; needs
+`rustup target add x86_64-pc-windows-gnu`, no Windows C toolchain):
+
+```bash
+python3 scripts/check_windows_portable.py
+```
+
 ## Verification tiers
 
 Choose one tier that matches the current boundary. Successful lower-tier checks
@@ -105,6 +112,17 @@ absolute Git toplevel is clean and matches `--source-head`, then embeds
 That exact package is still unqualified: native qualification and external
 schema-v3 provenance remain required. The command never overwrites an output
 and does not promote P10/P11 or produce a release artifact.
+
+`scripts/build_release_candidate.sh VERSION` (T3.1) is the one command around
+it: it refuses a dirty tree and any version outside D3 (`X.Y.Z~rcN`, `X.Y.Z`)
+or not above 0.2.3, builds the front end and the release binaries into an
+emptied `target/release-candidate` (the worker with Vulkan, the desktop with
+`tauri/custom-protocol`), checks the model (`NARRIVY_MODEL`, default
+`~/.cache/narrivy/models/`) against its registry pin, runs the builder with
+`--clean-source`, copies the package to `artifacts/releases/narrivy-linux-amd64.deb`
+(a package of another version moves to `narrivy-previous-amd64.deb`), builds the
+supply-chain bundle under `artifacts/candidates/VERSION/` and writes
+`artifacts/candidates/VERSION-build.json`. The package is still unqualified.
 
 ## Candidate lifecycle qualification
 

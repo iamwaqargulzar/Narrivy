@@ -9,7 +9,9 @@ import {
   type HistoryEntryFull,
   type JournalEntryDto,
   type ModelInfo,
+  type ModelProvisionStatus,
   type RecognitionSettings,
+  type StatusSnapshot,
   type StoreItem,
 } from './bridge';
 
@@ -124,6 +126,44 @@ export class PreviewBridge extends FakeBridge {
       item('sample-grammar', 'module', 'refine', 'Sample grammar check', 0, { ...planned, devices: ['CPU'] }),
       item('sample-denoise', 'module', 'denoise', 'Sample noise suppression', 0, { ...planned, devices: ['CPU'] }),
     ];
+  }
+
+  // `?model=awaiting` (dev preview only): start without a speech model and
+  // let "Set up" walk through the daemon's install states.
+  private awaitingModel =
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('model') === 'awaiting';
+
+  override status(): Promise<StatusSnapshot> {
+    if (this.awaitingModel && this.statusSnapshot.installed_model === 'ready' && !this.statusSnapshot.model_provisioning) {
+      this.statusSnapshot.installed_model = 'awaiting_model';
+    }
+    return super.status();
+  }
+
+  override installBundledModel(): Promise<ModelProvisionStatus> {
+    const step = (state: string, installed: string, after: number) =>
+      this.timers.push(
+        window.setTimeout(() => {
+          this.statusSnapshot.installed_model = installed;
+          this.statusSnapshot.model_provisioning = {
+            operation_id: 'preview-op',
+            state,
+            publication: state === 'ready' ? 'verified_installed' : 'not_published',
+            cleanup: 'not_required',
+            revision: after,
+          };
+        }, after),
+      );
+    step('importing', 'provisioning', 0);
+    step('activating', 'provisioning', 2500);
+    step('ready', 'ready', 4500);
+    return Promise.resolve({
+      operation_id: 'preview-op',
+      state: 'importing',
+      publication: 'not_published',
+      cleanup: 'not_required',
+      revision: 1,
+    });
   }
 
   private send(event: Record<string, unknown>) {

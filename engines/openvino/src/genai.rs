@@ -193,19 +193,30 @@ pub fn release_free_memory() {
 pub struct Runtime {
     api: Api,
     llm: LlmApi,
-    libraries: Vec<(&'static str, Library)>,
+    libraries: Vec<(String, Library)>,
     lib_dir: std::path::PathBuf,
+    /// The OpenVINO libraries' version suffix (`2640` for 2026.4).
+    soname: String,
 }
 
 impl Runtime {
     /// Load the runtime from a pack's `lib` directory. `with_npu` also loads
     /// the Level Zero loader and NPU driver, when the pack has them.
     pub fn load(lib_dir: &Path, with_npu: bool) -> Result<Self, GenAiError> {
-        let mut names: Vec<&'static str> = vec![crate::RUNTIME_LIBRARIES[0]];
+        let soname = crate::runtime_soname(lib_dir).ok_or(GenAiError::Runtime)?;
+        let mut names: Vec<String> = vec![crate::TBB_LIBRARY.to_owned()];
         if with_npu {
-            names.extend(crate::NPU_DRIVER_LIBRARIES);
+            names.extend(
+                crate::NPU_DRIVER_LIBRARIES
+                    .iter()
+                    .map(|name| (*name).to_owned()),
+            );
         }
-        names.extend(&crate::RUNTIME_LIBRARIES[1..]);
+        names.extend(
+            crate::RUNTIME_LIBRARY_STEMS
+                .iter()
+                .map(|stem| format!("{stem}.{soname}")),
+        );
         // The Level Zero loader finds drivers by searching library paths,
         // not by what is already loaded, so name the pack's NPU driver.
         let npu_driver = lib_dir.join(crate::NPU_DRIVER_LIBRARIES[1]);
@@ -215,13 +226,18 @@ impl Runtime {
             // environment concurrently.
             unsafe { std::env::set_var("ZE_ENABLE_ALT_DRIVERS", &npu_driver) };
         }
-        let mut libraries: Vec<(&'static str, Library)> = Vec::new();
+        let mut libraries: Vec<(String, Library)> = Vec::new();
         for name in names {
-            let path = lib_dir.join(name);
-            if crate::NPU_DRIVER_LIBRARIES.contains(&name) && !path.is_file() {
+            let path = lib_dir.join(&name);
+            let optional = crate::NPU_DRIVER_LIBRARIES.contains(&name.as_str())
+                || crate::OPTIONAL_RUNTIME_LIBRARY_STEMS.iter().any(|stem| {
+                    name.strip_prefix(stem)
+                        .is_some_and(|rest| rest.starts_with('.'))
+                });
+            if optional && !path.is_file() {
                 continue;
             }
-            // SAFETY: loading a pinned OpenVINO 2026.4 library by absolute
+            // SAFETY: loading a verified OpenVINO library by absolute
             // path from the installed runtime pack runs its initialisers,
             // which have no preconditions on this process.
             let library = unsafe { Library::new(&path) }.map_err(|_| GenAiError::Runtime)?;
@@ -234,8 +250,8 @@ impl Runtime {
                 .map(|(_, library)| library)
                 .ok_or(GenAiError::Runtime)
         };
-        let core = find("libopenvino_c.so.2640")?;
-        let genai = find("libopenvino_genai_c.so.2640")?;
+        let core = find(&format!("libopenvino_c.so.{soname}"))?;
+        let genai = find(&format!("libopenvino_genai_c.so.{soname}"))?;
         // SAFETY: each symbol is read with the type its 2026.4 header
         // declares, and the libraries stay loaded inside `Runtime`.
         let api = unsafe {
@@ -271,7 +287,9 @@ impl Runtime {
                     .get::<ConfigSetText>(b"ov_genai_whisper_generation_config_set_task\0")
                     .map_err(|_| GenAiError::Runtime)?,
                 config_initial_prompt: genai
-                    .get::<ConfigSetText>(b"ov_genai_whisper_generation_config_set_initial_prompt\0")
+                    .get::<ConfigSetText>(
+                        b"ov_genai_whisper_generation_config_set_initial_prompt\0",
+                    )
                     .ok()
                     .map(|symbol| *symbol),
                 config_free: *genai
@@ -358,6 +376,7 @@ impl Runtime {
             llm,
             libraries,
             lib_dir: lib_dir.to_path_buf(),
+            soname,
         })
     }
 
@@ -365,8 +384,13 @@ impl Runtime {
     pub(crate) fn library(&self, name: &str) -> Option<&Library> {
         self.libraries
             .iter()
-            .find(|(loaded, _)| *loaded == name)
+            .find(|(loaded, _)| loaded == name)
             .map(|(_, library)| library)
+    }
+
+    /// `stem` with this runtime's version suffix (`libopenvino_c.so.2640`).
+    pub(crate) fn versioned(&self, stem: &str) -> String {
+        format!("{stem}.{}", self.soname)
     }
 
     /// The runtime pack's library directory.

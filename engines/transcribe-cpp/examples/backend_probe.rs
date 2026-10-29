@@ -49,7 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &model_path,
         &ModelOptions {
             backend,
-            device: None,
+            ..ModelOptions::default()
         },
     )?;
     println!(
@@ -61,14 +61,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let started = Instant::now();
         let transcript = model.session()?.run(&samples, &RunOptions::default())?;
         let seconds = started.elapsed().as_secs_f64();
+        // Whether the known recording decoded to its known phrase (the GPU
+        // self-test's check); the transcript itself is never printed.
         println!(
-            "run={run} decode_ms={:.0} rtf={:.3} chars={}",
+            "run={run} decode_ms={:.0} rtf={:.3} chars={} matches_reference={}",
             seconds * 1000.0,
             seconds / audio_seconds,
-            transcript.text.len()
+            transcript.text.len(),
+            narrivy_asr_transcribe::self_test::phrase_matches(&transcript.text)
         );
     }
-    if model.capabilities().supports_streaming {
+    if model.capabilities()?.supports_streaming {
         // Feed 80 ms chunks, as live capture does, and time each feed.
         let mut session = model.session()?;
         let mut stream = session.stream(&RunOptions::default(), &StreamOptions::default())?;

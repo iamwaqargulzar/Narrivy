@@ -79,6 +79,8 @@ export function createMockBridgeModule() {
       assistantCancel: vi.fn(async (_turnId: string) => {}),
       assistantUnload: vi.fn(async () => {}),
       pickFolder: vi.fn(async () => '/home/you/Projects/site'),
+      pickRecording: vi.fn(async () => '/home/you/Videos/meeting.mp4'),
+      pickFile: vi.fn(async (_title: string, save: boolean) => (save ? '/home/you/pipelines.json' : '/home/you/shared.json')),
       assistantLibrary: vi.fn(async (op: string, kind: string): Promise<string> =>
         kind === "voice"
           ? JSON.stringify({ speedPercent: 100, pushToTalk: false, interrupt: "stop", sounds: true, voice: 3, running: false, available: true })
@@ -185,6 +187,7 @@ export function createMockBridgeModule() {
       meetingSlide: vi.fn(async () => ""),
       meetingControl: vi.fn(async () => undefined),
       meetingStop: vi.fn(async () => undefined),
+      meetingProcess: vi.fn(async () => undefined),
       meetings: vi.fn(async () => []),
       meeting: vi.fn(async (id: string) => ({
         meeting: {
@@ -243,6 +246,16 @@ export function createMockBridgeModule() {
       setSpokenBreaks: vi.fn(async (on: boolean) => ({
         numbers_as_digits: true,
         spoken_breaks: on,
+      })),
+      setDictationLanguage: vi.fn(async (tag: string) => ({
+        numbers_as_digits: true,
+        dictation_language: tag === "auto" ? null : tag,
+        dictation_languages: tag === "auto" ? [] : [tag],
+      })),
+      setDictationLanguages: vi.fn(async (tags: string[]) => ({
+        numbers_as_digits: true,
+        dictation_language: null,
+        dictation_languages: tags,
       })),
       setEchoCancel: vi.fn(async (on: boolean) => ({
         echo_cancel: on,

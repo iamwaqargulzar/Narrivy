@@ -1,9 +1,18 @@
 #!/bin/sh
 set -e
+# Stop the per-user daemon in every running user manager, so a removed or
+# replaced package does not leave the old daemon running and writing state.
+# Each call is bounded and can never fail the package operation. Nothing in
+# home directories is touched; user data remains preserved.
+narrivy_user_managers() {
+  systemctl list-units --no-legend --plain --state=active 'user@*.service' 2>/dev/null \
+    | sed -n 's/^user@\([0-9][0-9]*\)\.service .*/\1/p'
+}
 case "$1" in
   remove|deconfigure|upgrade|failed-upgrade)
-    # Package scripts run outside user sessions and must not control a
-    # root-owned user manager. User data remains preserved.
+    for uid in $(narrivy_user_managers); do
+      timeout 10s systemctl --user -M "$uid@" stop narrivy-daemon.service >/dev/null 2>&1 || true
+    done
     ;;
   *)
     ;;

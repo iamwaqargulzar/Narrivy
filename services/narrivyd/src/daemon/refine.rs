@@ -99,26 +99,28 @@ fn watch_idle() {
     WATCHING.call_once(|| {
         let _ = std::thread::Builder::new()
             .name("narrivy-refine-idle".into())
-            .spawn(|| loop {
-                std::thread::sleep(Duration::from_secs(30));
-                let minutes = super::text_options::cleanup_idle_minutes();
-                if minutes == 0 {
-                    continue;
-                }
-                let Ok(mut current) = CURRENT.lock() else {
-                    continue;
-                };
-                let idle = current.active.as_ref().is_some_and(|(_, refiner)| {
-                    matches!(refiner.state(), RefineState::Ready(_))
-                        && refiner.last_used.lock().is_ok_and(|used| {
-                            used.elapsed() >= Duration::from_secs(u64::from(minutes) * 60)
-                        })
-                });
-                if idle {
-                    eprintln!("narrivyd: clean-up model unloaded after {minutes} idle minutes");
-                    // Loaded again by the next `shared()`.
-                    current.active = None;
-                    current.initialised = false;
+            .spawn(|| {
+                loop {
+                    std::thread::sleep(Duration::from_secs(30));
+                    let minutes = super::text_options::cleanup_idle_minutes();
+                    if minutes == 0 {
+                        continue;
+                    }
+                    let Ok(mut current) = CURRENT.lock() else {
+                        continue;
+                    };
+                    let idle = current.active.as_ref().is_some_and(|(_, refiner)| {
+                        matches!(refiner.state(), RefineState::Ready(_))
+                            && refiner.last_used.lock().is_ok_and(|used| {
+                                used.elapsed() >= Duration::from_secs(u64::from(minutes) * 60)
+                            })
+                    });
+                    if idle {
+                        eprintln!("narrivyd: clean-up model unloaded after {minutes} idle minutes");
+                        // Loaded again by the next `shared()`.
+                        current.active = None;
+                        current.initialised = false;
+                    }
                 }
             });
     });

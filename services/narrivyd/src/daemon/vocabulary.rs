@@ -390,7 +390,8 @@ mod tests {
         );
         assert!(context_bias(&Vocabulary::default()).is_none());
         let given = ContextBias::try_new(["Lahore"]).map_err(|_| "hint")?;
-        let merged = context_bias_with(Some(&given), &vocab(&["Narrivy"], &[])).ok_or("no hints")?;
+        let merged =
+            context_bias_with(Some(&given), &vocab(&["Narrivy"], &[])).ok_or("no hints")?;
         assert_eq!(merged.hints(), ["Lahore", "Narrivy"]);
         Ok(())
     }

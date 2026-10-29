@@ -23,7 +23,9 @@ const EXECUTABLE: &str = "chrome-headless-shell";
 /// The browser pack this daemon knows.
 #[must_use]
 pub fn catalog() -> Option<CatalogRuntime> {
-    runtime_catalog().into_iter().find(|runtime| runtime.runtime == RUNTIME)
+    runtime_catalog()
+        .into_iter()
+        .find(|runtime| runtime.runtime == RUNTIME)
 }
 
 /// Where the pack is installed, for a given models directory.
@@ -62,7 +64,9 @@ pub fn executable() -> Option<PathBuf> {
         return None;
     }
     let seen = (path.clone(), meta.len(), meta.modified().ok());
-    let already = CHECKED.lock().is_ok_and(|checked| checked.as_ref() == Some(&seen));
+    let already = CHECKED
+        .lock()
+        .is_ok_and(|checked| checked.as_ref() == Some(&seen));
     if !already {
         narrivy_asr_openvino::verify_file(&path, listed).ok()?;
         if let Ok(mut checked) = CHECKED.lock() {
@@ -83,7 +87,11 @@ mod tests {
     #[test]
     fn the_catalog_pins_the_browser_pack() {
         let runtime = catalog();
-        assert!(runtime.as_ref().is_some_and(|r| r.manifest_sha256.len() == 64 && r.size_bytes > 0));
+        assert!(
+            runtime
+                .as_ref()
+                .is_some_and(|r| r.manifest_sha256.len() == 64 && r.size_bytes > 0)
+        );
         let models = Path::new("/data/narrivy/models");
         assert!(root(models).is_some_and(|dir| dir.starts_with("/data/narrivy/runtimes")));
     }

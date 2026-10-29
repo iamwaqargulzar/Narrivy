@@ -20,7 +20,7 @@ import { VoicePanel } from '../components/assistant/VoicePanel';
 import { AssistantLibraryView } from '../components/assistant/AssistantLibrary';
 import { WatchBar, WatchButton } from '../components/assistant/WatchBar';
 import { ActivityPanel, hasActivity as activityIn } from '../components/assistant/ActivityPanel';
-import { LivePanel, LiveSessionProvider, useLive, type LiveSource } from '../components/assistant/LiveSession';
+import { LivePanel, LiveSessionProvider, SavedSessions, useLive, type LiveSource } from '../components/assistant/LiveSession';
 
 /** Where the model is, in words: "Loaded on GPU" or "Not loaded". */
 function modelStateLabel(state: string | null): string | null {
@@ -434,6 +434,7 @@ function AssistantBody() {
               <Icon name="close" />
             </button>
             <LivePanel />
+            <SavedSessions />
             {current && hasActivity ? (
               <ActivityPanel chat={current} />
             ) : live.id === null && live.saved === null ? (
@@ -815,6 +816,27 @@ function AddMenu({ disabled, onPicture }: { disabled: boolean; onPicture: () => 
   const [error, setError] = useState<string | null>(null);
   const close = useCallback(() => setOpen(false), []);
   const ref = useDismiss(open, close);
+  // Sessions kept raw (as heard) are listed apart: giving one to the chat
+  // goes over it.
+  const item = (session: Meeting) => (
+    <button
+      key={session.id}
+      type="button"
+      role="menuitem"
+      onClick={() => {
+        setOpen(false);
+        void attachRecording(session.id).catch((e: unknown) => setError((e as { code?: string })?.code ?? 'unavailable'));
+      }}
+    >
+      <Icon name={session.watch ? 'play' : 'people'} />
+      <span className="assistant-menu-item-text">
+        <span>{session.title}</span>
+        <span className="assistant-switch-hint">
+          {new Date(session.started_unix_ms).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+        </span>
+      </span>
+    </button>
+  );
   useEffect(() => {
     if (!open) return;
     setError(null);
@@ -852,25 +874,13 @@ function AddMenu({ disabled, onPicture }: { disabled: boolean; onPicture: () => 
           <p className="assistant-menu-heading">{t('assistant.addRecording')}</p>
           {sessions === null ? <p className="assistant-menu-note">{t('assistant.loadingRecordings')}</p> : null}
           {sessions && !sessions.length ? <p className="assistant-menu-note">{t('assistant.noRecordings')}</p> : null}
-          {sessions?.map((session) => (
-            <button
-              key={session.id}
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                void attachRecording(session.id).catch((e: unknown) => setError((e as { code?: string })?.code ?? 'unavailable'));
-              }}
-            >
-              <Icon name={session.watch ? 'play' : 'people'} />
-              <span className="assistant-menu-item-text">
-                <span>{session.title}</span>
-                <span className="assistant-switch-hint">
-                  {new Date(session.started_unix_ms).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-                </span>
-              </span>
-            </button>
-          ))}
+          {sessions?.filter((session) => !session.raw).map(item)}
+          {sessions?.some((session) => session.raw) ? (
+            <>
+              <p className="assistant-menu-heading">{t('assistant.rawRecordings')}</p>
+              {sessions.filter((session) => session.raw).map(item)}
+            </>
+          ) : null}
           {error ? <p className="assistant-menu-note assistant-error">{t('assistant.error.other', { code: error })}</p> : null}
         </div>
       ) : null}

@@ -1,14 +1,13 @@
 Package: narrivy
-Version: 0.1.0
+Version: 1.0.0~rc1
 Section: utils
 Priority: optional
 Architecture: amd64
-Maintainer: Narrivy <release@narrivy.local>
+Maintainer: Waqar Gulzar <iamwaqargulzar@gmail.com>
 Description: Narrivy — local-first voice dictation for Linux
  Fast, private dictation that runs locally on your machine.
  Uses PipeWire for capture and local Whisper ASR via transcribe.cpp
  and capability-driven delivery without cloud by default.
 Depends: libwebkit2gtk-4.1-0 (>= 2.44), libgtk-3-0t64 (>= 3.24) | libgtk-3-0 (>= 3.24), libgtk-layer-shell0 (>= 0.8), libopenblas0, pipewire, systemd, xdg-utils
-Recommends: pipewire-pulse
-Build-Using: rustc (= 1.97.1), cargo (= 1.97.1)
-Homepage: https://narrivy.local
+Recommends: pipewire-pulse, wtype, libglib2.0-bin
+Homepage: https://github.com/iamwaqargulzar/narrivy

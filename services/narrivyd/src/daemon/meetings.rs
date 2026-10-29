@@ -31,9 +31,9 @@ use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use narrivy_platform_linux::echo_cancel;
 use base64::Engine as _;
 use narrivy_ipc::{MeetingDetailDto, MeetingDto, MeetingSlideDto, MeetingTurnDto};
+use narrivy_platform_linux::echo_cancel;
 use serde::{Deserialize, Serialize};
 
 use super::session::{DaemonEvent, DaemonState};
@@ -206,7 +206,10 @@ struct Gap {
 /// time on the meeting's clock.
 fn sound_to_clock(sound_ms: u64, gaps: &[Gap], stream: &str) -> u64 {
     let mut shift = 0;
-    for gap in gaps.iter().filter(|g| g.stream.as_deref().is_none_or(|s| s == stream)) {
+    for gap in gaps
+        .iter()
+        .filter(|g| g.stream.as_deref().is_none_or(|s| s == stream))
+    {
         // Where the gap falls in the sound: its clock time less the gaps
         // before it.
         if gap.at_ms.saturating_sub(shift) <= sound_ms {
@@ -279,7 +282,12 @@ struct Recorder {
 impl Recorder {
     fn start(dir: &Path, stream: &'static str, target: &str) -> Result<Self, &'static str> {
         let (child, pump) = start_recorder(dir, stream, target)?;
-        Ok(Self { stream, child: Some(child), pump: Some(pump), off_since: None })
+        Ok(Self {
+            stream,
+            child: Some(child),
+            pump: Some(pump),
+            off_since: None,
+        })
     }
 }
 
@@ -301,10 +309,16 @@ struct Recording {
     moving_every: u32,
     /// What was chosen to record (for sound switched on later).
     chosen: MeetingOptions,
+    /// A session from the assistant (a live share or a session recording):
+    /// its chat had the live screen and transcript, so stopping saves it
+    /// as it is, raw, and nothing is transcribed until it is asked for.
+    session: bool,
 }
 
 /// How long the live worker may take to transcribe what is left at the end.
 const LIVE_FINISH_BOUND: Duration = Duration::from_secs(120);
+/// How long a worker asked to quit (SIGTERM) may take before it is killed.
+const QUIT_BOUND: Duration = Duration::from_secs(3);
 
 #[derive(Default)]
 struct Inner {
@@ -445,7 +459,11 @@ impl Meetings {
             id: meta.id.clone(),
             state: meta.state.clone(),
             progress: meta.progress,
-            stage: if self.paused(&meta.id) { Some("paused".to_owned()) } else { meta.stage.clone() },
+            stage: if self.paused(&meta.id) {
+                Some("paused".to_owned())
+            } else {
+                meta.stage.clone()
+            },
         });
     }
 
@@ -561,7 +579,9 @@ impl Meetings {
         };
         self.write_meta(&meta);
         self.publish(&meta);
-        let live = (!targets_empty).then(|| self.start_live(&id, &meta.model)).flatten();
+        let live = (!targets_empty)
+            .then(|| self.start_live(&id, &meta.model))
+            .flatten();
         let moving_every = if watch || from_assistant { 10 } else { 30 };
         let token = Arc::new(Mutex::new(None));
         let screen = (watch || (!from_assistant && options().screen))
@@ -582,6 +602,7 @@ impl Meetings {
             screen_token: token,
             moving_every,
             chosen,
+            session: share || from_assistant,
         });
         drop(inner);
         // Stop by itself after the longest allowed meeting.
@@ -609,7 +630,11 @@ impl Meetings {
     ///
     /// # Errors
     /// A short code: the file is not usable, no converter, no storage.
-    pub fn import(self: &Arc<Self>, path: &str, title: Option<String>) -> Result<MeetingDto, &'static str> {
+    pub fn import(
+        self: &Arc<Self>,
+        path: &str,
+        title: Option<String>,
+    ) -> Result<MeetingDto, &'static str> {
         let source = PathBuf::from(path);
         let meta = std::fs::metadata(&source).map_err(|_| "meeting_import_missing")?;
         let extension = source
@@ -617,7 +642,10 @@ impl Meetings {
             .and_then(|e| e.to_str())
             .map(str::to_ascii_lowercase)
             .unwrap_or_default();
-        if !source.is_absolute() || !meta.is_file() || !IMPORT_EXTENSIONS.contains(&extension.as_str()) {
+        if !source.is_absolute()
+            || !meta.is_file()
+            || !IMPORT_EXTENSIONS.contains(&extension.as_str())
+        {
             return Err("meeting_import_unsupported");
         }
         if meta.len() > IMPORT_MAX_BYTES {
@@ -659,10 +687,11 @@ impl Meetings {
         std::thread::Builder::new()
             .name("narrivy-meeting-import".into())
             .spawn(move || {
-                let outcome = convert(&converter, &source, &dir.join("mic.wav")).and_then(|duration_ms| {
-                    meetings.update(&id, |meta| meta.duration_ms = duration_ms);
-                    meetings.process(&id, Some(model), None, None)
-                });
+                let outcome =
+                    convert(&converter, &source, &dir.join("mic.wav")).and_then(|duration_ms| {
+                        meetings.update(&id, |meta| meta.duration_ms = duration_ms);
+                        meetings.process(&id, Some(model), None, None)
+                    });
                 if let Err(code) = outcome {
                     meetings.update(&id, |meta| {
                         meta.state = format!("failed:{code}");
@@ -674,7 +703,8 @@ impl Meetings {
         Ok(meta.dto())
     }
 
-    /// Stop recording and start transcribing.
+    /// Stop recording and start transcribing; a session from the assistant
+    /// is saved as it is (raw) instead.
     ///
     /// # Errors
     /// `meeting_not_recording`.
@@ -689,13 +719,23 @@ impl Meetings {
             children,
             live,
             screen,
+            session,
             ..
         } = recording;
+        // The screen first: ending its helper ends the portal's screen
+        // cast, and the desktop stops showing that the screen is shared.
+        if let Some(screen) = screen {
+            stop_screen(screen);
+        }
         let now = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
         let mut gaps = Vec::new();
         for recorder in &children {
             if let Some(since) = recorder.off_since {
-                gaps.push(Gap { at_ms: since, ms: now.saturating_sub(since), stream: Some(recorder.stream.to_owned()) });
+                gaps.push(Gap {
+                    at_ms: since,
+                    ms: now.saturating_sub(since),
+                    stream: Some(recorder.stream.to_owned()),
+                });
             }
         }
         self.update(&id, |meta| {
@@ -709,11 +749,18 @@ impl Meetings {
         for file in ["mic.wav", "system.wav"] {
             seal_wav(&dir.join(file));
         }
-        if let Some(mut screen) = screen {
-            let _ = screen.kill();
-            let _ = screen.wait();
-        }
         let duration_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+        if session {
+            // Its chat already had the live screen and transcript: the live
+            // worker stops where it is (it does not transcribe what is
+            // left) and the session is kept raw, its sound, live transcript
+            // and screens as they are, until the user asks to go over it.
+            if let Some(live) = live {
+                quit_child(live);
+            }
+            self.update(&id, |meta| save_raw(meta, duration_ms));
+            return Ok(());
+        }
         let model = self
             .update(&id, |meta| {
                 meta.duration_ms = duration_ms;
@@ -739,12 +786,7 @@ impl Meetings {
                     finish_live(&mut live);
                 }
                 if !go_over {
-                    meetings.update(&id, |meta| {
-                        meta.state = "ready".to_owned();
-                        meta.progress = 1000;
-                        meta.stage = None;
-                        meta.raw = true;
-                    });
+                    meetings.update(&id, |meta| save_raw(meta, duration_ms));
                     return;
                 }
                 if let Err(code) = meetings.process(&id, Some(model), None, None) {
@@ -834,9 +876,8 @@ impl Meetings {
         }
         match screen {
             Some(false) => {
-                if let Some(mut child) = recording.screen.take() {
-                    let _ = child.kill();
-                    let _ = child.wait();
+                if let Some(child) = recording.screen.take() {
+                    stop_screen(child);
                 }
             }
             Some(true) if recording.screen.is_none() => {
@@ -862,7 +903,18 @@ impl Meetings {
         let (sound_on, mic_on) = (hearing(CALL), hearing(ROOM));
         // The live transcription starts with the first sound.
         let started_sound = recording.live.is_none() && !recording.children.is_empty();
+        // A session from the assistant with nothing left on is over: it is
+        // stopped and saved, as its Stop button does (switched on from the
+        // composer, it is switched off there too).
+        let over = recording.session && !screen_on && !sound_on && !mic_on;
         drop(inner);
+        if over {
+            self.stop()?;
+            return self
+                .read_meta(id)
+                .map(|meta| meta.dto())
+                .ok_or("meeting_not_found");
+        }
         let meta = self
             .update(id, |meta| {
                 meta.screen_on = screen_on;
@@ -905,7 +957,11 @@ impl Meetings {
             self.set_control(id, Some(true));
             return self.stop();
         }
-        let worker = inner.worker.as_ref().filter(|(w, _)| w == id).map(|(_, pid)| *pid);
+        let worker = inner
+            .worker
+            .as_ref()
+            .filter(|(w, _)| w == id)
+            .map(|(_, pid)| *pid);
         let mut cancel = None;
         match action {
             "pause" => {
@@ -926,7 +982,11 @@ impl Meetings {
                     signal(pid, "-CONT");
                     signal(pid, "-TERM");
                 }
-                cancel = inner.asking.as_ref().filter(|(m, _)| m == id).map(|(_, t)| t.clone());
+                cancel = inner
+                    .asking
+                    .as_ref()
+                    .filter(|(m, _)| m == id)
+                    .map(|(_, t)| t.clone());
             }
             _ => return Err("meeting_control_unknown"),
         }
@@ -944,7 +1004,12 @@ impl Meetings {
     /// once it was stopped.
     fn proceed(&self, id: &str) -> bool {
         loop {
-            match self.control.lock().ok().and_then(|control| control.get(id).copied()) {
+            match self
+                .control
+                .lock()
+                .ok()
+                .and_then(|control| control.get(id).copied())
+            {
                 None => return true,
                 Some(true) => return false,
                 Some(false) => std::thread::sleep(Duration::from_millis(300)),
@@ -1187,9 +1252,22 @@ impl Meetings {
         pictures.truncate(2);
         let mut lines: Vec<String> = Vec::new();
         let mut used = 0;
-        for turn in self.turns(id).unwrap_or_default().iter().rev() {
+        // With the words being said now (newest, so kept first within the
+        // budget): a piece is written only when it ends, seconds later.
+        let mut turns = self.turns(id).unwrap_or_default();
+        turns.extend(self.partial_turn(id).map(|turn| MeetingTurnDto {
+            speaker: "(still speaking)".to_owned(),
+            ..turn
+        }));
+        for turn in turns.iter().rev() {
             let seconds = turn.start_ms / 1000;
-            let line = format!("[{}:{:02}] {}: {}", seconds / 60, seconds % 60, turn.speaker, turn.text.trim());
+            let line = format!(
+                "[{}:{:02}] {}: {}",
+                seconds / 60,
+                seconds % 60,
+                turn.speaker,
+                turn.text.trim()
+            );
             used += line.len() + 1;
             if used > budget {
                 break;
@@ -1233,10 +1311,13 @@ impl Meetings {
         )
     }
 
-/// While recording: the words being said now (`live-partial.json`, which
+    /// While recording: the words being said now (`live-partial.json`, which
     /// the live worker rewrites), as a last turn marked partial.
     fn partial_turn(&self, id: &str) -> Option<MeetingTurnDto> {
-        if self.recording_now().is_none_or(|(recording, _, _)| recording != id) {
+        if self
+            .recording_now()
+            .is_none_or(|(recording, _, _)| recording != id)
+        {
             return None;
         }
         #[derive(Deserialize)]
@@ -1337,7 +1418,10 @@ impl Meetings {
             meta.duration_ms = elapsed;
         }
         Ok(MeetingDetailDto {
-            meeting: MeetingDto { paused: self.paused(id), ..meta.dto() },
+            meeting: MeetingDto {
+                paused: self.paused(id),
+                ..meta.dto()
+            },
             turns: {
                 let mut turns = self.turns(id).unwrap_or_default();
                 turns.extend(self.partial_turn(id));
@@ -1394,7 +1478,11 @@ impl Meetings {
         if !valid_id(id) || !(live || valid_frame_name(file)) {
             return Err("meeting_slide_not_found");
         }
-        let thumb = if live { file.to_owned() } else { file.replace("frame-", "thumb-") };
+        let thumb = if live {
+            file.to_owned()
+        } else {
+            file.replace("frame-", "thumb-")
+        };
         let bytes = std::fs::read(self.dir(id).join(SCREENS).join(thumb))
             .map_err(|_| "meeting_slide_not_found")?;
         Ok(base64::engine::general_purpose::STANDARD.encode(bytes))
@@ -1436,7 +1524,10 @@ impl Meetings {
                     "Screen at {}.", short_clock(slide.at_ms)
                 ), "images": [picture.to_string_lossy()]},
             ]);
-            let answer = assistant.ask(None, &messages).ok().and_then(|reply| reply.recv().ok());
+            let answer = assistant
+                .ask(None, &messages)
+                .ok()
+                .and_then(|reply| reply.recv().ok());
             match answer {
                 Some((outcome, text)) if outcome == "ok" && !text.trim().is_empty() => {
                     described.insert(slide.file.clone(), text.trim().to_owned());
@@ -1493,7 +1584,13 @@ impl Meetings {
             }
         }
         lines.sort_by_key(|(at, _)| *at);
-        Some(lines.into_iter().map(|(_, line)| line).collect::<Vec<_>>().join("\n"))
+        Some(
+            lines
+                .into_iter()
+                .map(|(_, line)| line)
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
     }
 
     /// Write notes of `kind` for a meeting with the assistant model. A long
@@ -1603,7 +1700,9 @@ impl Meetings {
         if let Ok(mut inner) = self.inner.lock() {
             inner.asking = Some((meta.id.clone(), turn_id.clone()));
         }
-        let answer = assistant.ask(Some(turn_id), &messages).map(|reply| reply.recv());
+        let answer = assistant
+            .ask(Some(turn_id), &messages)
+            .map(|reply| reply.recv());
         if let Ok(mut inner) = self.inner.lock() {
             inner.asking = None;
         }
@@ -1649,11 +1748,18 @@ impl Meetings {
             .turns(id)
             .unwrap_or_default()
             .iter()
-            .map(|t| names.get(&t.speaker).cloned().unwrap_or_else(|| t.speaker.clone()))
+            .map(|t| {
+                names
+                    .get(&t.speaker)
+                    .cloned()
+                    .unwrap_or_else(|| t.speaker.clone())
+            })
             .collect::<std::collections::BTreeSet<_>>()
             .len();
         let meta = self
-            .update(id, |meta| meta.speakers = u16::try_from(people).unwrap_or(u16::MAX))
+            .update(id, |meta| {
+                meta.speakers = u16::try_from(people).unwrap_or(u16::MAX)
+            })
             .unwrap_or(meta);
         self.publish(&meta);
         Ok(())
@@ -1747,7 +1853,9 @@ fn seal_wav(path: &Path) {
     // A whole number of samples.
     let data = u32::try_from(len.saturating_sub(44)).unwrap_or(u32::MAX - 36) & !1;
     let _ = file.set_len(44 + u64::from(data));
-    let _ = file.seek(SeekFrom::Start(0)).and_then(|_| file.write_all(&wav_header(data)));
+    let _ = file
+        .seek(SeekFrom::Start(0))
+        .and_then(|_| file.write_all(&wav_header(data)));
 }
 
 /// Record one stream, appending to its file (`mic.wav` or `system.wav`),
@@ -1758,15 +1866,25 @@ fn start_recorder(
     target: &str,
 ) -> Result<(Child, std::thread::JoinHandle<()>), &'static str> {
     use std::io::Write;
-    let file = if stream == ROOM { "mic.wav" } else { "system.wav" };
+    let file = if stream == ROOM {
+        "mic.wav"
+    } else {
+        "system.wav"
+    };
     let path = dir.join(file);
     let mut out = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(&path)
         .map_err(|_| "meeting_storage_unavailable")?;
-    if out.metadata().map_err(|_| "meeting_storage_unavailable")?.len() == 0 {
-        out.write_all(&wav_header(u32::MAX - 36)).map_err(|_| "meeting_storage_unavailable")?;
+    if out
+        .metadata()
+        .map_err(|_| "meeting_storage_unavailable")?
+        .len()
+        == 0
+    {
+        out.write_all(&wav_header(u32::MAX - 36))
+            .map_err(|_| "meeting_storage_unavailable")?;
     }
     let log = std::fs::OpenOptions::new()
         .create(true)
@@ -1774,7 +1892,15 @@ fn start_recorder(
         .open(dir.join(format!("{file}.log")))
         .map_err(|_| "meeting_storage_unavailable")?;
     let mut child = Command::new("pw-record")
-        .args(["--raw", "--target", target, "--rate", "16000", "--channels", "1"])
+        .args([
+            "--raw",
+            "--target",
+            target,
+            "--rate",
+            "16000",
+            "--channels",
+            "1",
+        ])
         .args(["--format", "s16"])
         // PipeWire has no `<sink>.monitor` node: asking for one silently
         // records the default microphone instead. The output's sound is
@@ -1835,7 +1961,11 @@ fn switch_sound(
     on: bool,
     now: u64,
 ) -> Result<Option<Gap>, &'static str> {
-    let gap = |at_ms: u64, ms: u64| Gap { at_ms, ms, stream: Some(stream.to_owned()) };
+    let gap = |at_ms: u64, ms: u64| Gap {
+        at_ms,
+        ms,
+        stream: Some(stream.to_owned()),
+    };
     if let Some(recorder) = recording.children.iter_mut().find(|r| r.stream == stream) {
         return Ok(match (on, recorder.off_since) {
             (false, None) => {
@@ -1867,7 +1997,9 @@ fn switch_sound(
         return Ok(None);
     }
     let (target, devices) = target_for(recording.chosen.clone(), stream)?;
-    recording.children.push(Recorder::start(dir, stream, &target)?);
+    recording
+        .children
+        .push(Recorder::start(dir, stream, &target)?);
     if stream == ROOM && recording.microphone.is_empty() {
         recording.microphone = devices.microphone;
     }
@@ -1886,7 +2018,10 @@ fn target_for(mut chosen: MeetingOptions, stream: &str) -> Result<(String, Devic
     }
     let devices = devices_for(chosen);
     let target = if stream == ROOM {
-        devices.microphone_target.clone().ok_or("meeting_no_microphone")?
+        devices
+            .microphone_target
+            .clone()
+            .ok_or("meeting_no_microphone")?
     } else {
         devices.speaker_target.clone().ok_or("meeting_no_speaker")?
     };
@@ -1894,7 +2029,9 @@ fn target_for(mut chosen: MeetingOptions, stream: &str) -> Result<(String, Devic
 }
 
 fn signal(pid: u32, which: &str) {
-    let _ = Command::new("kill").args([which, &pid.to_string()]).status();
+    let _ = Command::new("kill")
+        .args([which, &pid.to_string()])
+        .status();
 }
 
 /// Ask the recorders to finish (SIGINT), then make sure they are gone.
@@ -1935,6 +2072,40 @@ fn finish_live(live: &mut Child) {
     }
     let _ = live.kill();
     let _ = live.wait();
+}
+
+/// Ask a worker to quit now (SIGTERM: the live worker leaves what is not
+/// transcribed yet, the screen helper closes its portal session), killing
+/// it when it takes longer than [`QUIT_BOUND`].
+fn quit_child(mut child: Child) {
+    signal(child.id(), "-TERM");
+    let deadline = Instant::now() + QUIT_BOUND;
+    while Instant::now() < deadline {
+        if matches!(child.try_wait(), Ok(Some(_)) | Err(_)) {
+            return;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
+/// Stop keeping the screen. The helper closes the portal's screen-cast
+/// session itself before it ends (a killed one leaves that to the portal
+/// noticing, which COSMIC's does not always do, and its "screen shared"
+/// indicator stays).
+fn stop_screen(screen: Child) {
+    quit_child(screen);
+}
+
+/// A stopped recording kept as heard: its sound, its live transcript and
+/// its screens' pictures, nothing gone over yet.
+fn save_raw(meta: &mut Meta, duration_ms: u64) {
+    meta.duration_ms = duration_ms;
+    meta.state = "ready".to_owned();
+    meta.progress = 1000;
+    meta.stage = None;
+    meta.raw = true;
 }
 
 /// The number of turns written so far, from one live worker line.
@@ -2037,9 +2208,18 @@ pub fn set_screen(on: bool) -> Result<(), &'static str> {
 /// plugin are installed.
 fn screen_available() -> bool {
     std::env::var_os(SCREEN_SCRIPT_ENV).is_some()
-        && ["/usr/lib/x86_64-linux-gnu", "/usr/lib/aarch64-linux-gnu", "/usr/lib64", "/usr/lib"]
-            .iter()
-            .any(|lib| Path::new(lib).join("gstreamer-1.0/libgstpipewire.so").is_file())
+        && [
+            "/usr/lib/x86_64-linux-gnu",
+            "/usr/lib/aarch64-linux-gnu",
+            "/usr/lib64",
+            "/usr/lib",
+        ]
+        .iter()
+        .any(|lib| {
+            Path::new(lib)
+                .join("gstreamer-1.0/libgstpipewire.so")
+                .is_file()
+        })
 }
 
 /// Start keeping pictures of the screen the user shares; the portal asks
@@ -2081,7 +2261,11 @@ fn start_screen(
             for line in BufReader::new(stdout).lines().map_while(Result::ok) {
                 if let Some(saved) = serde_json::from_str::<serde_json::Value>(&line)
                     .ok()
-                    .and_then(|v| v.get("restore_token").and_then(|t| t.as_str()).map(str::to_owned))
+                    .and_then(|v| {
+                        v.get("restore_token")
+                            .and_then(|t| t.as_str())
+                            .map(str::to_owned)
+                    })
                     && let Ok(mut slot) = token.lock()
                 {
                     *slot = Some(saved);
@@ -2090,7 +2274,9 @@ fn start_screen(
                     .ok()
                     .filter(|v| v.get("ev").and_then(|e| e.as_str()) == Some("error"))
                     .and_then(|v| v.get("code").and_then(|c| c.as_str()).map(str::to_owned));
-                if let Some(code) = code.filter(|c| c.bytes().all(|b| b.is_ascii_lowercase() || b == b'_')) {
+                if let Some(code) =
+                    code.filter(|c| c.bytes().all(|b| b.is_ascii_lowercase() || b == b'_'))
+                {
                     let _ = std::fs::write(screens.join("error"), code);
                 }
             }
@@ -2196,8 +2382,13 @@ fn devices_for(chosen: MeetingOptions) -> Devices {
         plugged(&speakers, chosen.speaker).or_else(|| pactl("get-default-sink"))
     };
     Devices {
-        microphone: microphone.map(|m| describe(&microphones, &m)).unwrap_or_default(),
-        speaker: speaker.as_deref().map(|s| describe(&speakers, s)).unwrap_or_default(),
+        microphone: microphone
+            .map(|m| describe(&microphones, &m))
+            .unwrap_or_default(),
+        speaker: speaker
+            .as_deref()
+            .map(|s| describe(&speakers, s))
+            .unwrap_or_default(),
         microphone_target,
         speaker_target: speaker,
         microphone_off: chosen.microphone_off,
@@ -2301,7 +2492,8 @@ fn remember_voice(dir: &Path, speaker: &str, name: &str) {
 
 /// Files a meeting can be imported from.
 const IMPORT_EXTENSIONS: [&str; 14] = [
-    "wav", "mp3", "m4a", "aac", "ogg", "oga", "opus", "flac", "webm", "mp4", "mkv", "mov", "avi", "wma",
+    "wav", "mp3", "m4a", "aac", "ogg", "oga", "opus", "flac", "webm", "mp4", "mkv", "mov", "avi",
+    "wma",
 ];
 const IMPORT_MAX_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 /// The longest a conversion may take.
@@ -2334,7 +2526,18 @@ fn convert(converter: &Converter, source: &Path, out: &Path) -> Result<u64, &'st
             let mut c = Command::new(ffmpeg);
             c.args(["-nostdin", "-hide_banner", "-loglevel", "error", "-i"])
                 .arg(source)
-                .args(["-vn", "-ac", "1", "-ar", "16000", "-sample_fmt", "s16", "-f", "wav", "-y"])
+                .args([
+                    "-vn",
+                    "-ac",
+                    "1",
+                    "-ar",
+                    "16000",
+                    "-sample_fmt",
+                    "s16",
+                    "-f",
+                    "wav",
+                    "-y",
+                ])
                 .arg(out);
             c
         }
@@ -2343,7 +2546,15 @@ fn convert(converter: &Converter, source: &Path, out: &Path) -> Result<u64, &'st
             c.arg("-q")
                 .arg("filesrc")
                 .arg(format!("location={}", source.display()))
-                .args(["!", "decodebin", "!", "audioconvert", "!", "audioresample", "!"])
+                .args([
+                    "!",
+                    "decodebin",
+                    "!",
+                    "audioconvert",
+                    "!",
+                    "audioresample",
+                    "!",
+                ])
                 .arg("audio/x-raw,format=S16LE,channels=1,rate=16000")
                 .args(["!", "wavenc", "!", "filesink"])
                 .arg(format!("location={}", out.display()));
@@ -2423,8 +2634,16 @@ fn subtitles(turns: &[MeetingTurnDto], names: &BTreeMap<String, String>, vtt: bo
             ms % 1000
         )
     };
-    let mut out = if vtt { String::from("WEBVTT\n\n") } else { String::new() };
-    for (i, turn) in turns.iter().filter(|t| !t.text.trim().is_empty()).enumerate() {
+    let mut out = if vtt {
+        String::from("WEBVTT\n\n")
+    } else {
+        String::new()
+    };
+    for (i, turn) in turns
+        .iter()
+        .filter(|t| !t.text.trim().is_empty())
+        .enumerate()
+    {
         let who = names.get(&turn.speaker).unwrap_or(&turn.speaker);
         let end = turn.end_ms.max(turn.start_ms + 500);
         if !vtt {
@@ -2494,14 +2713,28 @@ mod tests {
         let bytes = std::fs::read(&path)?;
         assert_eq!(bytes.len(), 50);
         assert_eq!(&bytes[..44], &wav_header(6));
-        assert_eq!(u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]), 42);
+        assert_eq!(
+            u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]),
+            42
+        );
         Ok(())
     }
 
     #[test]
     fn sound_times_move_past_the_spans_the_sound_was_off() {
         // Off from 10 s to 15 s, and again from 30 s for 10 s.
-        let gaps = [Gap { at_ms: 10_000, ms: 5_000, stream: None }, Gap { at_ms: 30_000, ms: 10_000, stream: None }];
+        let gaps = [
+            Gap {
+                at_ms: 10_000,
+                ms: 5_000,
+                stream: None,
+            },
+            Gap {
+                at_ms: 30_000,
+                ms: 10_000,
+                stream: None,
+            },
+        ];
         assert_eq!(sound_to_clock(4_000, &gaps, "call"), 4_000);
         // 12 s into the sound is 17 s on the clock.
         assert_eq!(sound_to_clock(12_000, &gaps, "call"), 17_000);
@@ -2509,9 +2742,24 @@ mod tests {
         assert_eq!(sound_to_clock(24_000, &gaps, "call"), 29_000);
         assert_eq!(sound_to_clock(26_000, &gaps, "call"), 41_000);
         // Sound switched on late: everything starts at the gap's end.
-        assert_eq!(sound_to_clock(1_000, &[Gap { at_ms: 0, ms: 60_000, stream: None }], "call"), 61_000);
+        assert_eq!(
+            sound_to_clock(
+                1_000,
+                &[Gap {
+                    at_ms: 0,
+                    ms: 60_000,
+                    stream: None
+                }],
+                "call"
+            ),
+            61_000
+        );
         // A gap in one stream moves only that stream's times.
-        let mic_off = [Gap { at_ms: 5_000, ms: 20_000, stream: Some("room".to_owned()) }];
+        let mic_off = [Gap {
+            at_ms: 5_000,
+            ms: 20_000,
+            stream: Some("room".to_owned()),
+        }];
         assert_eq!(sound_to_clock(6_000, &mic_off, "room"), 26_000);
         assert_eq!(sound_to_clock(6_000, &mic_off, "call"), 6_000);
     }
@@ -2521,7 +2769,8 @@ mod tests {
         // Starting a meeting publishes it with `inner` held; publishing
         // reads the pause state, which must not need `inner` (a deadlock
         // once hung "Watch with me").
-        let root = std::env::temp_dir().join(format!("narrivy-meetings-lock-{}", std::process::id()));
+        let root =
+            std::env::temp_dir().join(format!("narrivy-meetings-lock-{}", std::process::id()));
         let meetings = Arc::new(Meetings {
             root,
             inner: Mutex::new(Inner::default()),
@@ -2536,6 +2785,133 @@ mod tests {
             let _ = done.send(worker.paused("m1"));
         });
         assert_eq!(finished.recv_timeout(Duration::from_secs(5)), Ok(true));
+    }
+
+    /// A meetings service over a fresh folder, recording `id` with stand-in
+    /// workers (`sleep`) for the live transcript and the screen.
+    fn recording_with_workers(
+        id: &str,
+        session: bool,
+    ) -> std::io::Result<(tempfile::TempDir, Arc<Meetings>, [u32; 2])> {
+        let root = tempfile::tempdir()?;
+        let meetings = Arc::new(Meetings {
+            root: root.path().to_path_buf(),
+            inner: Mutex::new(Inner::default()),
+            control: Mutex::new(std::collections::HashMap::new()),
+            state: Arc::new(DaemonState::new()),
+        });
+        create_private_dir(&meetings.dir(id)).map_err(std::io::Error::other)?;
+        std::fs::write(
+            meetings.dir(id).join("live.jsonl"),
+            "{\"stream\":\"call\",\"start\":1.0,\"end\":2.0,\"speaker\":\"Person 1\",\"text\":\"hi\"}\n",
+        )?;
+        meetings.write_meta(&Meta {
+            id: id.to_owned(),
+            state: "recording".to_owned(),
+            share: session,
+            watch: true,
+            screen_on: true,
+            sound_on: true,
+            ..Meta::default()
+        });
+        let worker = || Command::new("sleep").arg("30").stdin(Stdio::null()).spawn();
+        let (live, screen) = (worker()?, worker()?);
+        let pids = [live.id(), screen.id()];
+        if let Ok(mut inner) = meetings.inner.lock() {
+            inner.recording = Some(Recording {
+                id: id.to_owned(),
+                started: Instant::now(),
+                children: Vec::new(),
+                live: Some(live),
+                microphone: String::new(),
+                speaker: String::new(),
+                screen: Some(screen),
+                started_unix_ms: 0,
+                screen_token: Arc::new(Mutex::new(None)),
+                moving_every: 10,
+                chosen: MeetingOptions::default(),
+                session,
+            });
+        }
+        Ok((root, meetings, pids))
+    }
+
+    fn running(pid: u32) -> bool {
+        // A reaped child has no /proc entry (and a zombie is not running).
+        std::fs::read_to_string(format!("/proc/{pid}/stat")).is_ok_and(|stat| {
+            stat.rsplit_once(')')
+                .is_some_and(|(_, rest)| !rest.trim_start().starts_with('Z'))
+        })
+    }
+
+    #[test]
+    fn stopping_a_session_saves_it_raw_without_transcribing() -> std::io::Result<()> {
+        let (_root, meetings, pids) = recording_with_workers("m1", true)?;
+        let begun = Instant::now();
+        assert_eq!(meetings.stop(), Ok(()));
+        // Saved at once: the live worker is not left to finish (its chat
+        // had the live transcript), well inside the quit bound.
+        assert!(begun.elapsed() < QUIT_BOUND + Duration::from_secs(2));
+        let meta = meetings
+            .read_meta("m1")
+            .ok_or_else(|| std::io::Error::other("no meta"))?;
+        assert_eq!(meta.state, "ready");
+        assert!(meta.raw);
+        assert_eq!(meta.stage, None);
+        assert!(!meta.screen_on && !meta.sound_on);
+        // The screen's helper and the live worker are gone: the portal's
+        // screen cast and the sound end with them.
+        assert!(pids.iter().all(|pid| !running(*pid)));
+        // Nothing was transcribed again; the live transcript is kept as it
+        // was, and going over it later is free to start.
+        assert!(!meetings.dir("m1").join("transcript.json").exists());
+        assert_eq!(meetings.turns("m1").map(|t| t.len()), Some(1));
+        let inner = meetings
+            .inner
+            .lock()
+            .map_err(|_| std::io::Error::other("lock"))?;
+        assert!(inner.recording.is_none() && inner.processing.is_none() && inner.worker.is_none());
+        drop(inner);
+        assert_eq!(meetings.stop(), Err("meeting_not_recording"));
+        Ok(())
+    }
+
+    #[test]
+    fn switching_the_screen_off_ends_its_helper() -> std::io::Result<()> {
+        let (_root, meetings, [_, screen]) = recording_with_workers("m2", true)?;
+        // The computer's sound is still heard.
+        if let Ok(mut inner) = meetings.inner.lock()
+            && let Some(recording) = inner.recording.as_mut()
+        {
+            recording.children.push(Recorder {
+                stream: CALL,
+                child: None,
+                pump: None,
+                off_since: None,
+            });
+        }
+        let meta = meetings
+            .sources("m2", Some(false), None, None)
+            .map_err(std::io::Error::other)?;
+        assert!(!meta.screen_on && meta.sound_on);
+        assert_eq!(meta.state, "recording");
+        assert!(!running(screen));
+        let _ = meetings.stop();
+        Ok(())
+    }
+
+    #[test]
+    fn a_session_with_everything_switched_off_is_stopped_and_saved() -> std::io::Result<()> {
+        // Its screen was the only thing on: switched off, nothing is left.
+        let (_root, meetings, pids) = recording_with_workers("m3", true)?;
+        let meta = meetings
+            .sources("m3", Some(false), None, None)
+            .map_err(std::io::Error::other)?;
+        assert_eq!(meta.state, "ready");
+        assert!(meta.raw);
+        assert!(pids.iter().all(|pid| !running(*pid)));
+        assert!(meetings.recording_now().is_none());
+        Ok(())
     }
 
     #[test]
@@ -2554,7 +2930,10 @@ mod tests {
             subtitles(std::slice::from_ref(&turn), &names, false),
             "1\n00:01:01,500 --> 00:01:03,250\nWaqar: Hello.\n\n"
         );
-        assert!(subtitles(&[turn], &names, true).starts_with("WEBVTT\n\n00:01:01.500 --> 00:01:03.250\n"));
+        assert!(
+            subtitles(&[turn], &names, true)
+                .starts_with("WEBVTT\n\n00:01:01.500 --> 00:01:03.250\n")
+        );
     }
 
     #[test]

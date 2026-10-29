@@ -273,8 +273,24 @@ impl VoiceActivityDetector for NativeEnergyVad {
                 code: "vad_audio_nonfinite",
             });
         }
-        self.decision_count = 0;
+        // The window counts frames and the loop counts samples, so only mono
+        // is measured correctly; capture is mono (F-M1).
+        if chunk.channels != 1 {
+            return Err(EndpointError {
+                code: "vad_channels_unsupported",
+            });
+        }
         let window_samples = self.bind_rate(chunk.sample_rate_hz)? as usize;
+        // Every window this chunk completes needs a decision slot; refuse an
+        // oversized chunk before the floor or speech state moves (F-M2).
+        let windows =
+            (self.accumulated_samples + chunk.samples.len() as u64) / window_samples as u64;
+        if windows > MAX_ACTIVITY_DECISIONS as u64 {
+            return Err(EndpointError {
+                code: "vad_chunk_too_large",
+            });
+        }
+        self.decision_count = 0;
         for sample in &chunk.samples {
             let magnitude = sample.abs().min(1.0);
             self.peak = self.peak.max(magnitude);
@@ -543,6 +559,43 @@ mod tests {
                 code: "vad_audio_format_invalid"
             })
         );
+        Ok(())
+    }
+
+    /// F-M1: interleaved stereo is refused rather than measured at half
+    /// the window length.
+    #[test]
+    fn energy_vad_refuses_more_than_one_channel() -> Result<(), EndpointError> {
+        let mut vad = NativeEnergyVad::new(EnergyVadConfig::default())?;
+        assert_eq!(
+            vad.classify(&AudioChunk {
+                sample_rate_hz: 16_000,
+                channels: 2,
+                samples: vec![0.1; 640],
+            })
+            .err(),
+            Some(EndpointError {
+                code: "vad_channels_unsupported"
+            })
+        );
+        Ok(())
+    }
+
+    /// F-M2: a chunk with more windows than decision slots is refused before
+    /// any window moves the floor or speech state.
+    #[test]
+    fn energy_vad_oversized_chunk_leaves_state_untouched() -> Result<(), EndpointError> {
+        let mut vad = NativeEnergyVad::new(EnergyVadConfig::default())?;
+        let baseline = feed(&mut vad, 0.001, 120);
+        let mut fresh = NativeEnergyVad::new(EnergyVadConfig::default())?;
+        let oversized = chunk(0.5, WINDOW_FRAMES * (MAX_ACTIVITY_DECISIONS + 1));
+        assert_eq!(
+            fresh.classify(&oversized).err(),
+            Some(EndpointError {
+                code: "vad_chunk_too_large"
+            })
+        );
+        assert_eq!(feed(&mut fresh, 0.001, 120), baseline);
         Ok(())
     }
 

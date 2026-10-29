@@ -51,13 +51,14 @@ export function useDictationActions(): DictationActions {
   const { status } = useDaemonStatus();
   const statusRef = useRef(status);
   statusRef.current = status;
-  const [starting, setStarting] = useState(false);
   const [commandWorking, setCommandWorking] = useState(false);
-  const startInFlight = useRef(false);
   // Latched by Stop/Cancel while a Start is resolving, waiting for the
   // advertisement or awaiting its own Start acknowledgement. That Start
   // consumes it and never leaves a live session the user already stopped.
-  const cancelIntent = useRef<'stop' | 'cancel' | null>(null);
+  // Shared app-wide through the session context (F-M11).
+  const latch = session.dictationLatch;
+  const starting = session.startPending;
+  const setStarting = session.setStartPending;
 
   const active = BUSY_SESSION_STATES.has(session.phase || '');
   const working = starting || commandWorking;
@@ -65,15 +66,15 @@ export function useDictationActions(): DictationActions {
 
   const start = useCallback(
     async function start(): Promise<boolean> {
-      if (startInFlight.current) return false;
-      startInFlight.current = true;
+      if (latch.current.startInFlight) return false;
+      latch.current.startInFlight = true;
       // A fresh explicit Start is the user's intent; any earlier cancellation
       // intent has been answered by it.
-      cancelIntent.current = null;
+      latch.current.cancelIntent = null;
       setStarting(true);
       try {
         const pipelineId = await resolveStartId();
-        if (cancelIntent.current) {
+        if (latch.current.cancelIntent) {
           // Stop/Cancel arrived while the advertisement was resolving: never
           // issue the late StartSession.
           return false;
@@ -104,14 +105,14 @@ export function useDictationActions(): DictationActions {
         } else {
           await bridge.start(pipelineId);
         }
-        if (cancelIntent.current) {
+        if (latch.current.cancelIntent) {
           // Separate Start/Cancel IPC connections can be admitted out of
           // order: this Start acknowledgement proves admission, but it may
           // have landed after the cancellation acknowledgement. Reconcile on
           // the separate authenticated command path before reporting a start
           // the user already cancelled.
-          const intent = cancelIntent.current;
-          cancelIntent.current = null;
+          const intent = latch.current.cancelIntent;
+          latch.current.cancelIntent = null;
           try {
             if (intent === 'stop') await bridge.stop();
             else await bridge.cancel();
@@ -128,18 +129,18 @@ export function useDictationActions(): DictationActions {
         void refresh();
         return false;
       } finally {
-        startInFlight.current = false;
-        cancelIntent.current = null;
+        latch.current.startInFlight = false;
+        latch.current.cancelIntent = null;
         setStarting(false);
       }
     },
-    [catalog.availability, report, refresh, resolveStartId],
+    [catalog.availability, report, refresh, resolveStartId, latch, setStarting],
   );
 
   const stop = useCallback(
     async function stop(): Promise<boolean> {
       // A pending Start must not start recording after the user stopped it.
-      cancelIntent.current = 'stop';
+      latch.current.cancelIntent = 'stop';
       setCommandWorking(true);
       try {
         // Stop/cancel never consult the pipeline listing: an active session
@@ -153,7 +154,7 @@ export function useDictationActions(): DictationActions {
         setCommandWorking(false);
       }
     },
-    [report],
+    [report, latch],
   );
 
   const cancel = useCallback(
@@ -161,7 +162,7 @@ export function useDictationActions(): DictationActions {
       // Latch the intent before the IPC round-trip: even when the daemon
       // rejects the request, a Start that is still resolving must not fire
       // after the user cancelled.
-      cancelIntent.current = 'cancel';
+      latch.current.cancelIntent = 'cancel';
       setCommandWorking(true);
       try {
         await bridge.cancel();
@@ -174,7 +175,7 @@ export function useDictationActions(): DictationActions {
         setCommandWorking(false);
       }
     },
-    [report],
+    [report, latch],
   );
 
   return {

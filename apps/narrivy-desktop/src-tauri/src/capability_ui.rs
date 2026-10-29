@@ -174,8 +174,11 @@ mod capability_ui_tests {
         Ok(())
     }
 
-    /// Scan every built frontend asset under `../dist`: zero OS-name
-    /// conditionals/branch tokens may appear anywhere (case-insensitive).
+    /// Scan every built frontend asset under `../dist`, recursively (the
+    /// bundle lives in `dist/assets/`; a flat scan saw only `index.html`,
+    /// F-M16): no string literal may be exactly an OS name
+    /// (case-insensitive), which is what an OS branch compares against.
+    /// Help text that mentions a desktop by name is not a branch.
     /// CONTRACT.md: "No frontend `if linux/cosmic/gnome` branching anywhere;
     /// capability strings drive UI state."
     #[test]
@@ -194,12 +197,19 @@ mod capability_ui_tests {
         let mut scanned_files = 0usize;
         let mut scanned_bytes = 0usize;
         let mut violations: Vec<String> = Vec::new();
-        for entry in std::fs::read_dir(&dist)? {
-            let entry = entry?;
-            let path = entry.path();
-            if !path.is_file() {
-                continue;
+        let mut pending = vec![dist.clone()];
+        let mut files = Vec::new();
+        while let Some(dir) = pending.pop() {
+            for entry in std::fs::read_dir(&dir)? {
+                let path = entry?.path();
+                if path.is_dir() {
+                    pending.push(path);
+                } else if path.is_file() {
+                    files.push(path);
+                }
             }
+        }
+        for path in files {
             let Ok(bytes) = std::fs::read(&path) else {
                 violations.push(format!("unreadable asset {}", path.display()));
                 continue;
@@ -213,7 +223,10 @@ mod capability_ui_tests {
             let haystack = String::from_utf8_lossy(&bytes);
             let lowered = haystack.to_lowercase();
             for token in FORBIDDEN_OS_TOKENS {
-                if lowered.contains(token) {
+                let literal = ['"', '\'', '`']
+                    .iter()
+                    .any(|quote| lowered.contains(&format!("{quote}{token}{quote}")));
+                if literal {
                     violations.push(format!(
                         "{} contains OS-name token {token:?}",
                         path.file_name()

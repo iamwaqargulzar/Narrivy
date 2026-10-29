@@ -193,4 +193,7 @@ fn make_executable(path: &Path) {
         permissions.set_mode(0o755);
         std::fs::set_permissions(path, permissions).expect("chmod");
     }
+    // Windows has no execute bit to set.
+    #[cfg(not(unix))]
+    let _ = path;
 }

@@ -61,6 +61,63 @@ describe('AssistantScreen', () => {
     expect(await screen.findByText(/No assistant model is set up yet/)).toBeInTheDocument();
   });
 
+  it("lists the open chat's saved sessions only, not those of other chats", async () => {
+    window.localStorage.setItem('narrivy.onboarded.v1', '1');
+    const session = (id: string, title: string, at: number) => ({
+      id,
+      title,
+      started_unix_ms: at,
+      duration_ms: 5000,
+      state: 'ready',
+      progress: 1000,
+      model: 'large-v3',
+      speakers: 0,
+      share: true,
+      raw: true,
+    });
+    // Yesterday's share, made in another chat.
+    vi.mocked(bridge.meetings).mockResolvedValue([session('m-yesterday', 'Screen share 2:48 PM', 1000)]);
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Assistant' }));
+    fireEvent.click(await screen.findByRole('switch', { name: 'Screen' }));
+    await waitFor(() =>
+      expect(bridge.assistantLibrary).toHaveBeenCalledWith('put', 'chat', null, expect.stringContaining('"sessions":["m-screen"]')),
+    );
+    expect(screen.queryByRole('region', { name: 'Saved sessions' })).toBeNull();
+    vi.mocked(bridge.meetings).mockResolvedValue([
+      session('m-yesterday', 'Screen share 2:48 PM', 1000),
+      session('m-screen', 'Screen share 3:27 PM', 2000),
+    ]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Stop sharing' }));
+    const list = await screen.findByRole('region', { name: 'Saved sessions' });
+    await waitFor(() => expect(within(list).getAllByText(/PM$/).map((el) => el.textContent)).toEqual(['Screen share 3:27 PM']));
+    vi.mocked(bridge.meetings).mockResolvedValue([]);
+  });
+
+  it('shows the model switch once the service answers, after a failed first ask', async () => {
+    window.localStorage.clear();
+    window.localStorage.setItem('narrivy.onboarded.v1', '1');
+    // The app opened while the service was restarting: the first ask fails.
+    vi.mocked(bridge.languageModels)
+      .mockRejectedValueOnce({ code: 'daemon_unavailable', message: 'daemon_unavailable' })
+      .mockResolvedValue([
+        {
+          id: 'assistant-4b',
+          name: 'Assistant model',
+          publisher: '',
+          size_bytes: 1,
+          license: 'Apache-2.0',
+          roles: ['assistant'],
+          languages: ['en'],
+          recommended_for: [],
+          in_use_for: ['assistant'],
+          assistant_state: 'unloaded',
+        },
+      ]);
+    render(<App />);
+    expect(await screen.findByRole('switch', { name: 'Assistant model' })).toBeInTheDocument();
+  });
+
   it('keeps the conversation when switching tabs, and can unload the model', async () => {
     window.localStorage.clear();
     window.localStorage.setItem('narrivy.onboarded.v1', '1');
@@ -423,6 +480,112 @@ describe('AssistantScreen', () => {
     await waitFor(() => expect(bridge.meetingStop).toHaveBeenCalled());
     const saved = vi.mocked(bridge.assistantLibrary).mock.calls.filter((c) => c[0] === 'put' && c[1] === 'chat');
     expect(saved.at(-1)?.[3]).not.toContain('"live"');
+  });
+
+  it('saves a stopped share raw at once, and goes over it only when given to a chat', async () => {
+    window.localStorage.setItem('narrivy.onboarded.v1', '1');
+    const handlers: ((event: SessionEvent) => void)[] = [];
+    vi.mocked(bridge.onSessionEvent).mockImplementation(async (handler) => {
+      handlers.push(handler);
+      return () => {};
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Assistant' }));
+    fireEvent.click(await screen.findByRole('switch', { name: 'Screen' }));
+    const stop = await screen.findByRole('button', { name: 'Stop sharing' });
+    // The service saves it as heard: no transcribing on stop.
+    const saved = {
+      meeting: {
+        id: 'm-screen',
+        title: 'Screen share',
+        started_unix_ms: Date.now(),
+        duration_ms: 5000,
+        state: 'ready',
+        progress: 1000,
+        model: 'large-v3',
+        speakers: 0,
+        share: true,
+        raw: true,
+      },
+      turns: [{ speaker: 'Person 1', source: 'call', start_ms: 0, end_ms: 1000, text: 'Live words.', language: 'en' }],
+      names: {},
+      models: [],
+      folder: '/m',
+      notes: {},
+      recording: false,
+    };
+    vi.mocked(bridge.meeting).mockResolvedValue(saved as never);
+    fireEvent.click(stop);
+    await waitFor(() => expect(bridge.meetingStop).toHaveBeenCalled());
+    act(() => handlers.forEach((h) => h({ event: 'meeting_changed', id: 'm-screen', state: 'ready', progress: 1000 } as SessionEvent)));
+    // Ready to give at once, not "transcribing" for minutes.
+    await waitFor(() => expect(screen.queryByText('Stopping and saving the session…')).not.toBeInTheDocument());
+    const panel = await screen.findByRole('region', { name: 'Saved session' });
+    expect(within(panel).getByText(/Saved as heard/)).toBeInTheDocument();
+    expect(bridge.meetingProcess).not.toHaveBeenCalled();
+    // Given to the chat: it gets the live transcript now, and is gone over.
+    fireEvent.click(within(panel).getByRole('button', { name: 'Give it to this chat' }));
+    await waitFor(() => expect(bridge.meetingProcess).toHaveBeenCalledWith('m-screen', null, null, null));
+    expect(bridge.assistantLibrary).toHaveBeenCalledWith('put', 'chat', null, expect.stringContaining('Live words.'));
+    // Gone over: the chat's copy becomes the full transcript.
+    vi.mocked(bridge.meeting).mockResolvedValue({
+      ...saved,
+      meeting: { ...saved.meeting, raw: false },
+      turns: [{ ...saved.turns[0], text: 'Full words.' }],
+    } as never);
+    act(() => handlers.forEach((h) => h({ event: 'meeting_changed', id: 'm-screen', state: 'ready', progress: 1000 } as SessionEvent)));
+    await waitFor(() =>
+      expect(bridge.assistantLibrary).toHaveBeenCalledWith('put', 'chat', null, expect.stringContaining('Full words.')),
+    );
+  });
+
+  it('ends the share at once when the last source is switched off from the composer, with no event', async () => {
+    window.localStorage.setItem('narrivy.onboarded.v1', '1');
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Assistant' }));
+    fireEvent.click(await screen.findByRole('switch', { name: 'Screen' }));
+    await screen.findByRole('button', { name: 'Stop sharing' });
+    await waitFor(() => expect(bridge.meeting).toHaveBeenCalledWith('m-screen'));
+    // The service answers the switch-off with the session stopped and saved;
+    // no meeting_changed event reaches the app.
+    vi.mocked(bridge.meetingSources).mockImplementationOnce(async (id: string) => ({
+      id,
+      title: 'Screen',
+      started_unix_ms: Date.now(),
+      duration_ms: 5000,
+      state: 'ready',
+      progress: 1000,
+      model: 'large-v3',
+      speakers: 0,
+      screen_on: false,
+      sound_on: false,
+      mic_on: false,
+    }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Screen' }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Stop sharing' })).not.toBeInTheDocument());
+  });
+
+  it('ends the share in the app when the service stops it (every source switched off)', async () => {
+    window.localStorage.setItem('narrivy.onboarded.v1', '1');
+    const handlers: ((event: SessionEvent) => void)[] = [];
+    vi.mocked(bridge.onSessionEvent).mockImplementation(async (handler) => {
+      handlers.push(handler);
+      return () => {};
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Assistant' }));
+    fireEvent.click(await screen.findByRole('switch', { name: 'Sound' }));
+    await screen.findByRole('button', { name: 'Stop sharing' });
+    await waitFor(() =>
+      expect(bridge.assistantLibrary).toHaveBeenCalledWith('put', 'chat', null, expect.stringContaining('"live":"m-screen"')),
+    );
+    // Switched off from the composer: the service stops and saves it.
+    const stops = vi.mocked(bridge.meetingStop).mock.calls.length;
+    act(() => handlers.forEach((h) => h({ event: 'meeting_changed', id: 'm-screen', state: 'ready', progress: 1000 } as SessionEvent)));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Stop sharing' })).not.toBeInTheDocument());
+    const saved = vi.mocked(bridge.assistantLibrary).mock.calls.filter((c) => c[0] === 'put' && c[1] === 'chat');
+    await waitFor(() => expect(saved.at(-1)?.[3]).not.toContain('"live"'));
+    expect(bridge.meetingStop).toHaveBeenCalledTimes(stops);
   });
 
   it('records a session with only the sound from the top bar', async () => {

@@ -28,6 +28,11 @@ pub const WORKER_SIZE_ENV: &str = "NARRIVY_OPENVINO_WORKER_SIZE";
 /// `narrivy/store` repository (`models/openvino/<pack>/`, `runtimes/…`). Files from it are checked
 /// against the same pins as downloads.
 pub const LOCAL_STORE_ENV: &str = "NARRIVY_STORE_LOCAL_DIR";
+/// Developer only: an absolute path to a runtime pack to use instead of the
+/// pinned one, to try another OpenVINO build (`scripts/dev-daemon.sh`
+/// passes it on; nothing packaged sets it). The pack is checked against its
+/// own manifest, not the catalog pin, and gets its own compiled-model cache.
+pub const DEV_RUNTIME_ENV: &str = "NARRIVY_OPENVINO_RUNTIME_DIR";
 
 /// Whether the runtime pack is ready to use.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -62,14 +67,25 @@ pub fn runtimes_dir(models_dir: &Path) -> Option<PathBuf> {
 }
 
 pub fn runtime_root(models_dir: &Path) -> Option<PathBuf> {
-    runtimes_dir(models_dir).map(|dir| dir.join(RUNTIME_PACK_ID))
+    dev_runtime().or_else(|| runtimes_dir(models_dir).map(|dir| dir.join(RUNTIME_PACK_ID)))
 }
 
-/// The compiled-model cache for this runtime version.
+/// The developer runtime pack named by [`DEV_RUNTIME_ENV`], if any.
+fn dev_runtime() -> Option<PathBuf> {
+    std::env::var_os(DEV_RUNTIME_ENV)
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute())
+}
+
+/// The compiled-model cache for this runtime version (a developer pack's
+/// own, named after its folder: blobs compiled by one OpenVINO build are
+/// not handed to another).
 pub fn cache_dir(models_dir: &Path) -> Option<PathBuf> {
-    models_dir
-        .parent()
-        .map(|data| data.join("openvino-cache").join(RUNTIME_VERSION))
+    let cache = models_dir.parent()?.join("openvino-cache");
+    match dev_runtime() {
+        Some(dev) => dev.file_name().map(|name| cache.join("dev").join(name)),
+        None => Some(cache.join(RUNTIME_VERSION)),
+    }
 }
 
 /// Check the installed runtime pack: its manifest must be the pinned one
@@ -77,15 +93,21 @@ pub fn cache_dir(models_dir: &Path) -> Option<PathBuf> {
 /// file by file when the pack was installed; a size check here is cheap
 /// enough for every status report.
 pub fn runtime_state(models_dir: &Path) -> RuntimeState {
-    let (Some(root), Some(pin)) = (runtime_root(models_dir), catalog_runtime()) else {
+    let dev = dev_runtime().is_some();
+    let Some(root) = runtime_root(models_dir) else {
         return RuntimeState::Missing;
     };
     let manifest_path = root.join(RUNTIME_MANIFEST);
     if std::fs::symlink_metadata(&manifest_path).is_err() {
         return RuntimeState::Missing;
     }
-    if !digest_matches(&manifest_path, &pin.manifest_sha256, pin.manifest_size) {
-        return RuntimeState::Invalid("manifest_mismatch");
+    if !dev {
+        let Some(pin) = catalog_runtime() else {
+            return RuntimeState::Missing;
+        };
+        if !digest_matches(&manifest_path, &pin.manifest_sha256, pin.manifest_size) {
+            return RuntimeState::Invalid("manifest_mismatch");
+        }
     }
     let Ok(manifest) = narrivy_asr_openvino::read_manifest(&manifest_path) else {
         return RuntimeState::Invalid("manifest_invalid");

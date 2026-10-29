@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { bridge, type BridgeError, type StatusSnapshot } from '../lib/bridge';
+import { bridge, toBridgeError, type BridgeError, type StatusSnapshot } from '../lib/bridge';
 import { t } from '../i18n';
 import { useErrorHandler } from '../ui/primitives/Toast';
 
@@ -32,11 +32,6 @@ const PROVISION_POLL_DEADLINE_MS = 90_000;
  * resident worker becoming startable; never continuous polling. */
 const TERMINAL_FOLLOW_UP_MS = [400, 1200, 2500];
 
-function toError(err: unknown): BridgeError {
-  if (err instanceof Error) return { code: 'unknown', message: err.message };
-  return { code: 'unknown', message: String(err) };
-}
-
 export function StatusProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<StatusSnapshot | null>(null);
   const [error, setError] = useState<BridgeError | null>(null);
@@ -49,6 +44,11 @@ export function StatusProvider({ children }: { children: ReactNode }) {
   // newer ready snapshot, and nothing publishes after unmount.
   const generation = useRef(0);
   const mounted = useRef(true);
+  // Whether any read has succeeded: a quiet read may hide a failure only
+  // when there is a last known status to keep.
+  const connected = useRef(false);
+  // Consecutive failed quiet reads; one is a blip, two mean the daemon is gone.
+  const quietFailures = useRef(0);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -65,17 +65,27 @@ export function StatusProvider({ children }: { children: ReactNode }) {
       try {
         const snap = await bridge.status();
         if (!mounted.current || gen !== generation.current) return;
+        connected.current = true;
+        quietFailures.current = 0;
         setStatus(snap);
         setError(null);
       } catch (err) {
         if (!mounted.current || gen !== generation.current) return;
-        if (quiet) {
-          // Background freshness read failed; keep the last known daemon
-          // truth instead of flapping the UI to unavailable.
-          return;
+        if (quiet && connected.current) {
+          // One failed background read keeps the last known daemon truth
+          // instead of flapping the UI. A second in a row means the daemon
+          // is gone: stop showing its old status as current (F-M11: Home
+          // kept saying Ready after the daemon stopped).
+          quietFailures.current += 1;
+          if (quietFailures.current < 2) return;
+          connected.current = false;
+          setStatus(null);
         }
-        setError(toError(err));
-        report(err, { retry: () => void fetchStatus(false) });
+        // Never connected: a quiet read that supersedes the first one must
+        // still surface its failure, or the app says "Connecting" forever
+        // (seen natively 2026-10-20). Only an explicit read raises a toast.
+        setError(toBridgeError(err));
+        if (!quiet) report(err, { retry: () => void fetchStatus(false) });
       } finally {
         // The newest read has settled, so the loading state is over even when
         // a quiet freshness read superseded an explicit reload.
@@ -105,10 +115,17 @@ export function StatusProvider({ children }: { children: ReactNode }) {
   // faster, deadline-bounded poll, and once that deadline is spent reads stop
   // until the surfaced retry. Owned by this provider; unmounting stops it.
   const provisionActive = provisionState !== null && PROVISION_ACTIVE_STATES.has(provisionState);
+  // Single flight: a tick while the previous read is still out is skipped,
+  // so reads never pile up behind a slow daemon (F-M10).
+  const livePolling = useRef(false);
   useEffect(() => {
     if (provisionActive) return;
     const id = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void fetchStatus(true);
+      if (document.visibilityState !== 'visible' || livePolling.current) return;
+      livePolling.current = true;
+      void fetchStatus(true).finally(() => {
+        livePolling.current = false;
+      });
     }, LIVE_REFRESH_MS);
     return () => window.clearInterval(id);
   }, [fetchStatus, provisionActive]);

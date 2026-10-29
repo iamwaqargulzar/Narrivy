@@ -1,6 +1,7 @@
 [Unit]
 Description=Narrivy dictation daemon (per-user)
 After=graphical-session.target pipewire.service
+PartOf=graphical-session.target
 Wants=pipewire.service
 StartLimitIntervalSec=60s
 StartLimitBurst=3
@@ -8,11 +9,11 @@ StartLimitBurst=3
 [Service]
 Type=simple
 ExitType=cgroup
-Environment=NARRIVY_RECOVERY_MODE=linux-mic-inbox
+Environment=NARRIVY_RECOVERY_MODE=linux-mic-routed-inbox
 Environment=NARRIVY_DEFAULT_PIPELINE=clean
 Environment=NARRIVY_ASR_ENGINE=transcribe-cpp
 Environment=NARRIVY_AUDIO_SOURCE=pipewire
-Environment=NARRIVY_DELIVERY_BACKEND=inbox
+Environment=NARRIVY_DELIVERY_BACKEND=routed-inbox
 Environment=NARRIVY_DELIVERY_FAIL=0
 Environment=NARRIVY_TRANSCRIBE_RUNTIME=installed
 Environment=NARRIVY_TRANSCRIBE_MODEL_ID=whisper-tiny.en-Q8_0
@@ -33,12 +34,9 @@ KillMode=control-group
 TimeoutStopSec=3s
 TimeoutStopFailureMode=kill
 SendSIGKILL=yes
+LimitCORE=0
 NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=read-only
 UMask=0077
-CapabilityBoundingSet=
 RestrictAddressFamilies=AF_UNIX
 RuntimeDirectory=narrivy
 RuntimeDirectoryMode=0700
@@ -50,4 +48,4 @@ Environment=XDG_STATE_HOME=%S
 Environment=XDG_CACHE_HOME=%C
 
 [Install]
-WantedBy=default.target
+WantedBy=graphical-session.target

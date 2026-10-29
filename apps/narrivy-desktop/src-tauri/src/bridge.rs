@@ -165,10 +165,17 @@ pub const DAEMON_SERVICE: &str = "narrivy-daemon.service";
 /// Bound for starting the daemon on demand, including the readiness wait.
 pub const DAEMON_START_TIMEOUT: Duration = Duration::from_secs(3);
 const SYSTEMCTL: &str = "/usr/bin/systemctl";
+/// At most one on-demand start per interval: every status read comes through
+/// here, and a daemon that fails at startup must not be started again on
+/// each 3 s poll (seen natively on 2026-10-20).
+const DAEMON_START_INTERVAL: Duration = Duration::from_secs(30);
+static LAST_START: std::sync::Mutex<Option<Instant>> = std::sync::Mutex::new(None);
 
-/// Status probe that starts the installed per-user daemon once when it is not
-/// running. Qualification lanes with an explicit `NARRIVY_SOCKET` keep full
-/// ownership of their daemon process, so no start is attempted for them.
+/// Status probe that starts the installed per-user daemon when it is not
+/// running, at most once per [`DAEMON_START_INTERVAL`]. Qualification lanes
+/// with an explicit `NARRIVY_SOCKET` keep full ownership of their daemon
+/// process, so no start is attempted for them. A unit systemd reports as
+/// failed answers `daemon_failed`, so the app can say so instead of waiting.
 /// Blocking: call it from a worker thread, never the UI thread.
 pub fn daemon_status_with_start() -> CmdResult<StatusSnapshot> {
     let initial = match daemon_status() {
@@ -179,17 +186,62 @@ pub fn daemon_status_with_start() -> CmdResult<StatusSnapshot> {
         return Err(initial);
     }
     let deadline = Instant::now() + DAEMON_START_TIMEOUT;
+    if !start_due(Instant::now()) {
+        return Err(failed_or(deadline, initial));
+    }
     run_systemctl(&["--user", "daemon-reload"], deadline, &initial)?;
     run_systemctl(&["--user", "start", DAEMON_SERVICE], deadline, &initial)?;
     loop {
         match daemon_status() {
             Ok(status) => return Ok(status),
             Err(error) if error.code == "daemon_unavailable" && Instant::now() < deadline => {
-                std::thread::sleep(Duration::from_millis(20));
+                if service_failed(deadline) {
+                    return Err(daemon_failed());
+                }
+                std::thread::sleep(Duration::from_millis(250));
             }
-            Err(error) => return Err(error),
+            Err(error) => return Err(failed_or(deadline, error)),
         }
     }
+}
+
+/// Whether an on-demand start may run now; records it when it may.
+fn start_due(now: Instant) -> bool {
+    let Ok(mut last) = LAST_START.lock() else {
+        return false;
+    };
+    if last.is_some_and(|at| now.duration_since(at) < DAEMON_START_INTERVAL) {
+        return false;
+    }
+    *last = Some(now);
+    true
+}
+
+fn failed_or(deadline: Instant, error: BridgeError) -> BridgeError {
+    if error.code == "daemon_unavailable" && service_failed(deadline) {
+        daemon_failed()
+    } else {
+        error
+    }
+}
+
+fn daemon_failed() -> BridgeError {
+    BridgeError::new(
+        "daemon_failed",
+        "Narrivy's background service could not start. For details run: \
+         journalctl --user -u narrivy-daemon",
+    )
+}
+
+/// `systemctl --user is-failed` exits 0 only for a failed unit.
+fn service_failed(deadline: Instant) -> bool {
+    let unavailable = BridgeError::daemon_unavailable("");
+    run_systemctl(
+        &["--user", "--quiet", "is-failed", DAEMON_SERVICE],
+        deadline.max(Instant::now() + Duration::from_secs(1)),
+        &unavailable,
+    )
+    .is_ok()
 }
 
 fn run_systemctl(
@@ -557,7 +609,10 @@ pub fn daemon_assistant_tool_decision(call_id: String, allow: bool, always: bool
             code,
             detail: err_detail,
         } => Err(BridgeError::from(IpcError::new(code, err_detail))),
-        _ => Err(BridgeError::new("internal", "unexpected payload for tool decision")),
+        _ => Err(BridgeError::new(
+            "internal",
+            "unexpected payload for tool decision",
+        )),
     }
 }
 
@@ -578,7 +633,10 @@ pub fn daemon_voice_mode(
             code,
             detail: err_detail,
         } => Err(BridgeError::from(IpcError::new(code, err_detail))),
-        _ => Err(BridgeError::new("internal", "unexpected payload for voice_mode")),
+        _ => Err(BridgeError::new(
+            "internal",
+            "unexpected payload for voice_mode",
+        )),
     }
 }
 
@@ -929,6 +987,8 @@ pub fn daemon_set_numbers_as_digits(on: bool) -> CmdResult<narrivy_ipc::TextOpti
         delivery_method: None,
         cleanup_idle_minutes: None,
         spoken_breaks: None,
+        dictation_language: None,
+        dictation_languages: None,
     })
 }
 
@@ -939,6 +999,8 @@ pub fn daemon_set_cleanup_idle(minutes: u32) -> CmdResult<narrivy_ipc::TextOptio
         delivery_method: None,
         cleanup_idle_minutes: Some(minutes),
         spoken_breaks: None,
+        dictation_language: None,
+        dictation_languages: None,
     })
 }
 
@@ -949,6 +1011,45 @@ pub fn daemon_set_spoken_breaks(on: bool) -> CmdResult<narrivy_ipc::TextOptionsD
         delivery_method: None,
         cleanup_idle_minutes: None,
         spoken_breaks: Some(on),
+        dictation_language: None,
+        dictation_languages: None,
+    })
+}
+
+/// Dictation language commands need protocol minor 54.
+fn require_dictation_language() -> CmdResult<()> {
+    if connect(&socket_path())?.protocol_minor() < narrivy_ipc::DICTATION_LANGUAGE_PROTOCOL_MINOR {
+        return Err(BridgeError::new(
+            "incompatible_protocol",
+            "the daemon has no dictation language; update Narrivy",
+        ));
+    }
+    Ok(())
+}
+
+/// The language a start without its own is dictated in: a tag, or `auto`.
+pub fn daemon_set_dictation_language(tag: String) -> CmdResult<narrivy_ipc::TextOptionsDto> {
+    require_dictation_language()?;
+    text_options_request(&Command::SetTextOptions {
+        numbers_as_digits: None,
+        delivery_method: None,
+        cleanup_idle_minutes: None,
+        spoken_breaks: None,
+        dictation_language: Some(tag),
+        dictation_languages: None,
+    })
+}
+
+/// The user's languages to choose from.
+pub fn daemon_set_dictation_languages(tags: Vec<String>) -> CmdResult<narrivy_ipc::TextOptionsDto> {
+    require_dictation_language()?;
+    text_options_request(&Command::SetTextOptions {
+        numbers_as_digits: None,
+        delivery_method: None,
+        cleanup_idle_minutes: None,
+        spoken_breaks: None,
+        dictation_language: None,
+        dictation_languages: Some(tags),
     })
 }
 
@@ -959,6 +1060,8 @@ pub fn daemon_set_delivery_method(method: String) -> CmdResult<narrivy_ipc::Text
         delivery_method: Some(method),
         cleanup_idle_minutes: None,
         spoken_breaks: None,
+        dictation_language: None,
+        dictation_languages: None,
     })
 }
 
@@ -1095,7 +1198,10 @@ pub fn daemon_meeting_slide(id: String, file: String) -> CmdResult<String> {
             code,
             detail: err_detail,
         } => Err(BridgeError::from(IpcError::new(code, err_detail))),
-        _ => Err(BridgeError::new("internal", "unexpected payload for meeting_slide")),
+        _ => Err(BridgeError::new(
+            "internal",
+            "unexpected payload for meeting_slide",
+        )),
     }
 }
 
@@ -1173,7 +1279,10 @@ fn unexpected(what: &str) -> BridgeError {
 }
 
 /// Start recording a meeting.
-pub fn daemon_meeting_start(title: Option<String>, watch: bool) -> CmdResult<narrivy_ipc::MeetingDto> {
+pub fn daemon_meeting_start(
+    title: Option<String>,
+    watch: bool,
+) -> CmdResult<narrivy_ipc::MeetingDto> {
     if watch {
         let client = connect(&socket_path())?;
         if client.protocol_minor() < narrivy_ipc::ASSISTANT_AGENT_PROTOCOL_MINOR {
@@ -1267,7 +1376,9 @@ pub fn daemon_meeting_sources(
             "the daemon cannot switch the screen or the sound during a recording; update Narrivy",
         ));
     }
-    if microphone.is_some() && client.protocol_minor() < narrivy_ipc::MEETING_MICROPHONE_PROTOCOL_MINOR {
+    if microphone.is_some()
+        && client.protocol_minor() < narrivy_ipc::MEETING_MICROPHONE_PROTOCOL_MINOR
+    {
         return Err(BridgeError::new(
             "incompatible_protocol",
             "the daemon cannot switch the microphone apart during a recording; update Narrivy",
@@ -2004,5 +2115,24 @@ mod p7_pipelines_io_tests {
             serde_json::from_str(&std::fs::read_to_string(&export_path)?)?;
         assert!(find_forbidden_keys(&parsed).is_empty());
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod start_tests {
+    use super::{DAEMON_START_INTERVAL, start_due};
+    use std::time::{Duration, Instant};
+
+    /// A daemon that fails at startup is started once per interval, not on
+    /// every status poll.
+    #[test]
+    fn on_demand_start_runs_at_most_once_per_interval() {
+        let now = Instant::now();
+        assert!(start_due(now));
+        assert!(!start_due(now + Duration::from_secs(3)));
+        assert!(!start_due(
+            now + DAEMON_START_INTERVAL - Duration::from_millis(1)
+        ));
+        assert!(start_due(now + DAEMON_START_INTERVAL));
     }
 }

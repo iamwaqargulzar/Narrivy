@@ -204,9 +204,19 @@ fn committed_dictation_is_retained_and_served_over_the_socket() -> TestResult {
     let txid = dictate(&mut client)?;
     assert_eq!(harness.delivered_txid()?, txid);
 
-    // Listing row: content-safe fields only.
-    let ResponsePayload::History(rows) = client.request(&Command::GetHistory, REQ_TIMEOUT)? else {
-        return Err("expected History payload".into());
+    // Listing row: content-safe fields only. History is written just after
+    // the result is published, so wait (bounded) for the row rather than
+    // racing the `committed` event (failed about 1 run in 20).
+    let deadline = Instant::now() + EVENT_WAIT;
+    let rows = loop {
+        let ResponsePayload::History(rows) = client.request(&Command::GetHistory, REQ_TIMEOUT)?
+        else {
+            return Err("expected History payload".into());
+        };
+        if !rows.is_empty() || Instant::now() >= deadline {
+            break rows;
+        }
+        std::thread::sleep(POLL_INTERVAL);
     };
     assert_eq!(rows.len(), 1, "exactly the committed dictation is retained");
     let row = rows

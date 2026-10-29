@@ -28,10 +28,10 @@ pub use journal::{
 pub use modules::{KNOWN_SLOTS, ModuleDescriptor, ModuleRegistry};
 pub use persistence::{ConfigStore, MIGRATIONS, Migration, Store, apply_migrations, sha256_hex};
 pub use recovery::{
-    CorrectionPort, LivePreviewPort, MAX_VOLATILE_PARTIAL_BYTES, RecoveryDeliveryMode,
-    RecoverySlice, RecoveryTerminal, RecoveryTimingObserver, RecoveryTimingStage,
-    RecoveryTimingTrace, StartupRecoveryReport, StreamingRecoverySlice, VolatilePartial,
-    recover_unsent_to_inbox,
+    CAPTURE_SOURCE_ENDED, CorrectionPort, LivePreviewPort, MAX_VOLATILE_PARTIAL_BYTES,
+    RecoveryDeliveryMode, RecoverySlice, RecoveryTerminal, RecoveryTimingObserver,
+    RecoveryTimingStage, RecoveryTimingTrace, SOURCE_ENDED_MIN_SAMPLES, StartupRecoveryReport,
+    StreamingRecoverySlice, VolatilePartial, recover_unsent_to_inbox,
 };
 pub use session::{SessionMachine, is_valid_transition};
 pub use transcript::{TransactionClass, TranscriptStore};

@@ -2303,7 +2303,8 @@ mod ipc_tests {
         // result on `committed`; minor 19 the AI assistant; minor 20 the
         // language models; minor 21 the microphone level; minor 22 unloading
         // the assistant; minor 23 copying a History entry; minor 24 the writing assistant; minor 25 meetings; minor 26 meeting notes; minor 27 audio options; minor 28 the voice filter; minor 29 noise suppression levels; minor 30 the vocabulary; minor 31 choosing the microphone; minor 32 press and hold; minor 33 start and stop sounds; minor 34 History settings; minor 35 text options; minor 36 per-pipeline Voice settings; minor 37 meeting import; minor 38 the delivery method; minor 39 meeting options; minor 40 unloading the clean-up model when idle; minor 41 voice strictness; minor 42 spoken line breaks; minor 43 meeting devices.
-        assert_eq!(PROTOCOL_MINOR, 53);
+        // Minor 54: the dictation language.
+        assert_eq!(PROTOCOL_MINOR, 54);
         assert_eq!(MAX_CONCURRENT_CONNECTIONS, 64);
         assert_eq!(LOCK_FILE_NAME, "narrivyd.lock");
     }

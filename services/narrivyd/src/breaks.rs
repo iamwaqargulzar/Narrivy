@@ -64,14 +64,26 @@ mod tests {
 
     #[test]
     fn spoken_commands_become_breaks() {
-        assert_eq!(line_breaks("first point, new line. second point"), "first point\nSecond point");
-        assert_eq!(line_breaks("Dear Ali. New paragraph thanks for the call."), "Dear Ali.\n\nThanks for the call.");
-        assert_eq!(line_breaks("a list: new line milk new line eggs"), "a list\nMilk\nEggs");
+        assert_eq!(
+            line_breaks("first point, new line. second point"),
+            "first point\nSecond point"
+        );
+        assert_eq!(
+            line_breaks("Dear Ali. New paragraph thanks for the call."),
+            "Dear Ali.\n\nThanks for the call."
+        );
+        assert_eq!(
+            line_breaks("a list: new line milk new line eggs"),
+            "a list\nMilk\nEggs"
+        );
     }
 
     #[test]
     fn ordinary_words_stay() {
-        assert_eq!(line_breaks("the new lineup is out"), "the new lineup is out");
+        assert_eq!(
+            line_breaks("the new lineup is out"),
+            "the new lineup is out"
+        );
         assert_eq!(line_breaks("a new plan"), "a new plan");
         assert_eq!(line_breaks(""), "");
     }

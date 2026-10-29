@@ -14,20 +14,20 @@ This file tracks licenses for bundled third-party components. Narrivy itself is 
   `tauri-plugin-single-instance`. The Linux overlay uses `gtk 0.18` and
   `gtk-layer-shell 0.8` (MIT). The system GTK/WebKitGTK/gtk-layer-shell
   libraries remain dynamically linked and are not bundled.
-- Resident ASR worker: exact `transcribe-cpp 0.2.3` and
-  `transcribe-cpp-sys 0.2.3` (MIT) are optional, default-features-disabled
+- Resident ASR worker: exact `transcribe-cpp 0.4.1` and
+  `transcribe-cpp-sys 0.4.1` (MIT) are optional, default-features-disabled
   dependencies. The sys crate compiles its bundled transcribe.cpp/ggml C++
   sources as a static CPU library through `cmake 0.1.58`; Narrivy isolates that
   native code in `narrivy-transcribe-worker`. Crates.io checksums and the full
   transitive graph are locked in `Cargo.lock`. The model is user-cache data and
   is not bundled by this change.
-- Writing checker (D26, SQ-WRITE): exact `harper-core 2.11.0` (Apache-2.0,
+- Writing checker (D26, SQ-WRITE): exact `harper-core 2.13.0` (Apache-2.0,
   Automattic) with default features off except `concurrent`, used as a
   library in narrivyd. Its dependency `tiny-keccak 2.0.2` is CC0-1.0 (public
   domain), allowed for that crate only in `deny.toml`.
 
 ## Desktop frontend (npm)
-- `react` and `react-dom` 18 (MIT), `@tauri-apps/api` 2 (Apache-2.0 OR MIT).
+- `react` and `react-dom` 19 (MIT), `@tauri-apps/api` 2 (Apache-2.0 OR MIT).
 - Fonts bundled into the desktop app: Inter (Rasmus Andersson) and
   Instrument Serif (Instrument), via `@fontsource-variable/inter` and
   `@fontsource/instrument-serif` 5.x, under the SIL Open Font License 1.1

@@ -3,17 +3,23 @@
 // list and each model's state come from the daemon (`ListModels`); against an
 // older daemon the screen falls back to the single reported model. Nothing is
 // claimed that the daemon did not report.
+import { BundledModelSetup } from '../components/BundledModelSetup';
+
+/** The model the package ships (`/usr/share/narrivy/models`). */
+const BUNDLED_MODEL_ID = 'whisper-tiny.en-Q8_0';
 import { useEffect, useState } from 'react';
 import { Button } from '../../ui/primitives/Button';
-import { Icon } from '../../ui/icons';
+import { Icon, type IconName } from '../../ui/icons';
 import { t } from '../../i18n';
 import { useDaemonStatus } from '../../state/StatusContext';
 import { useErrorHandler } from '../../ui/primitives/Toast';
 import { bridge, type ModelInfo, type ModelProvisionStatus } from '../../lib/bridge';
-import { activeDevice, formatBytes } from '../../lib/overview';
+import { formatBytes } from '../../lib/overview';
 import { languageSummary, modelName, quantBits, usableModels } from '../../lib/modelFacts';
 import { useNav } from '../../state/NavContext';
 import { LanguageModelsPanel } from './LanguageModels';
+import { TextToSpeechPanel } from './TextToSpeech';
+import '../components/SettingsCompute/SettingsCompute.css';
 
 /** `ListModels` needs a daemon at protocol minor 13 or newer. */
 const MODELS_PROTOCOL_MINOR = 13;
@@ -338,6 +344,25 @@ function capValue(caps: string[], prefix: string): string | null {
   return found ? found.slice(prefix.length) : null;
 }
 
+const PROVISION_FAILURES = new Set([
+  'source_rejected',
+  'import_failed',
+  'cleanup_failed',
+  'published_unconfirmed',
+  'binding_failed',
+  'activation_failed',
+  'shutting_down',
+  'worker_failed',
+]);
+
+/** The daemon's typed reason a model install failed, in words (F-M11). */
+export function provisionFailureText(failure: string | null | undefined): string | null {
+  if (!failure) return null;
+  return PROVISION_FAILURES.has(failure)
+    ? t(`models.installFailure.${failure}`)
+    : t('models.installFailure.other', { code: failure });
+}
+
 type Tone = '' | ' chip-ok' | ' chip-warn';
 
 function lifecycle(state: string | null | undefined): { label: string; tone: Tone } {
@@ -357,6 +382,15 @@ function lifecycle(state: string | null | undefined): { label: string; tone: Ton
   }
 }
 
+type ModelKind = 'speech' | 'correction' | 'language' | 'voice';
+/** The kinds of model, each a section of the side panel. */
+const KINDS: Array<{ id: ModelKind; icon: IconName }> = [
+  { id: 'speech', icon: 'mic' },
+  { id: 'correction', icon: 'sliders' },
+  { id: 'language', icon: 'spark' },
+  { id: 'voice', icon: 'speaker' },
+];
+
 export function ModelsScreen() {
   const { status, reload } = useDaemonStatus();
   const { navigate } = useNav();
@@ -369,10 +403,8 @@ export function ModelsScreen() {
   const runtime = capValue(caps, 'asr.transcribe-cpp.runtime=');
   const languages = capValue(caps, 'asr.languages=');
   const streaming = capValue(caps, 'asr.transcribe-cpp.streaming=');
-  const computeDevice = capValue(caps, 'compute.device=');
   const installedState = status?.installed_model;
   const provisionState = provision?.state ?? status?.model_provisioning?.state;
-  const working = ['importing', 'cancel_requested', 'activating'].includes(provisionState ?? '');
   const state = lifecycle(installedState);
 
   // The model list, read again whenever the daemon's model state changes.
@@ -453,11 +485,17 @@ export function ModelsScreen() {
     },
   };
   const [filters, setFilters] = useState<ModelFilters>(NO_FILTERS);
-  const [tab, setTab] = useState<'speech' | 'language'>('speech');
+  const [tab, setTab] = useState<ModelKind>('speech');
   const listed = models !== null && models.length > 0;
   const visible = filterModels(models ?? [], filters);
   const onComputer = usableModels(visible);
-  const downloadable = visible.filter((m) => m.state === 'available' || m.state === 'downloading');
+  const downloadable = visible.filter(
+    (m) => m.state === 'downloading' || (m.state === 'available' && m.downloadable),
+  );
+  // Listed in the catalog but with no checked download published yet.
+  const notYet = visible.filter(
+    (m) => m.state === 'available' && !m.downloadable && m.id !== BUNDLED_MODEL_ID,
+  );
   const needsEngine = visible.filter((m) => m.state === 'needs_engine');
 
   // Provisioning progress is refreshed by StatusProvider's bounded freshness
@@ -487,150 +525,125 @@ export function ModelsScreen() {
     }
   };
 
-  // Where recognition runs. The tiers are fixed product vocabulary; whether
-  // each is in use comes only from daemon capabilities.
-  const cpuInUse = cpu === 'available' || caps.includes('asr.transcribe-cpp');
-  const accelerated = computeDevice !== null && !computeDevice.startsWith('unavailable');
-  const running = activeDevice(status).running;
-  const onGpu = running === 'igpu' || running === 'dgpu';
-  const tiers = [
-    { id: 'npu', title: t('models.tier.npu'), body: t('models.tier.npuBody'), inUse: running === 'npu' },
-    { id: 'gpu', title: t('models.tier.gpu'), body: t('models.tier.gpuBody'), inUse: onGpu },
-    { id: 'cpu', title: t('models.tier.cpu'), body: t('models.tier.cpuBody'), inUse: cpuInUse && !accelerated && !onGpu && running !== 'npu' },
-  ];
-
   return (
-    <div className="page-wide">
-      <div className="page-head">
-        <h2 className="page-title">{t('nav.models')}</h2>
-        <p className="page-lead">{t('models.lead')}</p>
-      </div>
-      <div className="theme-switch lm-tabs" role="tablist" aria-label={t('lm.tabs')}>
-        <button type="button" role="tab" aria-selected={tab === 'speech'} aria-pressed={tab === 'speech'} onClick={() => setTab('speech')}>
-          <Icon name="mic" />
-          <span>{t('lm.tab.speech')}</span>
-        </button>
-        <button type="button" role="tab" aria-selected={tab === 'language'} aria-pressed={tab === 'language'} onClick={() => setTab('language')}>
-          <Icon name="spark" />
-          <span>{t('lm.tab.language')}</span>
-        </button>
-      </div>
-      {tab === 'language' ? <LanguageModelsPanel /> : null}
-      <div hidden={tab !== 'speech'}>
+    <div className="settings-page">
+      <aside className="settings-side" aria-label={t('lm.tabs')}>
+        <div className="settings-tabs" role="tablist" aria-label={t('lm.tabs')} aria-orientation="vertical">
+          {KINDS.map((kind) => (
+            <button
+              key={kind.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === kind.id}
+              className="settings-tab"
+              onClick={() => setTab(kind.id)}
+            >
+              <Icon name={kind.icon} />
+              {t(`lm.tab.${kind.id}`)}
+            </button>
+          ))}
+        </div>
+      </aside>
+      <div className="settings-main">
+        <div className="page-wide">
+          <div className="page-head">
+            <h2 className="page-title">{t('nav.models')}</h2>
+            <p className="page-lead">{t(`lm.lead.${tab}`)}</p>
+          </div>
+          {tab === 'correction' ? <LanguageModelsPanel roles={['clean_up']} listRole="clean_up" /> : null}
+          {tab === 'language' ? <LanguageModelsPanel roles={['assistant']} /> : null}
+          {tab === 'voice' ? <TextToSpeechPanel /> : null}
+          <div hidden={tab !== 'speech'}>
 
-      {installedState === 'awaiting_model' || provisionState ? (
-        <div className="panel model-card" data-testid="model-install">
-          <span className="model-icon" aria-hidden="true">
-            <Icon name="inbox" />
-          </span>
-          <div>
-            <div className="model-name">{t('models.installTitle')}</div>
-            <p className="model-desc">{t('models.installBody')}</p>
-            {provisionState ? (
-              <p className="source" role="status" style={{ marginTop: 8 }}>
-                {t('models.installState', { state: provisionState })}
-              </p>
+          {/* Only while no model is in use: once ready the card is gone and
+              the model's row says "In use" (it stayed with its button after
+              "ready", seen natively). */}
+          {installedState === 'awaiting_model' ||
+          (provisionState && installedState !== 'ready') ? (
+            <BundledModelSetup
+              provisionState={provisionState ?? null}
+              failureText={provisionFailureText(provision?.failure ?? status?.model_provisioning?.failure)}
+              model={(models ?? []).find((m) => m.id === BUNDLED_MODEL_ID) ?? null}
+              onInstall={() => void install()}
+              onCancel={() => void cancelInstall()}
+            />
+          ) : null}
+
+          {listed ? (
+            <>
+              <ModelToolbar filters={filters} onChange={setFilters} shown={visible.length} total={models?.length ?? 0} />
+              {visible.length === 0 ? (
+                <div className="panel empty-state">
+                  <Icon name="search" />
+                  <strong>{t('models.noMatchTitle')}</strong>
+                  <span className="screen-empty-note">{t('models.noMatch')}</span>
+                </div>
+              ) : null}
+              {downloadFailed ? (
+                <p className="model-download-error" role="alert">
+                  {t('models.downloadFailed', {
+                    reason: t(`models.downloadReason.${DOWNLOAD_REASONS.has(downloadFailed) ? downloadFailed : 'download_failed'}`, {
+                      code: downloadFailed,
+                    }),
+                  })}
+                </p>
+              ) : null}
+              <ModelSection title={t('models.onComputer')} hint={t('models.onComputerHint')} models={onComputer} downloads={downloads} />
+              <ModelSection title={t('models.available')} hint={t('models.availableHint')} models={downloadable} downloads={downloads} />
+              <ModelSection title={t('models.notYet')} hint={t('models.notYetHint')} models={notYet} downloads={downloads} />
+              <ModelSection title={t('models.needsEngine')} hint={t('models.needsEngineHint')} models={needsEngine} downloads={downloads} />
+            </>
+          ) : null}
+
+          {listed ? null : <h3 className="section-title">{t('models.speechTitle')}</h3>}
+          <div className="model-list" hidden={listed}>
+            {hasGgufLane ? (
+              <div className="panel model-card">
+                <span className="model-icon" aria-hidden="true">
+                  <Icon name="models" />
+                </span>
+                <div>
+                  <div className="model-name">{t('models.ggufLane')}</div>
+                  <p className="model-desc">{t('models.ggufLaneBody')}</p>
+                  <div className="model-tags">
+                    <span className={`chip${state.tone}`}>{state.label}</span>
+                    {runtime ? <span className="chip">{t('models.tag.runtime', { runtime })}</span> : null}
+                    {languages ? <span className="chip">{t('models.tag.languages', { languages })}</span> : null}
+                    {streaming ? (
+                      <span className="chip">
+                        {streaming.startsWith('disabled') || streaming.startsWith('unavailable')
+                          ? t('models.tag.finalOnly')
+                          : t('models.tag.streaming')}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                <span className="source mono">asr.transcribe-cpp</span>
+              </div>
+            ) : null}
+            {hasTestLane ? (
+              <div className="panel model-card">
+                <span className="model-icon" aria-hidden="true">
+                  <Icon name="spark" />
+                </span>
+                <div>
+                  <div className="model-name">{t('models.testLane')}</div>
+                  <p className="model-desc">{t('models.testLaneBody')}</p>
+                </div>
+                <span className="source mono">mock.asr</span>
+              </div>
+            ) : null}
+            {!hasTestLane && !hasGgufLane ? (
+              <div className="panel empty-state">
+                <Icon name="models" />
+                <strong>{status ? t('models.noLaneTitle') : t('common.loading')}</strong>
+                {status ? <span className="screen-empty-note">{t('models.noLane')}</span> : null}
+              </div>
             ) : null}
           </div>
-          {working ? (
-            <Button onClick={() => void cancelInstall()}>{t('models.installCancel')}</Button>
-          ) : (
-            <Button variant="primary" onClick={() => void install()}>
-              {t('models.installAction')}
-            </Button>
-          )}
+
+          </div>
         </div>
-      ) : null}
-
-      {listed ? (
-        <>
-          <ModelToolbar filters={filters} onChange={setFilters} shown={visible.length} total={models?.length ?? 0} />
-          {visible.length === 0 ? (
-            <div className="panel empty-state">
-              <Icon name="search" />
-              <strong>{t('models.noMatchTitle')}</strong>
-              <span className="screen-empty-note">{t('models.noMatch')}</span>
-            </div>
-          ) : null}
-          {downloadFailed ? (
-            <p className="model-download-error" role="alert">
-              {t('models.downloadFailed', {
-                reason: t(`models.downloadReason.${DOWNLOAD_REASONS.has(downloadFailed) ? downloadFailed : 'download_failed'}`, {
-                  code: downloadFailed,
-                }),
-              })}
-            </p>
-          ) : null}
-          <ModelSection title={t('models.onComputer')} hint={t('models.onComputerHint')} models={onComputer} downloads={downloads} />
-          <ModelSection title={t('models.available')} hint={t('models.availableHint')} models={downloadable} downloads={downloads} />
-          <ModelSection title={t('models.needsEngine')} hint={t('models.needsEngineHint')} models={needsEngine} downloads={downloads} />
-        </>
-      ) : null}
-
-      {listed ? null : <h3 className="section-title">{t('models.speechTitle')}</h3>}
-      <div className="model-list" hidden={listed}>
-        {hasGgufLane ? (
-          <div className="panel model-card">
-            <span className="model-icon" aria-hidden="true">
-              <Icon name="models" />
-            </span>
-            <div>
-              <div className="model-name">{t('models.ggufLane')}</div>
-              <p className="model-desc">{t('models.ggufLaneBody')}</p>
-              <div className="model-tags">
-                <span className={`chip${state.tone}`}>{state.label}</span>
-                {runtime ? <span className="chip">{t('models.tag.runtime', { runtime })}</span> : null}
-                {languages ? <span className="chip">{t('models.tag.languages', { languages })}</span> : null}
-                {streaming ? (
-                  <span className="chip">
-                    {streaming.startsWith('disabled') || streaming.startsWith('unavailable')
-                      ? t('models.tag.finalOnly')
-                      : t('models.tag.streaming')}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-            <span className="source mono">asr.transcribe-cpp</span>
-          </div>
-        ) : null}
-        {hasTestLane ? (
-          <div className="panel model-card">
-            <span className="model-icon" aria-hidden="true">
-              <Icon name="spark" />
-            </span>
-            <div>
-              <div className="model-name">{t('models.testLane')}</div>
-              <p className="model-desc">{t('models.testLaneBody')}</p>
-            </div>
-            <span className="source mono">mock.asr</span>
-          </div>
-        ) : null}
-        {!hasTestLane && !hasGgufLane ? (
-          <div className="panel empty-state">
-            <Icon name="models" />
-            <strong>{status ? t('models.noLaneTitle') : t('common.loading')}</strong>
-            {status ? <span className="screen-empty-note">{t('models.noLane')}</span> : null}
-          </div>
-        ) : null}
-      </div>
-
-      <h3 className="section-title">{t('models.whereTitle')}</h3>
-      <div className="ladder">
-        {tiers.map((tier) => (
-          <div key={tier.id} className="ladder-step" data-in-use={tier.inUse ? 'true' : 'false'}>
-            <strong>{tier.title}</strong>
-            <span>{tier.body}</span>
-            <span className={`chip${tier.inUse ? ' chip-ok' : ''}`}>
-              {tier.inUse ? t('models.tier.inUse') : t('models.tier.notInUse')}
-            </span>
-          </div>
-        ))}
-      </div>
-      {computeDevice && !accelerated && !onGpu && running !== 'npu' ? (
-        <p className="source" style={{ marginTop: 10 }}>
-          {t('models.tier.cpuOnly')}
-        </p>
-      ) : null}
       </div>
     </div>
   );

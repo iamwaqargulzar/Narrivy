@@ -51,7 +51,9 @@ JSON: {\"type\": \"bar\" or \"line\", \"title\": \"...\", \"labels\": [...], \"v
 
 fn wants_chart(question: &str) -> bool {
     let lower = question.to_lowercase();
-    ["chart", "graph", "plot", "diagram"].iter().any(|word| lower.contains(word))
+    ["chart", "graph", "plot", "diagram"]
+        .iter()
+        .any(|word| lower.contains(word))
 }
 
 /// Added for a spoken turn (voice mode).
@@ -563,13 +565,13 @@ fn check_item(kind: &str, item: &serde_json::Value) -> Result<(), &'static str> 
                 serde_json::from_value::<Skill>(item.clone()).is_ok_and(|s| skill_name_ok(&s.name))
             }
             "tool" => serde_json::from_value::<super::assistant_tools::ToolServer>(item.clone())
-            .is_ok_and(|t| {
-                !t.name.trim().is_empty()
-                    && !t.command.trim().is_empty()
-                    && (Path::new(&t.command).is_absolute() || !t.command.contains('/'))
-                    && t.args.len() <= 32
-            }),
-        "routine" => serde_json::from_value::<Routine>(item.clone()).is_ok_and(|r| {
+                .is_ok_and(|t| {
+                    !t.name.trim().is_empty()
+                        && !t.command.trim().is_empty()
+                        && (Path::new(&t.command).is_absolute() || !t.command.contains('/'))
+                        && t.args.len() <= 32
+                }),
+            "routine" => serde_json::from_value::<Routine>(item.clone()).is_ok_and(|r| {
                 matches!(r.every.as_str(), "hourly" | "daily" | "weekdays" | "weekly")
                     && clock(&r.time).is_some()
                     && r.weekday < 7
@@ -1235,11 +1237,15 @@ mod tests {
         // Run just now, so after yesterday's 08:00 slot whatever the time
         // of day (today's slot may still be ahead).
         assert!(!due(&ran, (days - 1, weekday, 8 * 60 + 1)));
+        // Last run long ago, slot this very minute: due. (A fixed 08:00 slot
+        // failed every evening: past 20:00 it is more than 12 h late.)
+        let (days, weekday, minute) = local_now();
         let long_ago = Routine {
             last_run: Some(0),
+            time: format!("{:02}:{:02}", minute / 60, minute % 60),
             ..routine.clone()
         };
-        assert!(due(&long_ago, (days, weekday, 8 * 60 + 1)));
+        assert!(due(&long_ago, (days, weekday, minute)));
     }
 
     #[test]

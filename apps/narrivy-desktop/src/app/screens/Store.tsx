@@ -14,6 +14,7 @@ import { useErrorHandler } from '../../ui/primitives/Toast';
 import { useNav } from '../../state/NavContext';
 import { bridge, type StoreItem } from '../../lib/bridge';
 import { formatBytes } from '../../lib/overview';
+import '../components/SettingsCompute/SettingsCompute.css';
 
 /** `ListStore` needs a service at protocol minor 17 or newer. */
 const STORE_PROTOCOL_MINOR = 17;
@@ -244,6 +245,8 @@ export function StoreScreen() {
   const { navigate } = useNav();
   const report = useErrorHandler();
   const [items, setItems] = useState<StoreItem[] | null>(null);
+  const [active, setActive] = useState('all');
+  const [query, setQuery] = useState('');
   const supported = (status?.protocol_minor ?? 0) >= STORE_PROTOCOL_MINOR;
 
   const load = useCallback(async () => {
@@ -301,48 +304,103 @@ export function StoreScreen() {
   // list them here, so they are left out.
   const list = (items ?? []).filter((item) => item.kind !== 'model');
   const names = new Map(list.map((item) => [item.id, item.name]));
-  const accelerators = list.filter((item) => item.kind === 'runtime');
-  const modules = list.filter((item) => item.kind === 'module');
-  const refine = modules.filter((item) => item.category === 'refine');
-  const denoise = modules.filter((item) => item.category === 'denoise');
-  const otherModules = modules.filter((item) => item.category !== 'refine' && item.category !== 'denoise');
-  const extensions = list.filter((item) => item.kind === 'extension');
+  const needle = query.trim().toLowerCase();
+  const shown = needle === ''
+    ? list
+    : list.filter((item) => `${item.name} ${about(item) ?? ''}`.toLowerCase().includes(needle));
+  const groups: Array<{ id: string; icon: IconName; items: StoreItem[] }> = [
+    { id: 'accelerators', icon: 'cpu', items: shown.filter((item) => item.kind === 'runtime') },
+    { id: 'refine', icon: 'spark', items: shown.filter((item) => item.kind === 'module' && item.category === 'refine') },
+    { id: 'denoise', icon: 'wave', items: shown.filter((item) => item.kind === 'module' && item.category === 'denoise') },
+    {
+      id: 'modules',
+      icon: 'sliders',
+      items: shown.filter((item) => item.kind === 'module' && item.category !== 'refine' && item.category !== 'denoise'),
+    },
+    { id: 'extensions', icon: 'apps', items: shown.filter((item) => item.kind === 'extension') },
+  ];
+  const visible = groups.filter((group) => active === 'all' || group.id === active);
 
   return (
-    <div className="page-wide">
-      <div className="page-head">
-        <h2 className="page-title">{t('nav.store')}</h2>
-        <p className="page-lead">{t('store.lead')}</p>
-      </div>
-      <div className="store-notes">
-        <p className="store-trust">
-          <Icon name="shield" />
-          {t('store.trust')}
-        </p>
-        <button type="button" className="store-models-link" onClick={() => navigate('models')}>
-          <Icon name="models" />
-          {t('store.modelsElsewhere')}
-          <Icon name="arrowRight" />
-        </button>
-      </div>
-      {!supported ? (
-        <div className="panel empty-state">
-          <Icon name="store" />
-          <strong>{status ? t('store.olderService') : t('common.loading')}</strong>
+    <div className="settings-page">
+      <aside className="settings-side" aria-label={t('store.sections')}>
+        <label className="settings-search">
+          <Icon name="search" />
+          <input
+            type="search"
+            aria-label={t('store.search')}
+            placeholder={t('store.searchPlaceholder')}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </label>
+        <div className="settings-tabs" role="tablist" aria-label={t('store.sections')} aria-orientation="vertical">
+          {[{ id: 'all', icon: 'store' as IconName, items: shown }, ...groups].map((group) =>
+            group.id !== 'all' && group.items.length === 0 && active !== group.id ? null : (
+              <button
+                key={group.id}
+                type="button"
+                role="tab"
+                aria-selected={active === group.id}
+                className="settings-tab"
+                onClick={() => setActive(group.id)}
+              >
+                <Icon name={group.icon} />
+                {t(`store.${group.id}`)}
+                <span className="settings-tab-count">{group.items.length}</span>
+              </button>
+            ),
+          )}
         </div>
-      ) : null}
-      {supported && items !== null && list.length === 0 ? (
-        <div className="panel empty-state">
-          <Icon name="store" />
-          <strong>{t('store.emptyTitle')}</strong>
-          <span className="screen-empty-note">{t('store.empty')}</span>
+        <div className="store-side-foot">
+          <p className="store-trust">
+            <Icon name="shield" />
+            {t('store.trust')}
+          </p>
+          <button type="button" className="store-models-link" onClick={() => navigate('models')}>
+            <Icon name="models" />
+            {t('store.modelsElsewhere')}
+            <Icon name="arrowRight" />
+          </button>
         </div>
-      ) : null}
-      <Section title={t('store.accelerators')} hint={t('store.acceleratorsHint')} items={accelerators} names={names} actions={actions} />
-      <Section title={t('store.refine')} hint={t('store.refineHint')} items={refine} names={names} actions={actions} />
-      <Section title={t('store.denoise')} hint={t('store.denoiseHint')} items={denoise} names={names} actions={actions} />
-      <Section title={t('store.modules')} hint={t('store.modulesHint')} items={otherModules} names={names} actions={actions} />
-      <Section title={t('store.extensions')} hint={t('store.extensionsHint')} items={extensions} names={names} actions={actions} />
+      </aside>
+      <div className="settings-main">
+        <div className="page-wide">
+          <div className="page-head">
+            <h2 className="page-title">{t('nav.store')}</h2>
+            <p className="page-lead">{t('store.lead')}</p>
+          </div>
+          {!supported ? (
+            <div className="panel empty-state">
+              <Icon name="store" />
+              <strong>{status ? t('store.olderService') : t('common.loading')}</strong>
+            </div>
+          ) : null}
+          {supported && items !== null && list.length === 0 ? (
+            <div className="panel empty-state">
+              <Icon name="store" />
+              <strong>{t('store.emptyTitle')}</strong>
+              <span className="screen-empty-note">{t('store.empty')}</span>
+            </div>
+          ) : null}
+          {list.length > 0 && visible.every((group) => group.items.length === 0) ? (
+            <div className="panel empty-state">
+              <Icon name="search" />
+              <strong>{t('store.noResults')}</strong>
+            </div>
+          ) : null}
+          {visible.map((group) => (
+            <Section
+              key={group.id}
+              title={t(`store.${group.id}`)}
+              hint={t(`store.${group.id}Hint`)}
+              items={group.items}
+              names={names}
+              actions={actions}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

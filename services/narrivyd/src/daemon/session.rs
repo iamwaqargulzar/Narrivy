@@ -43,7 +43,7 @@ use narrivy_platform_api::DeliveryPort;
 use narrivy_platform_linux::delivery::{
     ClipboardPasteRung, DeliveryPermissionEvidence, DeliveryPermissionPort, DirectRung,
     PortalEisTextRung, RoutedThenInboxDelivery, SystemWtypeKeyboardRung, TargetBinding,
-    TargetBindingSource, UnavailablePreActivationTargetBinding, UnavailableRung,
+    TargetBindingSource, UinputPasteChord, UnavailablePreActivationTargetBinding, UnavailableRung,
     WaylandClipboardHandoff, WtypePasteChord,
 };
 #[cfg(feature = "asr-transcribe-resident")]
@@ -58,7 +58,7 @@ use narrivy_types::{
     AudioChunk, DeliveryAttempt, DeliveryOutcome, FallbackReason, SessionControl, SessionId,
     SessionState, TransactionId, TranscriptVariants,
 };
-use rand::{TryRngCore, rngs::OsRng};
+use rand::{TryRng, rngs::SysRng};
 
 use super::capture::{AudioSourceKind, SAMPLE_RATE_HZ, parse_wav_mono, sine_fixture_samples};
 use super::compute::ComputePlan;
@@ -570,6 +570,7 @@ fn compose_strict_routed_delivery(
     binding: TargetBinding,
     portal_service: Option<Arc<PortalPermissionService>>,
     clipboard_authorized: bool,
+    uinput_paste: bool,
 ) -> Result<RoutedThenInboxDelivery, narrivy_platform_api::PlatformError> {
     let permission: Box<dyn DeliveryPermissionPort> = Box::new(SessionDeliveryPermission {
         portal: portal_service.clone(),
@@ -581,6 +582,7 @@ fn compose_strict_routed_delivery(
         portal_service.map(super::portal::PortalPermissionSubmitter::new),
         permission,
         clipboard_authorized,
+        uinput_paste,
     )
 }
 
@@ -595,6 +597,7 @@ fn compose_strict_routed_delivery_with<S>(
     portal_submitter: Option<S>,
     permission: Box<dyn DeliveryPermissionPort>,
     clipboard_authorized: bool,
+    uinput_paste: bool,
 ) -> Result<RoutedThenInboxDelivery, narrivy_platform_api::PlatformError>
 where
     S: PortalEisTextSubmitter + 'static,
@@ -616,23 +619,17 @@ where
     // protocol (no helper from PATH) and Shift+Insert through the trusted
     // wtype. It runs before typing, needs the explicit clipboard
     // authorization (it reads the user's clipboard to put it back), and
-    // pastes into the focused window like the typing rung does.
+    // pastes into the focused window like the typing rung does. With the
+    // opt-in `paste-keyboard` method the chord goes through Narrivy's uinput
+    // keyboard instead, for compositors that drop wtype's modifiers.
     if clipboard_authorized {
-        match shared_wayland_selection() {
-            Some(selection) => rungs.push(Box::new(ClipboardPasteRung::for_focused_window(
-                WaylandClipboardHandoff::new(selection),
-                WtypePasteChord::shift_insert(),
-            ))),
-            None => rungs.push(Box::new(UnavailableRung::clipboard_paste(
-                "wayland_data_control_unavailable",
-            ))),
-        }
+        rungs.push(live_clipboard_paste_rung(uinput_paste));
     } else {
         rungs.push(Box::new(UnavailableRung::clipboard_paste(
             "clipboard_not_authorized",
         )));
     }
-    rungs.push(Box::new(SystemWtypeKeyboardRung::new()));
+    rungs.push(live_keyboard_rung());
     // Copy-only stays unavailable: no trusted copy helper is accepted.
     let clipboard_reason = if clipboard_authorized {
         "trusted_clipboard_helper_not_accepted"
@@ -641,6 +638,48 @@ where
     };
     rungs.push(Box::new(UnavailableRung::clipboard_copy(clipboard_reason)));
     RoutedThenInboxDelivery::new(inbox_dir, binding, permission, rungs)
+}
+
+/// The clipboard-paste rung on the user's real clipboard and keyboard.
+#[cfg(all(feature = "asr-transcribe-cpp", not(test)))]
+fn live_clipboard_paste_rung(uinput_paste: bool) -> Box<dyn DirectRung> {
+    match shared_wayland_selection() {
+        Some(selection) if uinput_paste => Box::new(ClipboardPasteRung::for_focused_window(
+            WaylandClipboardHandoff::new(selection),
+            UinputPasteChord::shift_insert(),
+        )),
+        Some(selection) => Box::new(ClipboardPasteRung::for_focused_window(
+            WaylandClipboardHandoff::new(selection),
+            WtypePasteChord::shift_insert(),
+        )),
+        None => Box::new(UnavailableRung::clipboard_paste(
+            "wayland_data_control_unavailable",
+        )),
+    }
+}
+
+#[cfg(all(feature = "asr-transcribe-cpp", not(test)))]
+fn live_keyboard_rung() -> Box<dyn DirectRung> {
+    Box::new(SystemWtypeKeyboardRung::new())
+}
+
+/// Tests compose the same ladder, but never on the live desktop: run from a
+/// desktop terminal, the real rungs would write the user's clipboard and type
+/// into the focused window (F-H16). The stand-ins keep each rung's id and
+/// position, and report themselves unavailable.
+#[cfg(all(feature = "asr-transcribe-cpp", test))]
+fn live_clipboard_paste_rung(_uinput_paste: bool) -> Box<dyn DirectRung> {
+    Box::new(UnavailableRung::clipboard_paste(
+        "live_input_disabled_in_tests",
+    ))
+}
+
+#[cfg(all(feature = "asr-transcribe-cpp", test))]
+fn live_keyboard_rung() -> Box<dyn DirectRung> {
+    Box::new(UnavailableRung::new(
+        "wtype-virtual-keyboard",
+        "live_input_disabled_in_tests",
+    ))
 }
 
 /// Bind the delivery target exactly once on the installed Start path, before
@@ -691,6 +730,19 @@ fn transcribe_duration_us(timing: &RecoveryTimingTrace) -> Option<u64> {
     timing
         .offset_us(RawFinalAccepted)?
         .checked_sub(timing.offset_us(CaptureEnded)?)
+}
+
+/// Remove Inbox files older than the recovery journal's lifetime (F-M4):
+/// History is the durable copy of a dictation; the Inbox only bridges a
+/// delivery that could not be verified.
+pub(crate) fn prune_inbox(dir: PathBuf) {
+    let removed = narrivy_platform_linux::delivery::InboxStore::new(dir).prune_older_than(
+        Duration::from_millis(narrivy_core::JOURNAL_TTL_MS),
+        std::time::SystemTime::now(),
+    );
+    if removed > 0 {
+        eprintln!("narrivyd: removed {removed} expired recovered-text file(s)");
+    }
 }
 
 fn mirror_result_into_history(
@@ -1056,7 +1108,7 @@ impl Drop for ProvisionWorkerCleanup {
 #[cfg(feature = "asr-transcribe-resident")]
 fn generate_model_provision_operation_id() -> Result<String, ()> {
     let mut bytes = [0_u8; 16];
-    OsRng.try_fill_bytes(&mut bytes).map_err(|_| ())?;
+    SysRng.try_fill_bytes(&mut bytes).map_err(|_| ())?;
     let mut id = String::from("mp-");
     for byte in bytes {
         use std::fmt::Write as _;
@@ -2825,7 +2877,7 @@ impl DaemonState {
         journal: &Journal,
         admitted: &AdmittedPipeline,
     ) -> Result<(u128, TransactionId), CoreError> {
-        let mut random = OsRng;
+        let mut random = SysRng;
         self.begin_session_with_entropy(journal, admitted, |bytes| {
             random.try_fill_bytes(bytes).map_err(|_| {
                 CoreError::Worker("secure transaction identity unavailable".to_owned())
@@ -3749,7 +3801,7 @@ fn recognition_request_from_dto(
                 format!("invalid recognition settings: {}", error.code),
             )
         })?;
-    Ok(AsrRequest {
+    let mut request = AsrRequest {
         spoken_language,
         output: WrittenOutput {
             language: settings
@@ -3766,7 +3818,48 @@ fn recognition_request_from_dto(
             .transpose()?,
         locale: settings.locale.as_ref().map(parse_tag).transpose()?,
         context_bias,
-    })
+    };
+    written_language_as_spoken(&mut request);
+    Ok(request)
+}
+
+/// A start that names no language (the plain toggle, the tray's Start,
+/// press and hold) is dictated in the user's current dictation language.
+/// One that names any language, or asks for detection or translation,
+/// keeps its own.
+fn with_dictation_language(mut request: AsrRequest, current: Option<String>) -> AsrRequest {
+    let names_none = matches!(request.spoken_language, SpokenLanguage::Unspecified)
+        && request.output.language.is_none()
+        && request.translation_target.is_none();
+    if names_none && let Some(tag) = current.and_then(|tag| AsrTag::parse(&tag).ok()) {
+        request.spoken_language = SpokenLanguage::Explicit(tag);
+    }
+    request
+}
+
+/// "Write in Urdu" without a translation is the same request as "Urdu is
+/// spoken": a speech model writes in the language it transcribes, and the
+/// engines take only the spoken language. So a written language with no
+/// spoken language (or the same one) becomes the spoken language. A written
+/// language that differs from an explicit spoken one stays, and is refused
+/// by the capability check as before.
+fn written_language_as_spoken(request: &mut AsrRequest) {
+    if request.translation_target.is_some() {
+        return;
+    }
+    let Some(written) = request.output.language.clone() else {
+        return;
+    };
+    match &request.spoken_language {
+        SpokenLanguage::Unspecified | SpokenLanguage::AutoDetect => {
+            request.spoken_language = SpokenLanguage::Explicit(written);
+            request.output.language = None;
+        }
+        SpokenLanguage::Explicit(spoken) if written.matches(spoken) => {
+            request.output.language = None;
+        }
+        SpokenLanguage::Explicit(_) => {}
+    }
 }
 
 fn validate_recognition_capabilities(
@@ -3885,6 +3978,8 @@ fn start_admitted_session(
     if let Err((code, detail)) = require_pipeline_start_readiness(engine_config, &admitted) {
         return StartSessionOutcome::Rejected { code, detail };
     }
+    let recognition =
+        with_dictation_language(recognition, super::text_options::dictation_language());
     if let Err((code, detail)) = validate_recognition_admission(&recognition, state) {
         return StartSessionOutcome::Rejected { code, detail };
     }
@@ -3953,6 +4048,8 @@ fn start_admitted_session(
     #[cfg_attr(not(feature = "asr-transcribe-cpp"), allow(unused_variables))]
     // The user's delivery method, when chosen, else the composition's.
     let job_clipboard_authorized = super::text_options::paste(engine_config.clipboard_authorized);
+    #[cfg_attr(not(feature = "asr-transcribe-cpp"), allow(unused_variables))]
+    let job_uinput_paste = job_clipboard_authorized && super::text_options::paste_through_uinput();
     // The routed lane submits through the daemon-owned portal
     // service only; it can never request or fabricate a grant.
     #[cfg_attr(not(feature = "asr-transcribe-cpp"), allow(unused_variables))]
@@ -4022,10 +4119,6 @@ fn start_admitted_session(
                         return;
                     }
                 };
-                let Some(model) = job_model_path.clone() else {
-                    job_state.recovery_initialization_failed(session_id, &job_txid, &job_journal, "model_unavailable");
-                    return;
-                };
                 // A model that cannot stream still shows text while the
                 // user speaks: the live preview decodes the recent audio
                 // with the same engine (F3).
@@ -4061,6 +4154,13 @@ fn start_admitted_session(
                         return;
                     }
                 } else {
+                    // Only the sidecar engine takes a model path: the
+                    // installed resident engine has its model bound at
+                    // startup, and installed mode forbids the path (F-C6).
+                    let Some(model) = job_model_path.clone() else {
+                        job_state.recovery_initialization_failed(session_id, &job_txid, &job_journal, "model_unavailable");
+                        return;
+                    };
                     match TranscribeCppEngine::with_model_path(model) {
                         Ok(engine) => StrictRecoveryAsr::Batch(Box::new(
                             super::voice::VoiceFiltered::new(Box::new(engine), false)
@@ -4091,6 +4191,7 @@ fn start_admitted_session(
                             job_target_binding,
                             job_portal_service.clone(),
                             job_clipboard_authorized,
+                            job_uinput_paste,
                         ) {
                             Ok(delivery) => Box::new(delivery),
                             Err(err) => {
@@ -4277,6 +4378,10 @@ fn start_admitted_session(
                     job_app_id.as_deref(),
                     transcribe_duration_us(&job_timing),
                 );
+                // Recovered text lasts as long as the journal does (F-M4).
+                if let Some(dir) = job_inbox_dir.clone() {
+                    prune_inbox(dir);
+                }
                 job_state.record_completed_timing(&job_timing);
                 // Content-free terminal fact for the support-report surface.
                 worker_diagnostics.observe(match &terminal {
@@ -4397,54 +4502,6 @@ fn start_admitted_session(
                         .push(text.to_owned());
                     Ok(())
                 }
-                DeliveryBackendKind::PlatformRouter => {
-                    let router_cfg =
-                        narrivy_platform_linux::delivery::DeliveryRouterConfig {
-                            allow_uinput_opt_in: false,
-                            wtype_path: None,
-                            clipboard_tool: None,
-                            inbox_dir: job_inbox_dir.clone(),
-                        };
-                    let mut observed: Vec<DeliveryOutcome> = Vec::new();
-                    let txid = TransactionId::new(format!(
-                        "p2-{}-{session_id}",
-                        std::process::id()
-                    ));
-                    let outcome = narrivy_platform_linux::delivery::route_and_deliver_tx_with(
-                        &router_cfg,
-                        &txid,
-                        text,
-                        &mut |o| observed.push(o),
-                        &narrivy_platform_linux::delivery::command::StdCommandRunner,
-                    );
-                    eprintln!(
-                        "narrivyd: delivery outcome: {}",
-                        match outcome {
-                            DeliveryOutcome::Delivered => "delivered",
-                            DeliveryOutcome::SubmittedUnverified => {
-                                "submitted-unverified"
-                            }
-                            DeliveryOutcome::CopiedOnly => "copied-only",
-                            DeliveryOutcome::InboxFallback => "inbox-fallback",
-                            DeliveryOutcome::Failed => "failed",
-                        }
-                    );
-                    match outcome {
-                        DeliveryOutcome::Delivered => Ok(()),
-                        other => Err(CoreError::Platform(narrivy_platform_api::PlatformError {
-                            code: match other {
-                                DeliveryOutcome::CopiedOnly => "copied_only",
-                                DeliveryOutcome::SubmittedUnverified => {
-                                    "submitted_unverified"
-                                }
-                                DeliveryOutcome::InboxFallback => "inbox_fallback",
-                                DeliveryOutcome::Failed => "failed",
-                                DeliveryOutcome::Delivered => unreachable!(),
-                            },
-                            message: String::new(),
-                        })),
-                    }
-                }
                 DeliveryBackendKind::InboxOnly => Err(CoreError::Platform(
                     narrivy_platform_api::PlatformError {
                         code: "inbox_only_requires_recovery_mode",
@@ -4549,7 +4606,11 @@ fn start_admitted_session(
 /// When `chat_id` is sharing a screen live: copies of what the screens show
 /// now are added to `pictures`, and what is shared (with what was said so
 /// far) is returned, to go beside the question.
-fn live_share(state: &Arc<DaemonState>, chat_id: &str, pictures: &mut Vec<String>) -> Option<String> {
+fn live_share(
+    state: &Arc<DaemonState>,
+    chat_id: &str,
+    pictures: &mut Vec<String>,
+) -> Option<String> {
     let meetings = super::meetings::shared(state).ok()?;
     let (recording, title, screen) = meetings.recording_now()?;
     let chat = super::assistant_library::chat(chat_id)?;
@@ -4591,8 +4652,10 @@ fn without_own_voice(said: &str, answers: &[&str]) -> String {
             .map(str::to_lowercase)
             .collect()
     }
-    let answers: Vec<std::collections::HashSet<String>> =
-        answers.iter().map(|a| words(a).into_iter().collect()).collect();
+    let answers: Vec<std::collections::HashSet<String>> = answers
+        .iter()
+        .map(|a| words(a).into_iter().collect())
+        .collect();
     said.lines()
         .filter(|line| {
             let text = line.split_once("]").map_or(*line, |(_, rest)| rest);
@@ -4640,12 +4703,16 @@ hear or have no transcript.]\n{}",
 /// what was said so far.
 fn live_instructions(picture: Option<bool>, said: &str) -> String {
     let mut text = String::from(match picture {
-        Some(_) => "[The user is sharing their screen and its sound with you live, right now (a video, \
+        Some(_) => {
+            "[The user is sharing their screen and its sound with you live, right now (a video, \
 a meeting, a page). You can see the screen and you can hear the sound through the live transcript \
-below; never say you cannot hear, have no audio or have no transcript. ",
-        None => "[The user is sharing what they are listening to with you live, right now (a podcast, \
+below; never say you cannot hear, have no audio or have no transcript. "
+        }
+        None => {
+            "[The user is sharing what they are listening to with you live, right now (a podcast, \
 a call, a talk). You hear it through the live transcript below; never say you cannot hear or have \
-no transcript. You cannot see their screen. ",
+no transcript. You cannot see their screen. "
+        }
     });
     if picture == Some(true) {
         text.push_str(
@@ -4798,14 +4865,22 @@ pub fn build_handler_with_portal(
                 let installed_model = None;
                 #[cfg(not(feature = "asr-transcribe-resident"))]
                 let model_provisioning = None;
+                // The clipboard tokens follow the user's delivery method, the
+                // same rule the next dictation composes its ladder with (D37).
+                let status_config = EngineConfig {
+                    clipboard_authorized: super::text_options::paste(
+                        engine_config.clipboard_authorized,
+                    ),
+                    ..(*engine_config).clone()
+                };
                 #[cfg(feature = "asr-transcribe-resident")]
                 let mut capabilities = capability_strings_with_resident(
-                    &engine_config,
+                    &status_config,
                     resident_snapshot.map(ResidentRuntimeSnapshot::capability_snapshot),
                     compute.as_deref(),
                 );
                 #[cfg(not(feature = "asr-transcribe-resident"))]
-                let mut capabilities = capability_strings(&engine_config, compute.as_deref());
+                let mut capabilities = capability_strings(&status_config, compute.as_deref());
                 append_history_capabilities(&mut capabilities, history.as_deref());
                 // The three activation facts are separate and content-free:
                 // the atomic command, the observed portal interface, and the
@@ -5177,7 +5252,14 @@ pub fn build_handler_with_portal(
                                 live,
                             )
                         } else {
-                            assistant.send_in_chat(turn_id, chat_id, question, &pictures, speak, live.as_deref())
+                            assistant.send_in_chat(
+                                turn_id,
+                                chat_id,
+                                question,
+                                &pictures,
+                                speak,
+                                live.as_deref(),
+                            )
                         }
                     }
                     None if speak || !pictures.is_empty() => Err("assistant_chat_missing"),
@@ -5238,7 +5320,9 @@ pub fn build_handler_with_portal(
                 sound,
                 microphone,
             } => {
-                match super::meetings::shared(&state).and_then(|m| m.sources(&id, screen, sound, microphone)) {
+                match super::meetings::shared(&state)
+                    .and_then(|m| m.sources(&id, screen, sound, microphone))
+                {
                     Ok(meeting) => reply(request_id, &ResponsePayload::Meeting(meeting)),
                     Err(code) => rejected(request_id, IpcErrorCode::BadRequest, code.to_owned()),
                 }
@@ -5267,7 +5351,9 @@ pub fn build_handler_with_portal(
                 let saved = auto_notes
                     .map_or(Ok(()), super::meetings::set_auto_notes)
                     .and_then(|()| screen.map_or(Ok(()), super::meetings::set_screen))
-                    .and_then(|()| process_on_stop.map_or(Ok(()), super::meetings::set_process_on_stop))
+                    .and_then(|()| {
+                        process_on_stop.map_or(Ok(()), super::meetings::set_process_on_stop)
+                    })
                     .and_then(|()| {
                         if microphone.is_some()
                             || speaker.is_some()
@@ -5414,6 +5500,8 @@ pub fn build_handler_with_portal(
                 delivery_method,
                 cleanup_idle_minutes,
                 spoken_breaks,
+                dictation_language,
+                dictation_languages,
             } => {
                 let outcome = numbers_as_digits
                     .map_or(Ok(()), super::text_options::set_numbers_as_digits)
@@ -5428,6 +5516,16 @@ pub fn build_handler_with_portal(
                     })
                     .and_then(|()| {
                         spoken_breaks.map_or(Ok(()), super::text_options::set_spoken_breaks)
+                    })
+                    .and_then(|()| {
+                        dictation_languages
+                            .as_deref()
+                            .map_or(Ok(()), super::text_options::set_dictation_languages)
+                    })
+                    .and_then(|()| {
+                        dictation_language
+                            .as_deref()
+                            .map_or(Ok(()), super::text_options::set_dictation_language)
                     });
                 match outcome {
                     Ok(()) => reply(
@@ -9154,6 +9252,79 @@ mod p7_modes_tests {
     }
 
     #[test]
+    fn a_start_without_a_language_takes_the_current_dictation_language() -> TestResult {
+        let urdu = with_dictation_language(AsrRequest::default(), Some("ur".to_owned()));
+        assert!(matches!(
+            urdu.spoken_language,
+            SpokenLanguage::Explicit(ref t) if t.as_str() == "ur"
+        ));
+        // Automatic leaves the request as it was.
+        assert!(with_dictation_language(AsrRequest::default(), None).is_default());
+        // A language shortcut keeps its own language.
+        let english = AsrRequest {
+            spoken_language: SpokenLanguage::Explicit(
+                AsrTag::parse("en").map_err(|e| std::io::Error::other(e.code))?,
+            ),
+            ..AsrRequest::default()
+        };
+        let kept = with_dictation_language(english, Some("ur".to_owned()));
+        assert!(matches!(
+            kept.spoken_language,
+            SpokenLanguage::Explicit(ref t) if t.as_str() == "en"
+        ));
+        // So does a shortcut that asks for detection.
+        let detect = AsrRequest {
+            spoken_language: SpokenLanguage::AutoDetect,
+            ..AsrRequest::default()
+        };
+        assert!(matches!(
+            with_dictation_language(detect, Some("ur".to_owned())).spoken_language,
+            SpokenLanguage::AutoDetect
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn a_written_language_alone_is_dictated_as_the_spoken_language() -> TestResult {
+        let tag = |value| narrivy_ipc::RecognitionTagDto::parse(value);
+        let written = |spoken, output| RecognitionSettingsDto {
+            spoken_language: spoken,
+            output_language: Some(output),
+            ..RecognitionSettingsDto::default()
+        };
+        // "Write in Urdu" (Alt+B made with the old shortcut form).
+        let request = recognition_request_from_dto(Some(&written(
+            SpokenLanguageDto::Unspecified,
+            tag("ur")?,
+        )))
+        .map_err(|(_, detail)| std::io::Error::other(detail))?;
+        assert!(matches!(
+            request.spoken_language,
+            SpokenLanguage::Explicit(ref t) if t.as_str() == "ur"
+        ));
+        assert_eq!(request.output.language, None);
+        // The same language twice is just that language.
+        let request = recognition_request_from_dto(Some(&written(
+            SpokenLanguageDto::Explicit { tag: tag("ur")? },
+            tag("ur")?,
+        )))
+        .map_err(|(_, detail)| std::io::Error::other(detail))?;
+        assert_eq!(request.output.language, None);
+        // A different written language still asks for one, for the
+        // capability check to refuse without translation.
+        let request = recognition_request_from_dto(Some(&written(
+            SpokenLanguageDto::Explicit { tag: tag("ur")? },
+            tag("en")?,
+        )))
+        .map_err(|(_, detail)| std::io::Error::other(detail))?;
+        assert_eq!(
+            request.output.language.as_ref().map(AsrTag::as_str),
+            Some("en")
+        );
+        Ok(())
+    }
+
+    #[test]
     fn recognition_wire_settings_map_to_distinct_domain_fields() -> TestResult {
         let tag = |value| narrivy_ipc::RecognitionTagDto::parse(value);
         let dto = RecognitionSettingsDto {
@@ -10024,6 +10195,7 @@ mod p7_modes_tests {
                 None::<ScriptedPortalSubmitter>,
                 Box::new(FixedPermission(denied)),
                 false,
+                false,
             ))?;
             assert_eq!(
                 without_portal.rung_ids(),
@@ -10042,6 +10214,7 @@ mod p7_modes_tests {
                     result: PortalEisTextSubmission::SubmittedUnverified,
                 }),
                 Box::new(FixedPermission(denied)),
+                false,
                 false,
             ))?;
             assert_eq!(
@@ -10071,6 +10244,7 @@ mod p7_modes_tests {
                     clipboard_restore: true,
                 })),
                 true,
+                false,
             ))?;
             assert_eq!(
                 authorized.rung_ids(),
@@ -10141,6 +10315,7 @@ mod p7_modes_tests {
                     clipboard_restore: true,
                 })),
                 true,
+                false,
             ))?;
             let txid = TransactionId::new("tx-routed-typed-unavailable");
             let report = platform(delivery.deliver(
@@ -10949,8 +11124,12 @@ mod live_share_tests {
     fn the_assistants_own_voice_is_not_in_the_transcript() {
         let said = "[0:19] Person 1: can see a YouTube video page showing a video about the missile test.\n\
 [0:48] Person 2: Today we look at the battery life of the new laptop.";
-        let answers = ["I can see a YouTube video page showing a video about the missile being tested."];
+        let answers =
+            ["I can see a YouTube video page showing a video about the missile being tested."];
         let kept = without_own_voice(said, &answers);
-        assert_eq!(kept, "[0:48] Person 2: Today we look at the battery life of the new laptop.");
+        assert_eq!(
+            kept,
+            "[0:48] Person 2: Today we look at the battery life of the new laptop."
+        );
     }
 }

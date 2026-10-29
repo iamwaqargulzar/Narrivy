@@ -61,7 +61,8 @@ termination. The parent remains solely responsible for `wait`/reap.
 
 No transcript exists at this boundary. Audio remains in process memory and OS
 pipes only. Linux core-dump and swap containment are not solved by this ADR and
-remain explicit release blockers.
+remain explicit release blockers. (Amended 2026-10-20, D37: core dumps:
+contained; swap: documented residual, see `docs/security/data-retention.md`.)
 
 ## Consequences and deferred work
 

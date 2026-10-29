@@ -44,7 +44,7 @@ export function deliveryChip(value: ResolvedCardValue): SummaryChip {
   const text = plain(value);
   if (/null sink|^unavailable/i.test(text)) return { label: 'No text delivery', detail: text, tone: 'warn' };
   if (/clipboard paste/i.test(text)) return { label: 'Pastes text', detail: text, tone: 'neutral' };
-  if (/typing helper unavailable|inbox recovery only|no keyboard paste/i.test(text)) {
+  if (/typing helper unavailable|wtype is not installed|inbox recovery only|no keyboard paste/i.test(text)) {
     return { label: 'Saves to Inbox', detail: text, tone: 'neutral' };
   }
   if (/inbox recovery/i.test(text)) return { label: 'Types text · Inbox backup', detail: text, tone: 'neutral' };

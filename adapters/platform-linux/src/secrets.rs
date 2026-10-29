@@ -44,7 +44,9 @@ fn attributes(name: &str) -> HashMap<&str, &str> {
     HashMap::from([("application", "narrivy"), ("name", name)])
 }
 
-fn run<T>(work: impl std::future::Future<Output = Result<T, SecretError>>) -> Result<T, SecretError> {
+fn run<T>(
+    work: impl std::future::Future<Output = Result<T, SecretError>>,
+) -> Result<T, SecretError> {
     // `block_on` must not run inside another Tokio runtime.
     if tokio::runtime::Handle::try_current().is_ok() {
         return Err(SecretError::Unavailable);
@@ -120,9 +122,10 @@ pub fn store(name: &str, label: &str, value: &str) -> Result<(), SecretError> {
             .map_err(|_| SecretError::Unavailable)?;
         let service = service(&connection).await?;
         let session = open_session(&service).await?;
-        let collection = zbus::Proxy::new(&connection, SERVICE, DEFAULT_COLLECTION, COLLECTION_IFACE)
-            .await
-            .map_err(|_| SecretError::Unavailable)?;
+        let collection =
+            zbus::Proxy::new(&connection, SERVICE, DEFAULT_COLLECTION, COLLECTION_IFACE)
+                .await
+                .map_err(|_| SecretError::Unavailable)?;
         let mut properties: HashMap<&str, Value<'_>> = HashMap::new();
         properties.insert("org.freedesktop.Secret.Item.Label", Value::from(label));
         properties.insert(

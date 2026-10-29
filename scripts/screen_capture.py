@@ -16,8 +16,9 @@ folder given:
   thumb-0001.png   480 px wide (for the app)
   frames.jsonl     {"file", "thumb", "at_ms", "source"} per picture, ms since start
   sources.json     the shared screens and windows: kind, width, height
-  live-0.png       what each one shows now, small, every few seconds
-  now-0.png        the same, 1024 px wide, for the assistant during a live share
+  live-0.png       what each one shows now, small, every second
+  now-0.png        the same, 1024 px wide, every few seconds, for the
+                   assistant during a live share
 
 With several screens or windows chosen, each is watched on its own.
 With --once, one picture of the shared screen is kept, and it stops.
@@ -49,14 +50,21 @@ CAST = "org.freedesktop.portal.ScreenCast"
 REQUEST = "org.freedesktop.portal.Request"
 WIDTH = 1024
 THUMB = 480
-# The live picture of each shared source, so the app shows what is watched.
+# The live picture of each shared source, so the app shows what is watched:
+# small and often, so it follows the screen. The large one is for the
+# assistant and is written less often.
 LIVE = 320
-LIVE_EVERY = 3.0
+LIVE_EVERY = 1.0
+NOW_EVERY = 3.0
 # A sample counts as changed above this difference (0..255), and the screen
 # as changed when this share of samples did.
 PIXEL_DIFF = 28
 CHANGED_SHARE = 0.03
 MOVING_KEEP_S = 30
+# The desktop's screen-sharing service ending mid-share (COSMIC's crashes
+# now and then): sharing is started again this many times at most.
+RESUMES = 5
+BACKENDS = "org.freedesktop.impl.portal.desktop."
 
 
 def emit(**event):
@@ -67,11 +75,13 @@ def emit(**event):
 class Portal:
     """The screen-sharing portal: a session, the user's choice, a stream."""
 
-    def __init__(self, loop):
-        self.loop = loop
+    def __init__(self):
+        # Its own loop: portal calls can be made while the main one runs.
+        self.loop = GLib.MainLoop()
         self.bus = Gio.bus_get_sync(Gio.BusType.SESSION)
         self.sender = self.bus.get_unique_name()[1:].replace(".", "_")
         self.counter = 0
+        self.session = None
 
     def call(self, method, *args):
         """Call a portal method that answers with a Request's Response."""
@@ -94,6 +104,20 @@ class Portal:
         self.bus.signal_unsubscribe(sub)
         return answer.get("code", 2), answer.get("results", {})
 
+    def close(self):
+        """End the screen-cast session: the portal stops the stream and the
+        desktop stops showing that the screen is shared. Ending the process
+        alone leaves that to the portal noticing, which COSMIC's does not
+        always do."""
+        if self.session is None:
+            return
+        try:
+            self.bus.call_sync(PORTAL, self.session, "org.freedesktop.portal.Session", "Close",
+                               None, None, 0, 2000, None)
+        except GLib.Error:
+            pass
+        self.session = None
+
     def cursor_modes(self):
         try:
             reply = self.bus.call_sync(
@@ -113,7 +137,7 @@ class Portal:
         )
         if code != 0:
             return None, "screen_portal_failed"
-        session = results["session_handle"]
+        session = self.session = results["session_handle"]
         options = {
             "types": GLib.Variant("u", 1 | 2),  # a monitor or a window
             "multiple": GLib.Variant("b", multiple),
@@ -144,8 +168,21 @@ class Portal:
             GLib.Variant("(oa{sv})", (session, {})), None, 0, -1, None, None,
         )
         fd = fds.get(reply.unpack()[0])
-        self.restore_token = results.get("restore_token")
+        self.restore_token = results.get("restore_token") or restore
         return (fd, streams), None
+
+    def on_lost(self, callback):
+        """Call `callback` when the desktop's screen-sharing service ends
+        while sharing (COSMIC's crashes now and then): the stream then just
+        stops, without an error. Not when the user stops sharing from the
+        desktop: that service stays."""
+        def owner_changed(_conn, _sender, _path, _iface, _signal, params):
+            name, old, new = params.unpack()
+            if self.session is not None and name.startswith(BACKENDS) and old and not new:
+                callback()
+
+        self.bus.signal_subscribe("org.freedesktop.DBus", "org.freedesktop.DBus", "NameOwnerChanged",
+                                  "/org/freedesktop/DBus", None, 0, owner_changed)
 
 
 def samples(data, width, height, stride, grid=(64, 36)):
@@ -196,14 +233,17 @@ def save(folder, n, pixbuf, at_ms, source):
         out.write(json.dumps({"file": name, "thumb": thumb, "at_ms": at_ms, "source": source}) + "\n")
 
 
-def save_live(folder, pixbuf, source):
-    """What source `source` shows now: small for the app (live-N.png), and
-    as large as kept pictures for the assistant to look at (now-N.png)."""
+def save_live(folder, pixbuf, source, large):
+    """What source `source` shows now: small for the app (live-N.png), and,
+    with `large`, as large as kept pictures for the assistant to look at
+    (now-N.png)."""
     width, height = pixbuf.get_width(), pixbuf.get_height()
     small = pixbuf.scale_simple(LIVE, max(1, height * LIVE // width), GdkPixbuf.InterpType.BILINEAR)
     part = folder / f"live-{source}.part"
     small.savev(str(part), "png", [], [])
     os.replace(part, folder / f"live-{source}.png")
+    if not large:
+        return
     part = folder / f"now-{source}.part"
     pixbuf.savev(str(part), "png", [], [])
     os.replace(part, folder / f"now-{source}.png")
@@ -231,17 +271,22 @@ def main():
     loop = GLib.MainLoop()
     # Kept for the whole run: the screen-sharing session lives as long as
     # this D-Bus connection, and the stream stops when it closes.
-    portal = Portal(loop)
+    portal = Portal()
     chosen, error = portal.start(
         multiple=not args.once,
         restore=os.environ.get("NARRIVY_SCREEN_RESTORE"),
         keep=not args.once,
     )
     if error:
+        portal.close()
         emit(ev="error", code=error)
         return 1
     fd, streams = chosen
-    rate = max(1, round(args.interval))
+    # The stream's PipeWire connection: replaced when sharing starts again.
+    remote = {"fd": fd}
+    # Pictures arrive as often as the live picture needs; changes are
+    # looked for every interval.
+    rate = max(1, round(min(args.interval, LIVE_EVERY)))
     # Switched back on in the same recording: numbering goes on.
     try:
         with open(args.folder / "frames.jsonl") as kept:
@@ -265,9 +310,16 @@ def main():
                 save(args.folder, 1, pixbuf_of(data, width, height, stride), 0, source)
                 loop.quit()
             return
-        if now - state["live"] >= LIVE_EVERY:
+        # A little early still counts: pictures come about once a second.
+        if now - state["live"] >= LIVE_EVERY * 0.8:
             state["live"] = now
-            save_live(args.folder, pixbuf_of(data, width, height, stride), source)
+            large = now - state["now"] >= NOW_EVERY * 0.9
+            if large:
+                state["now"] = now
+            save_live(args.folder, pixbuf_of(data, width, height, stride), source, large)
+        if now - state["looked"] < args.interval * 0.9:
+            return
+        state["looked"] = now
         grid = samples(data, width, height, stride)
         keep = False
         if changed(state["kept"], grid):
@@ -298,7 +350,7 @@ def main():
         if watch.get("pipeline") is not None:
             watch["pipeline"].call_async(lambda element, _data: element.set_state(Gst.State.NULL), None)
         pipeline = Gst.parse_launch(
-            f"pipewiresrc fd={os.dup(fd)} path={watch['node']} do-timestamp=true always-copy=true "
+            f"pipewiresrc fd={os.dup(remote['fd'])} path={watch['node']} do-timestamp=true always-copy=true "
             f"! videorate drop-only=true ! video/x-raw,framerate=1/{rate} "
             f"! videoconvert ! {scaled(watch['size'])} "
             "! appsink name=frames emit-signals=true max-buffers=1 drop=true sync=false"
@@ -367,17 +419,60 @@ def main():
                 look(watch["state"], watch["source"], data, width, height)
         return True
 
-    for index, (node, props) in enumerate(streams):
-        size = props.get("size", (0, 0))
-        kind = {1: "monitor", 2: "window"}.get(props.get("source_type", 0), "screen")
-        sources.append({"source": index, "kind": kind, "width": size[0], "height": size[1]})
-        watched.append({
-            "source": index, "node": node, "size": size, "latest": None, "at": 0.0,
-            "state": {"kept": None, "candidate": None, "since_kept": time.monotonic(), "live": 0.0},
-        })
+    def watch_streams(streams):
+        sources.clear()
+        watched.clear()
+        for index, (node, props) in enumerate(streams):
+            size = props.get("size", (0, 0))
+            kind = {1: "monitor", 2: "window"}.get(props.get("source_type", 0), "screen")
+            sources.append({"source": index, "kind": kind, "width": size[0], "height": size[1]})
+            watched.append({
+                "source": index, "node": node, "size": size, "latest": None, "at": 0.0,
+                "state": {"kept": None, "candidate": None, "since_kept": time.monotonic(), "live": 0.0,
+                          "now": 0.0, "looked": 0.0},
+            })
+        with open(args.folder / "sources.json", "w") as out:
+            json.dump(sources, out)
 
-    with open(args.folder / "sources.json", "w") as out:
-        json.dump(sources, out)
+    resumed = {"count": 0, "pending": False}
+
+    def resume():
+        """Sharing ended under us: start it again with the same choice (the
+        portal may ask the user again when it cannot restore it)."""
+        resumed["pending"] = False
+        if resumed["count"] >= RESUMES:
+            emit(ev="error", code="screen_stream_failed")
+            loop.quit()
+            return False
+        resumed["count"] += 1
+        print("screen_capture: sharing ended by the desktop; starting it again", file=sys.stderr, flush=True)
+        for watch in watched:
+            if watch.get("pipeline") is not None:
+                watch["generation"] = -1
+                watch["pipeline"].call_async(lambda element, _data: element.set_state(Gst.State.NULL), None)
+        portal.session = None
+        old = remote["fd"]
+        again, error = portal.start(multiple=True, restore=portal.restore_token, keep=True)
+        if error:
+            emit(ev="error", code=error)
+            loop.quit()
+            return False
+        remote["fd"], streams = again
+        os.close(old)
+        watch_streams(streams)
+        for watch in watched:
+            connect(watch)
+        emit(ev="ready", sources=sources, restore_token=portal.restore_token)
+        return False
+
+    def lost():
+        # Once for a burst of signals; a moment for the service to come back.
+        if not resumed["pending"] and not args.once:
+            resumed["pending"] = True
+            GLib.timeout_add(1500, resume)
+
+    watch_streams(streams)
+    portal.on_lost(lost)
     for sig in (signal.SIGTERM, signal.SIGINT):
         GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, loop.quit)
     parent = os.getppid()
@@ -398,8 +493,9 @@ def main():
     emit(ev="ready", sources=sources, restore_token=getattr(portal, "restore_token", None))
     loop.run()
     # Not waiting for the streams to stop: one still waiting for the
-    # compositor's first picture would hold the exit up. Ending the process
-    # closes them and the portal session.
+    # compositor's first picture would hold the exit up. The portal session
+    # is closed first; ending the process closes the streams.
+    portal.close()
     sys.stdout.flush()
     os._exit(1 if args.once and counter["n"] == 0 else 0)
 

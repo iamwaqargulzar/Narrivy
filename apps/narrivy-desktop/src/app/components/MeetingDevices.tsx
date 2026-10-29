@@ -5,11 +5,13 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { bridge, type MeetingOptions } from "../../lib/bridge";
 import { t } from "../../i18n";
+import { Icon, type IconName } from "../../ui/icons";
 import { useErrorHandler } from "../../ui/primitives/Toast";
 
 type Device = { name: string; description: string };
 
 function DeviceSelect({
+  icon,
   label,
   chosen,
   devices,
@@ -18,6 +20,7 @@ function DeviceSelect({
   onPick,
   first,
 }: {
+  icon: IconName;
   label: string;
   chosen: string;
   devices: Device[];
@@ -29,10 +32,10 @@ function DeviceSelect({
 }) {
   const listed = devices.some((d) => d.name === chosen);
   return (
-    <label className="meeting-device">
-      <span>{label}</span>
+    <label className="meeting-chip" title={label}>
+      <Icon name={icon} />
       <select
-        className="pipe-select"
+        aria-label={label}
         value={chosen}
         disabled={disabled}
         onChange={(e) => onPick(e.target.value)}
@@ -58,10 +61,13 @@ const CALL_OFF = "!off";
 export function MeetingDevices({
   recording,
   extra,
+  trailing,
 }: {
   recording: boolean;
-  /** Shown at the end of the row (the notes switch). */
+  /** More option pills after the screen one (the notes switches). */
   extra?: ReactNode;
+  /** At the far end of the row (transcribing a file). */
+  trailing?: ReactNode;
 }) {
   const report = useErrorHandler();
   const [options, setOptions] = useState<MeetingOptions | null>(null);
@@ -83,8 +89,19 @@ export function MeetingDevices({
     };
   }, [recording]);
 
-  // An older service lists no devices.
-  if (!options || options.microphones === undefined) return null;
+  // An older service lists no devices: the rest of the row still shows.
+  if (!options || options.microphones === undefined) {
+    return extra || trailing ? (
+      <div className="meeting-devices">
+        <div className="meeting-chips">
+          {extra}
+          {trailing ? (
+            <span className="meeting-chips-end">{trailing}</span>
+          ) : null}
+        </div>
+      </div>
+    ) : null;
+  }
   const pick = async (choice: {
     microphone?: string;
     speaker?: string;
@@ -125,8 +142,9 @@ export function MeetingDevices({
         );
   return (
     <div className="meeting-devices">
-      <div className="meeting-devices-pick">
+      <div className="meeting-chips">
         <DeviceSelect
+          icon="mic"
           label={t("meetings.devices.microphone")}
           chosen={micOff ? CALL_OFF : (options.microphone ?? "")}
           devices={options.microphones}
@@ -147,6 +165,7 @@ export function MeetingDevices({
           }
         />
         <DeviceSelect
+          icon="speaker"
           label={t("meetings.devices.speaker")}
           chosen={callOff ? CALL_OFF : (options.speaker ?? "")}
           devices={options.speakers ?? []}
@@ -181,6 +200,9 @@ export function MeetingDevices({
           }}
         />
         {extra}
+        {trailing ? (
+          <span className="meeting-chips-end">{trailing}</span>
+        ) : null}
       </div>
       <p className="source meeting-devices-now" role="status">
         {now}
@@ -204,22 +226,24 @@ function ScreenSwitch({
   onToggle: (on: boolean) => void;
 }) {
   return (
-    <div
-      className="meeting-auto-notes"
-      title={available ? t("meetings.screen.hint") : t("meetings.screen.unavailable")}
+    <span
+      className="meeting-option"
+      title={
+        available ? t("meetings.screen.hint") : t("meetings.screen.unavailable")
+      }
     >
-      <span id="meeting-screen-label">{t("meetings.screen.label")}</span>
       <button
         type="button"
         role="switch"
-        className="switch"
+        className="meeting-pill"
         aria-checked={on && available}
-        aria-labelledby="meeting-screen-label"
+        aria-label={t("meetings.screen.label")}
         disabled={disabled || !available}
         onClick={() => onToggle(!on)}
       >
-        <span className="switch-thumb" />
+        <Icon name="screen" />
+        {t("meetings.screen.short")}
       </button>
-    </div>
+    </span>
   );
 }

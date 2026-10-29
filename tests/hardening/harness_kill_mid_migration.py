@@ -175,7 +175,10 @@ conn.execute("PRAGMA journal_mode=WAL;")
 try:
     conn.execute("BEGIN IMMEDIATE;")
     conn.execute(v3_sql)
-    # sleep to allow parent to SIGKILL at random point mid-migration write
+    # Readiness handshake: the parent kills only after this line, so the
+    # SIGKILL always lands inside the open transaction (F-M16: a random
+    # sleep raced the kill and the child sometimes committed first).
+    print("ready", flush=True)
     time.sleep({delay_ms}/1000.0)
     conn.execute("INSERT OR REPLACE INTO migrations (version, hash, name, applied_at_ms) VALUES (3, ?, ?, ?)", (hashlib.sha256(v3_sql.encode()).hexdigest(), "add_note", int(time.time()*1000)))
     conn.execute("INSERT OR REPLACE INTO schema_version (version) VALUES (3)")
@@ -196,7 +199,7 @@ finally:
     except:
         pass
 """
-    return subprocess.Popen([sys.executable, "-c", code])
+    return subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, text=True)
 
 def run(*, stub: bool = True, runtime: Path | None = None, verbose: bool = False) -> dict:
     notes = []
@@ -255,13 +258,21 @@ def run(*, stub: bool = True, runtime: Path | None = None, verbose: bool = False
                 cargo_test_exists = False
                 child = None
         if not cargo_test_exists:
-            # spawn python migration worker that sleeps mid-transaction
-            delay_ms = random.randint(80, 400)
+            # spawn python migration worker that waits mid-transaction; it
+            # says when it is inside the transaction, then the parent kills
+            # it after a short random delay, always before it can commit.
+            delay_ms = 30_000
             child = _child_migration_worker(db_path, V3_SQL, delay_ms=delay_ms)
-            # random kill delay within worker sleep window
-            kill_delay = random.uniform(0.02, 0.18)
+            import select
+            readable, _, _ = select.select([child.stdout], [], [], 10.0)
+            line = child.stdout.readline() if readable else ""
+            if line.strip() != "ready":
+                kill9_and_reap(child)
+                raise RuntimeError("migration worker never reached its transaction")
+            kill_delay = random.uniform(0.0, 0.05)
             time.sleep(kill_delay)
             info = kill9_and_reap(child)
+            child.stdout.close()
             metrics["kill_info"] = info
             metrics["cargo_child"] = False
             metrics["worker_delay_ms"] = delay_ms

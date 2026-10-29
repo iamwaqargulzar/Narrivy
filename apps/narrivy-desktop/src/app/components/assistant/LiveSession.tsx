@@ -3,14 +3,13 @@
 // The composer's Mic, Sound and Screen buttons switch its sources, and the
 // side panel shows small pictures of the screens and the live transcript,
 // with people named by voice. When it stops, the panel keeps showing it as
-// a saved session (transcribed, its screens described) to give to a chat.
+// a saved session (raw, as heard: gone over when given to a chat).
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { bridge, type MeetingTurn, type SourceChange } from '../../../lib/bridge';
+import { bridge, type Meeting, type MeetingTurn, type SourceChange } from '../../../lib/bridge';
 import { t } from '../../../i18n';
 import { Icon } from '../../../ui/icons';
 import { useAssistant } from '../../../state/AssistantContext';
 import { clock } from '../../../lib/meetingContext';
-import { ProcessOnStopSwitch } from '../AutoNotesSwitch';
 
 interface Source {
   source: number;
@@ -60,9 +59,11 @@ export interface LiveSession {
   dismissSaved: () => void;
   /** Go over the saved session (transcribe again, describe the screens). */
   goOver: () => Promise<void>;
+  /** Show an earlier saved session in the panel. */
+  showSaved: (id: string) => void;
 }
 
-type LiveState = Omit<LiveSession, 'flip' | 'busy' | 'error' | 'saved' | 'dismissSaved' | 'goOver'>;
+type LiveState = Omit<LiveSession, 'flip' | 'busy' | 'error' | 'saved' | 'dismissSaved' | 'goOver' | 'showSaved'>;
 
 const NOTHING: LiveState = {
   id: null,
@@ -85,6 +86,7 @@ const LiveContext = createContext<LiveSession>({
   saved: null,
   dismissSaved: () => {},
   goOver: () => Promise.resolve(),
+  showSaved: () => {},
 });
 
 export function useLive(): LiveSession {
@@ -94,7 +96,7 @@ export function useLive(): LiveSession {
 const KEY: Record<LiveSource, keyof SourceChange> = { screen: 'screen', sound: 'sound', microphone: 'microphone' };
 
 export function LiveSessionProvider({ children }: { children: ReactNode }) {
-  const { watch } = useAssistant();
+  const { watch, stopScreen } = useAssistant();
   const [recording, setRecording] = useState<string | null>(null);
   const [state, setState] = useState<LiveState>(NOTHING);
   const [busy, setBusy] = useState(false);
@@ -126,7 +128,7 @@ export function LiveSessionProvider({ children }: { children: ReactNode }) {
     };
   }, [own]);
 
-  const refresh = useCallback(async (meetingId: string, alive: () => boolean, withPictures = true) => {
+  const refresh = useCallback(async (meetingId: string, alive: () => boolean) => {
     try {
       const detail = await bridge.meeting(meetingId);
       if (!alive()) return;
@@ -139,9 +141,8 @@ export function LiveSessionProvider({ children }: { children: ReactNode }) {
       }
       const sources = detail.screen_sources ?? [];
       const screenOn = Boolean(detail.meeting.screen_on);
-      let pictures: Record<number, string> | null = null;
-      if (screenOn && withPictures) {
-        pictures = {};
+      const pictures: Record<number, string> = {};
+      if (screenOn) {
         for (const source of sources) {
           try {
             const png = await bridge.meetingSlide(meetingId, `live-${source.source}.png`);
@@ -160,8 +161,8 @@ export function LiveSessionProvider({ children }: { children: ReactNode }) {
         soundOn: Boolean(detail.meeting.sound_on),
         micOn: Boolean(detail.meeting.mic_on),
         sources,
-        // Between two pictures the last ones stay.
-        pictures: pictures ?? (screenOn && now.id === meetingId ? now.pictures : {}),
+        // A picture that could not be read this time stays as it was.
+        pictures: screenOn ? { ...(now.id === meetingId ? now.pictures : {}), ...pictures } : {},
         screenError: detail.screen_error ?? null,
         turns: detail.turns ?? [],
         names: detail.names ?? {},
@@ -181,14 +182,10 @@ export function LiveSessionProvider({ children }: { children: ReactNode }) {
       return undefined;
     }
     let alive = true;
-    let tick = 0;
     void refresh(id, () => alive);
-    // The words every second (the words being said now change that often);
-    // the screens' pictures every third look.
-    const timer = window.setInterval(() => {
-      tick += 1;
-      void refresh(id, () => alive, tick % 3 === 0);
-    }, 1000);
+    // Every second: the words being said now and the screens' pictures
+    // change that often.
+    const timer = window.setInterval(() => void refresh(id, () => alive), 1000);
     return () => {
       alive = false;
       window.clearInterval(timer);
@@ -248,19 +245,23 @@ export function LiveSessionProvider({ children }: { children: ReactNode }) {
       setError(null);
       Promise.resolve()
         .then(() => bridge.meetingSources(meetingId, { [KEY[which]]: !on }))
-        .then((meeting) =>
+        .then((meeting) => {
+          // The last source switched off: the service has stopped and saved
+          // the session. End this app's share now rather than waiting for
+          // the service's event.
+          if (meeting.state !== 'recording' && watch.id === meetingId) stopScreen();
           setState((now) => ({
             ...now,
             screenOn: Boolean(meeting.screen_on),
             soundOn: Boolean(meeting.sound_on),
             micOn: Boolean(meeting.mic_on),
-          })),
-        )
+          }));
+        })
         .then(() => refresh(meetingId, () => true))
         .catch((e: unknown) => setError((e as { code?: string })?.code ?? 'unavailable'))
         .finally(() => setBusy(false));
     },
-    [state.id, state.screenOn, state.soundOn, state.micOn, refresh],
+    [state.id, state.screenOn, state.soundOn, state.micOn, refresh, watch.id, stopScreen],
   );
 
   const dismissSaved = useCallback(() => setSavedId(null), []);
@@ -269,9 +270,10 @@ export function LiveSessionProvider({ children }: { children: ReactNode }) {
     await bridge.meetingProcess(savedId, null, null, null);
     setSavedLook((n) => n + 1);
   }, [savedId]);
+  const showSaved = useCallback((meetingId: string) => setSavedId(meetingId), []);
   const value = useMemo(
-    () => ({ ...state, busy, error, flip, saved, dismissSaved, goOver }),
-    [state, busy, error, flip, saved, dismissSaved, goOver],
+    () => ({ ...state, busy, error, flip, saved, dismissSaved, goOver, showSaved }),
+    [state, busy, error, flip, saved, dismissSaved, goOver, showSaved],
   );
   return <LiveContext.Provider value={value}>{children}</LiveContext.Provider>;
 }
@@ -501,7 +503,83 @@ function SavedPanel({
         </button>
       </div>
       {attachError ? <p className="assistant-error">{t('assistant.error.other', { code: attachError })}</p> : null}
-      <ProcessOnStopSwitch />
     </section>
   );
 }
+
+/** Every session kept from the assistant (shares and recordings), newest
+ * first: none is lost when a new one starts, and any can be shown or given
+ * to the open chat. */
+export function SavedSessions() {
+  const live = useLive();
+  const { attachRecording, current } = useAssistant();
+  const [sessions, setSessions] = useState<Meeting[]>([]);
+  const mine = useMemo(() => current?.sessions ?? [], [current?.sessions]);
+  const [given, setGiven] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const look = () =>
+      Promise.resolve()
+        .then(() => bridge.meetings())
+        .then((list) => {
+          if (!alive) return;
+          // Only this chat's: the shares and recordings made in it or given
+          // to it (older ones are on the Meetings screen).
+          setSessions(
+            list
+              .filter((m) => mine.includes(m.id) && (m.watch || m.share) && m.state !== 'recording')
+              .sort((a, b) => b.started_unix_ms - a.started_unix_ms),
+          );
+        })
+        .catch(() => {});
+    void look();
+    const timer = window.setInterval(() => void look(), 10_000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [live.id, live.saved?.id, mine]);
+  if (!sessions.length) return null;
+  return (
+    <section className="live-panel saved-sessions" aria-label={t('assistant.sessions.title')}>
+      <h3>{t('assistant.sessions.title')}</h3>
+      <ul>
+        {sessions.map((session) => {
+          const here = current?.meeting?.id === session.id || given === session.id;
+          return (
+            <li key={session.id}>
+              <span className="saved-sessions-name">
+                <span className="saved-title">{session.title}</span>
+                <span className="source">
+                  {clock(session.duration_ms)}
+                  {session.raw ? ` · ${t('assistant.sessions.raw')}` : ''}
+                </span>
+              </span>
+              <span className="saved-actions">
+                <button type="button" className="btn btn-ghost" onClick={() => live.showSaved(session.id)}>
+                  {t('assistant.sessions.show')}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-default"
+                  disabled={here || session.state !== 'ready'}
+                  onClick={() => {
+                    setError(null);
+                    attachRecording(session.id)
+                      .then(() => setGiven(session.id))
+                      .catch((e: unknown) => setError((e as { code?: string })?.code ?? 'unavailable'));
+                  }}
+                >
+                  {here ? t('assistant.saved.given') : t('assistant.sessions.give')}
+                </button>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {error ? <p className="assistant-error">{t('assistant.watch.error.other', { code: error })}</p> : null}
+    </section>
+  );
+}
+

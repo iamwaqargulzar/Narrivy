@@ -163,13 +163,19 @@ function Meter({ name, label, title, values, now }: { name: string; label: strin
 }
 
 export function StatusStrip() {
-  const { status } = useDaemonStatus();
+  const { status, error } = useDaemonStatus();
   const { catalog } = usePipelines();
   if (!status) {
+    // Once a read has failed, say why instead of "Connecting".
+    const text = error?.code === 'daemon_failed'
+      ? error.message
+      : error
+        ? t('shell.offline')
+        : t('shell.status.connecting');
     return (
       <footer className="status-strip" aria-label={t('strip.label')}>
         <Icon name="wave" className="strip-mark" />
-        <span>{t('shell.status.connecting')}</span>
+        <span role={error ? 'status' : undefined}>{text}</span>
       </footer>
     );
   }
@@ -200,10 +206,6 @@ export function StatusStrip() {
       <Items items={active} className="strip-group" />
       <ModelSwitches status={status} />
       <span className="strip-spacer" />
-      <span className="strip-item strip-private" title={t('strip.privateHint')}>
-        <Icon name="lock" />
-        {t('strip.private')}
-      </span>
       <Usage status={status} />
     </footer>
   );

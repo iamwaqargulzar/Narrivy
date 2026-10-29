@@ -1457,3 +1457,27 @@ Full text: `agent/completion-plan/OWNER-DECISIONS.md`.
 - macOS (SQ3) is parked: no work for now.
 - Linux 1.0 stays the release target; `BUILD_TARGET.json` is unchanged.
 - Details: `agent/completion-plan/OWNER-DECISIONS.md` D36.
+
+## 2026-10-20 — D37: no beta; package delivery; crash dumps (owner)
+
+- No `1.0.0~beta1`: the first public package is 1.0, after the full gate.
+- The package types by default; paste (clipboard put back afterwards) is a
+  user setting; paste through uinput stays a further opt-in.
+- Crash dumps blocked fully: `LimitCORE=0` in the unit and
+  `PR_SET_DUMPABLE=0` in the daemon and its workers (F-H18).
+- Package identity as D3 (maintainer, homepage, `1.0.0~rcN` then `1.0.0`).
+- Details: `agent/completion-plan/OWNER-DECISIONS.md` D37.
+
+## 2026-10-21 — D38: Refine moves into Pipelines (owner)
+
+- The Refine sidebar entry is removed; its rules and clean-up model choice
+  live under the pipeline's Refine stage. Amends D23.
+- Details: `agent/completion-plan/OWNER-DECISIONS.md` D38.
+
+## 2026-10-26 — transcribe.cpp 0.4.1 (owner)
+
+- The resident ASR dependency pair moves from 0.2.3 to `transcribe-cpp`/
+  `transcribe-cpp-sys` 0.4.1 (source commit `4d7c1cc`, tag v0.4.1), asked by
+  the owner before rc11. Model weights are memory-mapped (upstream default).
+- Release artifacts and native qualification are regenerated from rc11 on,
+  as for any change of source/runtime identity.

@@ -5,10 +5,8 @@
 import { useEffect, useState } from 'react';
 import { CommandPalette } from './CommandPalette';
 import { HomeScreen } from './screens/Home';
-import { DictationScreen } from './screens/Dictation';
 import { PipelinesScreen } from './screens/Pipelines';
 import { ModelsScreen } from './screens/Models';
-import { RefineScreen } from './screens/Refine';
 import { AssistantScreen } from './screens/Assistant';
 import { MeetingsScreen } from './screens/Meetings';
 import { StoreScreen } from './screens/Store';
@@ -36,11 +34,9 @@ import { t } from '../i18n';
 
 const NAV_ICONS: Record<ScreenId, IconName> = {
   home: 'home',
-  dictation: 'mic',
   pipelines: 'pipeline',
   models: 'models',
   store: 'store',
-  refine: 'sliders',
   assistant: 'spark',
   meetings: 'people',
   applications: 'apps',
@@ -64,16 +60,12 @@ function ActiveScreen() {
   switch (screen) {
     case 'home':
       return <HomeScreen />;
-    case 'dictation':
-      return <DictationScreen />;
     case 'pipelines':
       return <PipelinesScreen />;
     case 'models':
       return <ModelsScreen />;
     case 'store':
       return <StoreScreen />;
-    case 'refine':
-      return <RefineScreen />;
     case 'assistant':
       return <AssistantScreen />;
     case 'meetings':
@@ -137,6 +129,7 @@ function useShellStatus(): { label: string; tone: 'ok' | 'live' | 'busy' | 'warn
   const { catalog } = usePipelines();
   if (LIVE.has(session.phase)) return { label: t('shell.status.listening'), tone: 'live' };
   if (BUSY.has(session.phase)) return { label: t('shell.status.processing'), tone: 'busy' };
+  if (!status && error?.code === 'daemon_failed') return { label: t('shell.failed'), tone: 'warn' };
   if (!status && error) return { label: t('shell.offline'), tone: 'warn' };
   if (!status) return { label: t('shell.status.connecting'), tone: 'idle' };
   if (catalog.availability === 'ready') return { label: t('shell.status.ready'), tone: 'ok' };
@@ -233,7 +226,7 @@ export function AppShell() {
           <ul>
             {PRIMARY_SCREENS.map((id) => (
               <li key={id}>
-                <NavButton id={id} live={(id === 'home' || id === 'dictation') && live && screen !== id} />
+                <NavButton id={id} live={id === 'home' && live && screen !== id} />
               </li>
             ))}
           </ul>
@@ -245,7 +238,7 @@ export function AppShell() {
           </div>
         </nav>
       </aside>
-      <main className={`main-pane${screen === 'assistant' ? ' is-flush' : ''}`} id="main-content" role="main" tabIndex={-1}>
+      <main className={`main-pane${screen === 'assistant' || screen === 'settings' || screen === 'store' || screen === 'meetings' || screen === 'models' ? ' is-flush' : ''}`} id="main-content" role="main" tabIndex={-1}>
         <h1 className="sr-only">{t(SCREEN_TITLE_KEYS[screen])}</h1>
         <ActiveScreen />
       </main>

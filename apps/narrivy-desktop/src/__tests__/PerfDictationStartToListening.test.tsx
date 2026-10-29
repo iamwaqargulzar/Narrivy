@@ -38,7 +38,11 @@ describe('PerfDictationStartToListening', () => {
     // The advertised pipeline must be loaded before Start is enabled. Wait
     // with real timers, then switch to fake timers for the perf window.
     await waitFor(() => expect(startBtn).toBeEnabled());
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+    // Fake the clocks only: the measured marks need the real `performance`.
+    vi.useFakeTimers({
+      shouldAdvanceTime: true,
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
+    });
 
     await act(async () => {
       fireEvent.click(startBtn);

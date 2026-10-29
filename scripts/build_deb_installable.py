@@ -32,7 +32,9 @@ MODEL_SIZE = 45_904_544
 MODEL_SHA256 = "e8c9b73c06344307d8b346e07fbe93dd88d894627854bcff31523f1ce44394fa"
 MODEL_RELATIVE = PurePosixPath(f"usr/share/narrivy/models/{MODEL_ID}.gguf")
 MAX_MODEL_BYTES = 64 * 1024 * 1024
-VERSION_RE = re.compile(r"[0-9][0-9A-Za-z.+:~_-]{0,63}")
+# D3: semantic versions in Debian form, `1.0.0~rcN` then `1.0.0`; `~` sorts
+# a release candidate before its release.
+VERSION_RE = re.compile(r"(0|[1-9][0-9]{0,3})(\.(0|[1-9][0-9]{0,3})){2}(~rc[1-9][0-9]{0,3})?")
 GIT = "/usr/bin/git"
 GIT_TIMEOUT_SECONDS = 5
 GIT_ENV = {
@@ -94,14 +96,35 @@ def _control(version: str) -> bytes:
         "Section: utils\n"
         "Priority: optional\n"
         "Architecture: amd64\n"
-        "Maintainer: Narrivy <release@narrivy.local>\n"
+        "Maintainer: Waqar Gulzar <iamwaqargulzar@gmail.com>\n"
         "Depends: libwebkit2gtk-4.1-0 (>= 2.44), libgtk-3-0t64 (>= 3.24) | libgtk-3-0 (>= 3.24), "
         "libgtk-layer-shell0 (>= 0.8), "
         "libopenblas0, libvulkan1, curl, pipewire, systemd, xdg-utils\n"
-        "Recommends: pipewire-pulse, mesa-vulkan-drivers\n"
+        "Recommends: pipewire-pulse, mesa-vulkan-drivers, wtype, libglib2.0-bin\n"
+        "Homepage: https://github.com/iamwaqargulzar/narrivy\n"
         "Description: Narrivy local-first voice dictation for Linux\n"
         " Private dictation with local audio capture and offline speech recognition.\n"
     ).encode()
+
+
+def _require_resident_daemon(narrivyd: Path, timeout: float = 5) -> None:
+    """F-M14: the packaged unit runs the installed resident engine, so a
+    daemon built without `asr-transcribe-resident` must never be packaged.
+    The binary reports its own features; nothing else runs."""
+    try:
+        result = subprocess.run(
+            [os.fspath(narrivyd), "--build-features"],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            env={},
+            timeout=timeout,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        raise InstallableError("narrivyd could not report its build features") from error
+    features = result.stdout.decode("utf-8", "replace").split()
+    if result.returncode != 0 or "asr-transcribe-resident" not in features:
+        raise InstallableError("narrivyd was not built with asr-transcribe-resident")
 
 
 def _validate_script(payload: bytes) -> None:
@@ -402,6 +425,7 @@ def build(inputs: Inputs) -> dict[str, object]:
                 os.fstat(root_descriptor)
             ):
                 raise InstallableError("staging root identity changed")
+            _require_resident_daemon(inputs.narrivyd)
             binaries = {
                 "narrivyd": safe._copy_release_elf(
                     inputs.narrivyd, root_descriptor, PurePosixPath("usr/bin/narrivyd")

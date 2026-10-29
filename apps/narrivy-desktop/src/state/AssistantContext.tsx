@@ -17,6 +17,7 @@ import {
 import { bridge, type SessionEvent, type VoiceSettings } from '../lib/bridge';
 import { meetingContext } from '../lib/meetingContext';
 import { useToasts } from '../ui/primitives/Toast';
+import { useDaemonStatus } from './StatusContext';
 import { t } from '../i18n';
 
 export interface Turn {
@@ -71,6 +72,9 @@ export interface Chat {
   pinned?: boolean;
   /** The screen share this chat sees while it lasts. */
   live?: string;
+  /** The shares and recordings made in this chat or given to it: the
+   * chat's saved sessions. */
+  sessions?: string[];
   /** The computer tools run without asking first. */
   fullAccess?: boolean;
   /** Where the computer tools work (the default folder when unset). */
@@ -298,6 +302,11 @@ function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${counter}`;
 }
 
+/** A chat's saved sessions with `id` added (once). */
+function withSession(sessions: string[] | undefined, id: string): string[] {
+  return sessions?.includes(id) ? sessions : [...(sessions ?? []), id];
+}
+
 function titleOf(question: string): string {
   const line = question.trim().split('\n')[0] ?? '';
   return line.length > 60 ? `${line.slice(0, 57)}…` : line;
@@ -365,6 +374,11 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   /** When the watched meeting was first ready, to stop waiting for slow
    * picture descriptions. */
   const watchReadyAt = useRef(0);
+  /** Raw sessions given to a chat and being gone over now: meeting to the
+   * chat that gets the full transcript once it is ready. */
+  const goingOver = useRef(new Map<string, string>());
+  /** `saveChat`, for callbacks defined before it. */
+  const saveChatRef = useRef<(chat: Chat) => Promise<void>>(async () => {});
   const [library, setLibrary] = useState<Library>(EMPTY_LIBRARY);
   const running = useRef<{ chatId: string; turnId: string; speak: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -471,6 +485,17 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
   }, []);
 
+  // The service may come up after the app (it restarts when a package is
+  // installed): ask again for the model and voice once it answers, or the
+  // model switches and picker stay hidden.
+  const { status: daemonStatus, error: daemonError } = useDaemonStatus();
+  const connected = daemonStatus !== null && daemonError === null;
+  useEffect(() => {
+    if (!connected) return;
+    refreshModelState();
+    void refreshVoicePrefs();
+  }, [connected, refreshModelState, refreshVoicePrefs]);
+
   useEffect(() => {
     refreshModelState();
     void importOldChats()
@@ -490,13 +515,19 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  /** A recorded session is transcribed: once its pictures are described too
-   * (or after waiting long enough), it is ready to give to a chat. */
+  /** A stopped session is saved: kept raw (as heard), it is ready to give
+   * to a chat at once; gone over, once its pictures are described too (or
+   * after waiting long enough). */
   const finishWatching = useCallback(async (id: string) => {
     let detail;
     try {
       detail = await bridge.meeting(id);
     } catch {
+      return;
+    }
+    if (detail.meeting.raw) {
+      watchReadyAt.current = 0;
+      setWatch((old) => (old.id === id ? { ...old, phase: 'ready', paused: false } : old));
       return;
     }
     if (!watchReadyAt.current) watchReadyAt.current = Date.now();
@@ -506,7 +537,10 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     setWatch((old) => (old.id === id ? { ...old, phase: 'ready', paused: false } : old));
   }, []);
 
-  /** Give a recorded session to the open chat, or a new one. */
+  /** Give a recorded session to the open chat, or a new one. A session
+   * kept raw is given with its live transcript, and gone over now (the
+   * full transcript, the screens described): the chat gets that once it
+   * is ready. */
   const attachRecording = useCallback(async (id: string) => {
     const detail = await bridge.meeting(id);
     const nameOf = (speaker: string) => detail.names[speaker] ?? speaker;
@@ -522,12 +556,62 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
             context: `${base.meeting.context}\n\n--- ${detail.meeting.title} ---\n${context}`,
           }
         : { id, title: detail.meeting.title, context };
-    const next: Chat = { ...base, title: base.title || detail.meeting.title, meeting };
+    const next: Chat = {
+      ...base,
+      title: base.title || detail.meeting.title,
+      meeting,
+      sessions: withSession(base.sessions, id),
+    };
     setCurrent(next);
     await bridge.assistantLibrary('put', 'chat', null, JSON.stringify({ ...next, updatedAt: Date.now() }));
     if (watchRef.current.id === id && watchRef.current.phase === 'ready') {
       setWatch({ id: null, phase: 'idle', startedAt: 0 });
     }
+    if (detail.meeting.raw && detail.meeting.state === 'ready' && !goingOver.current.has(id)) {
+      goingOver.current.set(id, next.id);
+      // Another one being gone over: this one stays raw, with its live
+      // transcript, and can be gone over later.
+      await bridge.meetingProcess(id, null, null, null).catch(() => goingOver.current.delete(id));
+    }
+  }, []);
+
+  /** The share or recording stops (from here, or ended by the service:
+   * every source switched off, or stopped elsewhere): its chat no longer
+   * sees the screen, and what was shared is kept as a session. */
+  const endWatching = useCallback(() => {
+    const { mode, chatId } = watchRef.current;
+    watchReadyAt.current = 0;
+    if (mode === 'share' && chatId) {
+      const open = currentRef.current;
+      if (open?.id === chatId) void saveChatRef.current({ ...open, live: undefined });
+      else
+        void bridge
+          .assistantLibrary('get', 'chat', chatId)
+          .then((json) => {
+            const chat = JSON.parse(json) as Chat;
+            delete chat.live;
+            return bridge.assistantLibrary('put', 'chat', null, JSON.stringify(chat));
+          })
+          .catch(() => {});
+    }
+    setWatch((old) => ({ ...old, phase: 'processing' }));
+  }, []);
+
+  /** A raw session given to a chat is gone over: the chat gets the full
+   * transcript in place of the live one. */
+  const updateGivenSession = useCallback(async (id: string, chatId: string) => {
+    const detail = await bridge.meeting(id);
+    if (detail.meeting.raw || detail.meeting.state !== 'ready') return;
+    const nameOf = (speaker: string) => detail.names[speaker] ?? speaker;
+    const context = meetingContext(detail, nameOf);
+    const open = currentRef.current;
+    const chat: Chat =
+      open?.id === chatId ? open : (JSON.parse(await bridge.assistantLibrary('get', 'chat', chatId)) as Chat);
+    // Given alone (a chat given several keeps what it was given).
+    if (chat.meeting?.id !== id) return;
+    const next: Chat = { ...chat, meeting: { ...chat.meeting, context } };
+    if (currentRef.current?.id === chatId) setCurrent(next);
+    await bridge.assistantLibrary('put', 'chat', null, JSON.stringify({ ...next, updatedAt: Date.now() }));
   }, []);
 
   // `send` is used from the event handler (voice, steering); keep the latest.
@@ -554,6 +638,13 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           if (kind && kind !== 'chat') void refreshLibrary(kind as LibraryKind);
           return;
         }
+        if (ev.event === 'meeting_changed' && ev.id && goingOver.current.has(ev.id)) {
+          const chatId = goingOver.current.get(ev.id) ?? '';
+          if (ev.state === 'deleted' || ev.state?.startsWith('failed')) goingOver.current.delete(ev.id);
+          // Ready with its transcript, then again once its screens are
+          // described.
+          else if (ev.state === 'ready' && !ev.stage) void updateGivenSession(ev.id, chatId).catch(() => {});
+        }
         if (ev.event === 'meeting_changed' && ev.id && ev.id === watchRef.current.id) {
           if (ev.state === 'failed:meeting_stopped' || ev.state === 'deleted') {
             setWatch({ id: null, phase: 'idle', startedAt: 0 });
@@ -565,6 +656,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
             setWatch({ id: null, phase: 'error', startedAt: 0, error: ev.state.slice('failed:'.length) });
             return;
           }
+          // Stopped by the service (every source switched off) or from
+          // elsewhere: this share is over too.
+          if (ev.state !== 'recording' && watchRef.current.phase === 'watching') endWatching();
           if (ev.state === 'ready' && !ev.stage) void finishWatching(ev.id);
           return;
         }
@@ -662,7 +756,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       unlisten?.();
     };
-  }, [finishWatching, openChat, refreshChats, refreshLibrary, refreshModelState, updateTurn]);
+  }, [endWatching, finishWatching, openChat, refreshChats, refreshLibrary, refreshModelState, updateGivenSession, updateTurn]);
 
   const send = useCallback(
     (question: string, options?: SendOptions) => {
@@ -715,6 +809,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     },
     [refreshChats],
   );
+  saveChatRef.current = saveChat;
 
   const setPrefs = useCallback(
     (change: Partial<VoicePrefs> & { muted?: boolean }) => {
@@ -956,13 +1051,15 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
             : 'Sound recording';
         const title = `${kind} ${stamp}`;
         // A share belongs to the open chat (kept first) or a new one: that
-        // chat sees the screen while it lasts. A recording stands alone.
-        let chat: Chat | null = null;
+        // chat sees the screen while it lasts. A recording is kept with the
+        // open chat, if there is one.
+        let chat: Chat | null = currentRef.current;
         if (mode === 'share') {
-          chat = currentRef.current ?? { id: newId('chat'), title, updatedAt: Date.now(), turns: [] };
+          chat = chat ?? { id: newId('chat'), title, updatedAt: Date.now(), turns: [] };
           if (!chat.title) chat.title = title;
         }
-        const chatId = chat?.id;
+        // Only a share's chat sees the screen.
+        const chatId = mode === 'share' ? chat?.id : undefined;
         setWatch({ id: null, mode, screen: what.screen, phase: 'starting', startedAt: Date.now(), chatId });
         void (chat ? saveChat(chat) : Promise.resolve())
           .then(() =>
@@ -982,32 +1079,18 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
             setWatch({ id: meeting.id, mode, screen: what.screen, phase: 'watching', startedAt: Date.now(), chatId });
             if (chat) {
               const open = currentRef.current?.id === chat.id ? currentRef.current : chat;
-              await saveChat({ ...open, live: meeting.id });
+              await saveChat({
+                ...open,
+                live: mode === 'share' ? meeting.id : open.live,
+                sessions: withSession(open.sessions, meeting.id),
+              });
             }
           })
           .catch((error: unknown) => setWatch({ id: null, phase: 'error', startedAt: 0, error: code(error) }));
       },
       stopScreen: () => {
-        const { id, mode, chatId } = watchRef.current;
-        watchReadyAt.current = 0;
-        if (mode === 'share' && chatId) {
-          // The chat no longer sees the screen; what was shared is kept as
-          // a session, below, to give to a chat when the user chooses.
-          {
-            const open = currentRef.current;
-            if (open?.id === chatId) void saveChat({ ...open, live: undefined });
-            else
-              void bridge
-                .assistantLibrary('get', 'chat', chatId)
-                .then((json) => {
-                  const chat = JSON.parse(json) as Chat;
-                  delete chat.live;
-                  return bridge.assistantLibrary('put', 'chat', null, JSON.stringify(chat));
-                })
-                .catch(() => {});
-          }
-        }
-        setWatch((old) => ({ ...old, phase: 'processing' }));
+        const { id } = watchRef.current;
+        endWatching();
         bridge.meetingStop().catch(() => {
           if (id) void finishWatching(id);
         });
@@ -1045,6 +1128,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       defaultFolder,
       autoUnload,
       finishWatching,
+      endWatching,
       attachRecording,
       watch,
       busy,

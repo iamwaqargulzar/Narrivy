@@ -35,18 +35,49 @@ pub const RUNTIME_VERSION: &str = "2026.4";
 /// The runtime pack's id, as the Store and the install directory name it.
 pub const RUNTIME_PACK_ID: &str = "openvino-runtime-2026.4-linux-x86_64";
 
-/// Libraries the worker loads, in dependency order, from the runtime
-/// pack's `lib` directory. Loading them by full path first means the
-/// libraries that name each other by soname find the copies in the pack,
-/// without a search path. The NPU driver pair is optional: without it the
-/// NPU is simply not offered.
-pub const RUNTIME_LIBRARIES: &[&str] = &[
-    "libtbb.so.12",
-    "libopenvino.so.2640",
-    "libopenvino_c.so.2640",
-    "libopenvino_genai.so.2640",
-    "libopenvino_genai_c.so.2640",
+/// The threading library, loaded first from the runtime pack.
+pub const TBB_LIBRARY: &str = "libtbb.so.12";
+/// The OpenVINO libraries the worker loads after it, in dependency order,
+/// from the runtime pack's `lib` directory, without their version suffix
+/// (`.2640` for 2026.4: see [`runtime_soname`]). Loading them by full path
+/// first means the libraries that name each other by soname find the
+/// copies in the pack, without a search path. The NPU driver pair is
+/// optional: without it the NPU is simply not offered.
+pub const RUNTIME_LIBRARY_STEMS: &[&str] = &[
+    "libopenvino.so",
+    "libopenvino_c.so",
+    "libopenvino_gguf_frontend.so",
+    "libopenvino_genai.so",
+    "libopenvino_genai_c.so",
 ];
+/// Of those, the ones only some OpenVINO releases have (GenAI links the
+/// GGUF frontend from 2026.5 on): loaded when the pack has them.
+pub const OPTIONAL_RUNTIME_LIBRARY_STEMS: &[&str] = &["libopenvino_gguf_frontend.so"];
+
+/// The version suffix of the OpenVINO in a runtime pack's `lib` directory
+/// (`2640` for 2026.4): the one `libopenvino.so.<digits>` there. `None`
+/// when there is none or more than one. The pack itself was verified
+/// against its manifest before the worker is started on it.
+#[must_use]
+pub fn runtime_soname(lib_dir: &Path) -> Option<String> {
+    let mut found = None;
+    for entry in std::fs::read_dir(lib_dir).ok()? {
+        let name = entry.ok()?.file_name();
+        let Some(suffix) = name
+            .to_str()
+            .and_then(|n| n.strip_prefix("libopenvino.so."))
+        else {
+            continue;
+        };
+        if suffix.is_empty() || !suffix.bytes().all(|b| b.is_ascii_digit()) {
+            continue;
+        }
+        if found.replace(suffix.to_owned()).is_some() {
+            return None;
+        }
+    }
+    found
+}
 /// The Level Zero loader and Intel's NPU user-space driver.
 pub const NPU_DRIVER_LIBRARIES: &[&str] = &["libze_loader.so.1", "libze_intel_npu.so.1"];
 
@@ -257,6 +288,26 @@ pub fn whisper_languages(generation_config: &[u8]) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_runtime_version_suffix_comes_from_the_one_core_library_in_the_pack()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let dir = tempfile::tempdir()?;
+        assert_eq!(runtime_soname(dir.path()), None);
+        for name in [
+            "libopenvino.so.2650",
+            "libopenvino_c.so.2650",
+            "libopenvino.so",
+            "libtbb.so.12",
+        ] {
+            std::fs::write(dir.path().join(name), b"")?;
+        }
+        assert_eq!(runtime_soname(dir.path()).as_deref(), Some("2650"));
+        // Two versions side by side: none is chosen.
+        std::fs::write(dir.path().join("libopenvino.so.2640"), b"")?;
+        assert_eq!(runtime_soname(dir.path()), None);
+        Ok(())
+    }
 
     type TestResult = Result<(), Box<dyn std::error::Error>>;
 

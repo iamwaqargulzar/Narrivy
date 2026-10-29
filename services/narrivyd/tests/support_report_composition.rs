@@ -168,7 +168,19 @@ fn dictate(client: &mut IpcClient) -> TestResult<String> {
             Err(err) => return Err(err.into()),
         }
     }
-    committed.ok_or_else(|| "session never reached committed".into())
+    let txid: String = committed.ok_or("session never reached committed")?;
+    // History is written after the session result, so a read right after
+    // `committed` can come before the row (F-M16). Wait for it, bounded; a
+    // daemon composed without History rejects the read, and there is nothing
+    // to wait for.
+    while Instant::now() < deadline {
+        match client.request(&Command::GetHistory, REQ_TIMEOUT) {
+            Ok(ResponsePayload::History(rows)) if rows.iter().any(|row| row.txid == txid) => break,
+            Ok(_) => std::thread::sleep(POLL_INTERVAL),
+            Err(_) => break,
+        }
+    }
+    Ok(txid)
 }
 
 /// A composed daemon advertises the support-report gate, and a real finished

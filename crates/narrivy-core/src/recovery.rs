@@ -258,6 +258,15 @@ pub enum RecoveryTerminal {
     FailedTerminal { code: String },
 }
 
+/// Audio a microphone must have captured before it disappeared for the
+/// dictation to be recognized and kept (D6, F-H2): half a second.
+pub const SOURCE_ENDED_MIN_SAMPLES: u64 = narrivy_types::CAPTURE_SAMPLE_RATE_HZ as u64 / 2;
+
+/// Failure code of a dictation whose microphone disappeared mid-way. With at
+/// least [`SOURCE_ENDED_MIN_SAMPLES`] its text is kept in the journal (and
+/// History) without delivery; below that nothing is kept.
+pub const CAPTURE_SOURCE_ENDED: &str = "capture_source_ended";
+
 /// The portable delivery truth contract selected by a strict composition.
 /// Linux-specific process invocation remains behind [`DeliveryPort`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -555,11 +564,14 @@ impl RecoverySlice<'_> {
         if captured.audio.samples.len() > narrivy_types::MAX_CAPTURE_SAMPLES {
             return self.fail_terminal(entry, "capture_output_overflow", observe);
         }
-        // A recorder that stopped before its bound is durable typed truth, not
-        // a successful capture: fail closed before ASR, correction or delivery
-        // and never publish the partial frames the adapter returned.
-        if captured.end == narrivy_platform_api::CaptureEnd::SourceEnded {
-            return self.fail_terminal(entry, "capture_source_ended", observe);
+        // A recorder that stopped before its bound (the microphone was
+        // unplugged, PipeWire restarted) is durable typed truth, not a
+        // successful capture. Too little audio fails closed before ASR; with
+        // enough, what was said is recognized and kept, never delivered:
+        // the user may no longer be in the window it was meant for (D6).
+        let source_ended = captured.end == narrivy_platform_api::CaptureEnd::SourceEnded;
+        if source_ended && (captured.audio.samples.len() as u64) < SOURCE_ENDED_MIN_SAMPLES {
+            return self.fail_terminal(entry, CAPTURE_SOURCE_ENDED, observe);
         }
         self.observe_before_side_effect(&mut entry, SessionState::FinalizingAudio, observe)?;
         let audio = captured.audio;
@@ -588,14 +600,17 @@ impl RecoverySlice<'_> {
             return self.fail_terminal(entry, "empty_transcript", observe);
         }
         observe_timing(timing, RecoveryTimingStage::RawFinalAccepted);
-        RecoveryTail {
+        let mut tail = RecoveryTail {
             journal: self.journal,
             policy: self.policy,
             corrector: self.corrector,
             delivery: self.delivery,
             delivery_mode: self.delivery_mode,
+        };
+        if source_ended {
+            return tail.keep_undelivered(entry, transcript.text, cancellation, observe);
         }
-        .complete(entry, transcript.text, txid, cancellation, observe, timing)
+        tail.complete(entry, transcript.text, txid, cancellation, observe, timing)
     }
 
     fn cancel(
@@ -866,6 +881,7 @@ impl StreamingRecoverySlice<'_> {
         }
         let mut expected_capture_sequence = 0_u64;
         let mut total_samples = 0_u64;
+        let mut source_ended = false;
         let mut first_frame_after_start_us = None;
         let mut endpoint_requested = false;
         let mut first_audio_accepted = false;
@@ -1071,18 +1087,22 @@ impl StreamingRecoverySlice<'_> {
                     entry.updated_unix_ms = unix_now_ms();
                     self.journal.write(&entry)?;
                     // A short EOF is durable typed truth, not a successful
-                    // stream: cancel/finish the already-fed ASR stream and
-                    // abort capture through the existing owned cleanup path
-                    // before failing terminal. No final text may commit.
+                    // stream. Too little audio: cancel/finish the already-fed
+                    // ASR stream and abort capture through the owned cleanup
+                    // path, and nothing commits. With enough, the stream is
+                    // finished like a Stop and its text kept undelivered (D6).
                     if summary.end == narrivy_platform_api::CaptureEnd::SourceEnded {
-                        return self.terminate_active(
-                            entry,
-                            &mut *capture,
-                            &mut *asr,
-                            "capture_source_ended",
-                            false,
-                            observe,
-                        );
+                        if total_samples < SOURCE_ENDED_MIN_SAMPLES {
+                            return self.terminate_active(
+                                entry,
+                                &mut *capture,
+                                &mut *asr,
+                                CAPTURE_SOURCE_ENDED,
+                                false,
+                                observe,
+                            );
+                        }
+                        source_ended = true;
                     }
                     break;
                 }
@@ -1167,6 +1187,11 @@ impl StreamingRecoverySlice<'_> {
         }
         observe_timing(timing, RecoveryTimingStage::RawFinalAccepted);
 
+        if source_ended {
+            return self
+                .tail()
+                .keep_undelivered(entry, transcript, cancellation, observe);
+        }
         self.tail()
             .complete(entry, transcript, txid, cancellation, observe, timing)
     }
@@ -1355,15 +1380,15 @@ struct RecoveryTail<'a> {
 }
 
 impl RecoveryTail<'_> {
-    fn complete(
+    /// Journal the raw text and correct it: the part of [`Self::complete`]
+    /// before the commit. `Err` carries the terminal that ended it.
+    fn transform(
         &mut self,
         mut entry: JournalEntry,
         raw: String,
-        txid: TransactionId,
         cancellation: &SessionCancellation,
         observe: &mut dyn FnMut(SessionState) -> Result<(), CoreError>,
-        timing: Option<&dyn RecoveryTimingObserver>,
-    ) -> Result<RecoveryTerminal, CoreError> {
+    ) -> Result<Result<(JournalEntry, String), RecoveryTerminal>, CoreError> {
         // Raw transcript persistence is itself a privacy boundary. Decide
         // before placing the raw representation in the recovery journal.
         if self
@@ -1371,14 +1396,16 @@ impl RecoveryTail<'_> {
             .allow_data(DataClass::TranscriptRaw, ProcessingBoundary::Local)
             .is_err()
         {
-            return self.fail_terminal(entry, "policy_denied_transcript_raw", observe);
+            return self
+                .fail_terminal(entry, "policy_denied_transcript_raw", observe)
+                .map(Err);
         }
         entry.variants.raw = Some(raw);
         entry.updated_unix_ms = unix_now_ms();
         self.journal.write(&entry)?;
 
         if cancellation.is_cancelled() {
-            return self.cancel(entry, observe);
+            return self.cancel(entry, observe).map(Err);
         }
         self.observe_before_side_effect(&mut entry, SessionState::Transforming, observe)?;
         let corrected = match self.corrector.correct(
@@ -1387,11 +1414,49 @@ impl RecoveryTail<'_> {
         ) {
             Ok(text) => text,
             Err(CoreError::Cancelled) if cancellation.is_cancelled() => {
-                return self.cancel(entry, observe);
+                return self.cancel(entry, observe).map(Err);
             }
-            Err(_) => return self.fail_terminal(entry, "correction_failed", observe),
+            Err(_) => {
+                return self
+                    .fail_terminal(entry, "correction_failed", observe)
+                    .map(Err);
+            }
         };
         entry.variants.corrected = Some(corrected.clone());
+        Ok(Ok((entry, corrected)))
+    }
+
+    /// The microphone disappeared mid-dictation (D6, F-H2): keep the text in
+    /// the journal, from which History retains it, and deliver nothing. The
+    /// terminal is recoverable with [`CAPTURE_SOURCE_ENDED`]; no delivery
+    /// intent is written, so startup replay leaves it alone.
+    fn keep_undelivered(
+        &mut self,
+        entry: JournalEntry,
+        raw: String,
+        cancellation: &SessionCancellation,
+        observe: &mut dyn FnMut(SessionState) -> Result<(), CoreError>,
+    ) -> Result<RecoveryTerminal, CoreError> {
+        let (entry, _) = match self.transform(entry, raw, cancellation, observe)? {
+            Ok(transformed) => transformed,
+            Err(terminal) => return Ok(terminal),
+        };
+        self.fail_recoverable(entry, CAPTURE_SOURCE_ENDED, observe)
+    }
+
+    fn complete(
+        &mut self,
+        entry: JournalEntry,
+        raw: String,
+        txid: TransactionId,
+        cancellation: &SessionCancellation,
+        observe: &mut dyn FnMut(SessionState) -> Result<(), CoreError>,
+        timing: Option<&dyn RecoveryTimingObserver>,
+    ) -> Result<RecoveryTerminal, CoreError> {
+        let (mut entry, corrected) = match self.transform(entry, raw, cancellation, observe)? {
+            Ok(transformed) => transformed,
+            Err(terminal) => return Ok(terminal),
+        };
 
         entry.state = JournalEntryState::Committed;
         entry.delivery_intent = Some(DeliveryIntent {
@@ -2437,6 +2502,91 @@ mod tests {
                 && !states.contains(&SessionState::Delivering),
             "source-ended capture must not claim an ASR/correction/delivery stage"
         );
+        Ok(())
+    }
+
+    /// D6/F-H2, batch path: with half a second captured before the source
+    /// ended, the audio is recognized and corrected, the text is journaled,
+    /// and nothing is delivered.
+    #[test]
+    fn batch_source_ended_after_enough_audio_keeps_the_text_undelivered() -> TestResult {
+        struct EndedCapture;
+        struct EndedSession(CaptureStreamInfo);
+        impl AudioCapturePort for EndedCapture {
+            fn start(&mut self) -> Result<Box<dyn AudioCaptureSession>, PlatformError> {
+                Ok(Box::new(EndedSession(CaptureStreamInfo {
+                    source_selection: "controlled-ended-source".to_owned(),
+                    sample_rate_hz: 16_000,
+                    channels: 1,
+                })))
+            }
+        }
+        impl AudioCaptureSession for EndedSession {
+            fn info(&self) -> &CaptureStreamInfo {
+                &self.0
+            }
+            fn wait_ready(&mut self, _: &SessionControl) -> Result<(), PlatformError> {
+                Ok(())
+            }
+            fn collect(&mut self, _: &SessionControl) -> Result<CapturedAudio, PlatformError> {
+                Ok(CapturedAudio {
+                    audio: AudioChunk {
+                        sample_rate_hz: 16_000,
+                        channels: 1,
+                        samples: vec![0.25; SOURCE_ENDED_MIN_SAMPLES as usize],
+                    },
+                    end: CaptureEnd::SourceEnded,
+                    first_frame_after_start_us: Some(1),
+                    capture_duration_us: 500_000,
+                })
+            }
+        }
+        let journal = TestJournal::new();
+        let mut capture = EndedCapture;
+        let mut asr = Asr;
+        let mut correct = Correct;
+        let delivered = Arc::new(AtomicU64::new(0));
+        let mut delivery = ForbiddenDelivery(Arc::clone(&delivered));
+        let policy = PolicyEngine::from_document(PolicyDocument::default());
+        let mut slice = RecoverySlice {
+            journal: &journal,
+            capture: &mut capture,
+            asr: &mut asr,
+            policy: &policy,
+            corrector: &mut correct,
+            delivery: &mut delivery,
+            delivery_mode: RecoveryDeliveryMode::InboxPrimary,
+        };
+        let mut states = Vec::new();
+        let terminal = slice.run(
+            SessionId(804),
+            TransactionId::new("tx-source-ended-kept"),
+            "linux-mic-inbox".to_owned(),
+            &SessionControl::new(),
+            &mut |state| {
+                states.push(state);
+                Ok(())
+            },
+        )?;
+        assert_eq!(
+            terminal,
+            RecoveryTerminal::FailedRecoverable {
+                code: CAPTURE_SOURCE_ENDED.to_owned()
+            }
+        );
+        let entry = required(
+            journal.read("tx-source-ended-kept")?,
+            "missing kept source-ended journal entry",
+        )?;
+        assert_eq!(entry.state, JournalEntryState::FailedRecoverable);
+        assert_eq!(entry.capture_end, Some(CaptureEnd::SourceEnded));
+        assert_eq!(entry.variants.raw.as_deref(), Some("controlled raw"));
+        assert_eq!(entry.variants.corrected.as_deref(), Some("controlled raw."));
+        assert!(entry.variants.delivered.is_none());
+        assert!(entry.delivery_intent.is_none());
+        assert_eq!(delivered.load(Ordering::SeqCst), 0);
+        assert!(!states.contains(&SessionState::Delivering));
+        assert_eq!(states.last(), Some(&SessionState::Idle));
         Ok(())
     }
 
@@ -4045,6 +4195,8 @@ mod tests {
         AbortFailsAfterFirst,
         SummaryMismatch,
         ShortEof,
+        /// Ends like `ShortEof` after 8192 samples (over half a second).
+        LongEof,
     }
 
     struct ControlledStreamingCapture {
@@ -4123,6 +4275,8 @@ mod tests {
                     channels: 1,
                     samples: if matches!(self.behavior, StreamingCaptureBehavior::EndpointFixture) {
                         vec![0.05; 1_280]
+                    } else if matches!(self.behavior, StreamingCaptureBehavior::LongEof) {
+                        vec![0.25; 4_096]
                     } else {
                         vec![0.25; 4]
                     },
@@ -4203,24 +4357,33 @@ mod tests {
                 }));
             }
             if next < 2 {
+                let len = if matches!(self.behavior, StreamingCaptureBehavior::LongEof) {
+                    4_096
+                } else {
+                    4
+                };
                 return Ok(CaptureStreamEvent::Audio(CaptureStreamChunk {
                     sequence: u64::try_from(next).unwrap_or(u64::MAX),
                     audio: AudioChunk {
                         sample_rate_hz: 16_000,
                         channels: 1,
-                        samples: vec![0.25; 4],
+                        samples: vec![0.25; len],
                     },
                     first_frame_after_start_us: (next == 0).then_some(10),
                 }));
             }
             Ok(CaptureStreamEvent::End(CaptureStreamSummary {
-                end: if matches!(self.behavior, StreamingCaptureBehavior::ShortEof) {
+                end: if matches!(
+                    self.behavior,
+                    StreamingCaptureBehavior::ShortEof | StreamingCaptureBehavior::LongEof
+                ) {
                     CaptureEnd::SourceEnded
                 } else {
                     CaptureEnd::SafetyLimit
                 },
                 total_samples: match self.behavior {
                     StreamingCaptureBehavior::SummaryMismatch => 7,
+                    StreamingCaptureBehavior::LongEof => 8_192,
                     // The fixture ran to its end without an endpoint: every
                     // 80 ms chunk it produced is accounted for.
                     StreamingCaptureBehavior::EndpointFixture => u64::try_from(next)
@@ -4518,6 +4681,83 @@ mod tests {
         assert!(!aborted.load(Ordering::SeqCst));
         assert!(!cancelled.load(Ordering::SeqCst));
         assert!(finished.load(Ordering::SeqCst));
+        assert_eq!(pushed_chunks.load(Ordering::SeqCst), 2);
+        Ok(())
+    }
+
+    /// Counts delivery calls; a kept-undelivered dictation must make none.
+    struct ForbiddenDelivery(Arc<AtomicU64>);
+    impl DeliveryPort for ForbiddenDelivery {
+        fn deliver(
+            &mut self,
+            _: &DeliveryIntent,
+            _: &str,
+            _: &SessionCancellation,
+        ) -> Result<DeliveryReport, PlatformError> {
+            self.0.fetch_add(1, Ordering::SeqCst);
+            Err(PlatformError {
+                code: "delivery_forbidden",
+                message: "a kept-undelivered dictation must not deliver".to_owned(),
+            })
+        }
+    }
+
+    /// D6/F-H2: a microphone lost after more than half a second keeps what
+    /// was said: the stream is finished like a Stop, the text is corrected
+    /// and journaled, and nothing is delivered.
+    #[test]
+    fn controlled_streaming_source_ended_keeps_the_text_undelivered() -> TestResult {
+        let journal = TestJournal::new();
+        let (mut capture, _, aborted) = streaming_capture(StreamingCaptureBehavior::LongEof);
+        let (mut asr, opened, cancelled, finished, pushed_chunks) =
+            streaming_engine_with_counter(None, false);
+        let mut correct = Correct;
+        let delivered = Arc::new(AtomicU64::new(0));
+        let mut delivery = ForbiddenDelivery(Arc::clone(&delivered));
+        let policy = PolicyEngine::from_document(PolicyDocument::default());
+        let mut slice = StreamingRecoverySlice {
+            journal: &journal,
+            capture: &mut capture,
+            asr: &mut asr,
+            policy: &policy,
+            corrector: &mut correct,
+            delivery: &mut delivery,
+            delivery_mode: RecoveryDeliveryMode::InboxPrimary,
+            endpointing: None,
+            partial_observer: None,
+        };
+        let terminal = slice.run(
+            SessionId(83),
+            TransactionId::new("tx-stream-source-ended-kept"),
+            "controlled-streaming-inbox".to_owned(),
+            &SessionControl::new(),
+            &mut |_| Ok(()),
+        )?;
+        assert_eq!(
+            terminal,
+            RecoveryTerminal::FailedRecoverable {
+                code: CAPTURE_SOURCE_ENDED.to_owned()
+            }
+        );
+        let entry = required(
+            journal.read("tx-stream-source-ended-kept")?,
+            "missing kept source-ended journal entry",
+        )?;
+        assert_eq!(entry.state, JournalEntryState::FailedRecoverable);
+        assert_eq!(entry.capture_end, Some(CaptureEnd::SourceEnded));
+        assert_eq!(
+            entry.variants.raw.as_deref(),
+            Some("controlled streaming final")
+        );
+        assert!(entry.variants.corrected.is_some());
+        assert!(entry.variants.delivered.is_none());
+        // No delivery intent: startup replay never sends it anywhere.
+        assert!(entry.delivery_intent.is_none());
+        assert_eq!(delivered.load(Ordering::SeqCst), 0);
+        assert!(opened.load(Ordering::SeqCst));
+        assert!(finished.load(Ordering::SeqCst));
+        assert!(!cancelled.load(Ordering::SeqCst));
+        assert!(!aborted.load(Ordering::SeqCst));
         assert_eq!(pushed_chunks.load(Ordering::SeqCst), 2);
         Ok(())
     }

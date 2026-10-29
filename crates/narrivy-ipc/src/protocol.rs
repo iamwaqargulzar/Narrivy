@@ -21,7 +21,7 @@ pub const PROTOCOL_MAJOR: u16 = 1;
 
 /// Protocol minor version. Minor skew is tolerated; the daemon advertises
 /// its own minor in the handshake response.
-pub const PROTOCOL_MINOR: u16 = 53;
+pub const PROTOCOL_MINOR: u16 = 54;
 
 /// First protocol minor that understands [`Event::TranscriptPartial`].
 pub const TRANSCRIPT_PARTIAL_PROTOCOL_MINOR: u16 = 3;
@@ -245,6 +245,10 @@ pub const MEETING_QUICK_SAVE_PROTOCOL_MINOR: u16 = 52;
 /// First protocol minor where a meeting being recorded also carries the
 /// words being said now, not yet final (a last turn with `partial`).
 pub const MEETING_LIVE_PARTIAL_PROTOCOL_MINOR: u16 = 53;
+
+/// First protocol minor with the dictation language (`dictation_language`
+/// and `dictation_languages` in `SetTextOptions` and `TextOptions`).
+pub const DICTATION_LANGUAGE_PROTOCOL_MINOR: u16 = 54;
 
 /// Text one writing check or action carries at most, in bytes.
 pub const MAX_WRITING_TEXT_BYTES: usize = 64 * 1024;
@@ -1144,6 +1148,13 @@ pub enum Command {
         /// "new line" / "new paragraph" as line breaks on Clean (minor 42).
         #[serde(default)]
         spoken_breaks: Option<bool>,
+        /// The language a start without its own is dictated in: a tag, or
+        /// `auto` (minor 54).
+        #[serde(default)]
+        dictation_language: Option<String>,
+        /// The user's languages to choose from (minor 54).
+        #[serde(default)]
+        dictation_languages: Option<Vec<String>>,
     },
     /// Give one pipeline its own Voice settings; `null` follows the default
     /// (protocol minor 36). Replies `AudioOptions`.
@@ -1506,12 +1517,16 @@ impl std::fmt::Debug for Command {
                 delivery_method,
                 cleanup_idle_minutes,
                 spoken_breaks,
+                dictation_language,
+                dictation_languages,
             } => f
                 .debug_struct("SetTextOptions")
                 .field("spoken_breaks", spoken_breaks)
                 .field("numbers_as_digits", numbers_as_digits)
                 .field("delivery_method", delivery_method)
                 .field("cleanup_idle_minutes", cleanup_idle_minutes)
+                .field("dictation_language", dictation_language)
+                .field("dictation_languages", dictation_languages)
                 .finish(),
             Self::SetHoldKey { key } => f.debug_struct("SetHoldKey").field("key", key).finish(),
             // Words can be private (names): counts only.
@@ -2863,6 +2878,13 @@ pub struct TextOptionsDto {
     /// "new line" / "new paragraph" become line breaks on Clean (minor 42).
     #[serde(default)]
     pub spoken_breaks: bool,
+    /// The language a start without its own is dictated in; `None` is
+    /// automatic (minor 54).
+    #[serde(default)]
+    pub dictation_language: Option<String>,
+    /// The user's languages to choose from (minor 54).
+    #[serde(default)]
+    pub dictation_languages: Vec<String>,
 }
 
 /// Press and hold: the chosen key and whether it can be read.
@@ -4374,7 +4396,8 @@ mod tests {
         assert_eq!(MEETING_MICROPHONE_PROTOCOL_MINOR, 51);
         assert_eq!(MEETING_QUICK_SAVE_PROTOCOL_MINOR, 52);
         assert_eq!(MEETING_LIVE_PARTIAL_PROTOCOL_MINOR, 53);
-        assert_eq!(PROTOCOL_MINOR, MEETING_LIVE_PARTIAL_PROTOCOL_MINOR);
+        assert_eq!(DICTATION_LANGUAGE_PROTOCOL_MINOR, 54);
+        assert_eq!(PROTOCOL_MINOR, DICTATION_LANGUAGE_PROTOCOL_MINOR);
 
         let start = Command::StartOfflineModelProvision {
             source_path: "/home/user/Models/local model.gguf".into(),

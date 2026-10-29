@@ -29,6 +29,11 @@ use transcribe_cpp::{
 };
 
 fn main() -> std::process::ExitCode {
+    // `execve` made this worker dumpable again; it holds audio and
+    // transcripts (D37, F-H18).
+    if narrivy_process_linux::forbid_core_dumps().is_err() {
+        return std::process::ExitCode::from(1);
+    }
     match run() {
         Ok(()) => std::process::ExitCode::SUCCESS,
         Err(()) => std::process::ExitCode::from(1),
@@ -74,7 +79,11 @@ fn run() -> Result<(), ()> {
             return Err(());
         }
     };
-    let native_capabilities = model.capabilities();
+    let Ok(native_capabilities) = model.capabilities() else {
+        resident_protocol::write_response(&mut writer, STATUS_NATIVE_STARTUP_OTHER, 0, &[])
+            .map_err(|_| ())?;
+        return Err(());
+    };
     // ggml reports concrete device names (for the strict CPU request this is
     // currently `CPU`), not the lower-case request token used by the CLI.
     if compute == WorkerCompute::Cpu && !model.backend().eq_ignore_ascii_case("cpu") {
@@ -167,7 +176,17 @@ fn run() -> Result<(), ()> {
                 let result = model
                     .session()
                     .and_then(|mut session| session.run(&samples, &run_options))
-                    .map(|transcript| transcript.text.into_bytes());
+                    .map(|transcript| transcript.text.into_bytes())
+                    .or_else(|error| match error {
+                        // The model began repeating itself and was stopped:
+                        // what it said before, with one copy of the repeat,
+                        // is the transcript (0.2.3 returned the loop itself).
+                        transcribe_cpp::Error::OutputRepetition {
+                            partial: Some(partial),
+                            ..
+                        } => Ok(partial.text.into_bytes()),
+                        other => Err(other),
+                    });
                 match result {
                     Ok(text) if text.len() <= resident_protocol::MAX_TEXT_BYTES => {
                         resident_protocol::write_response(
@@ -255,6 +274,10 @@ fn load_model(
         &ModelOptions {
             backend: Backend::Cpu,
             device: None,
+            // The weights are served from the (hash-checked, never rewritten
+            // in place) model file's page cache rather than copied: the
+            // system can reclaim that memory between dictations.
+            no_mmap: false,
         },
     )?;
     Ok((model, WorkerCompute::Cpu))
@@ -279,6 +302,7 @@ fn load_on_gpu(path: &std::path::Path) -> Option<(Model, WorkerCompute)> {
         &ModelOptions {
             backend: Backend::Vulkan,
             device: None,
+            no_mmap: false,
         },
     )
     .ok()?;
@@ -287,7 +311,9 @@ fn load_on_gpu(path: &std::path::Path) -> Option<(Model, WorkerCompute)> {
         transcribe_cpp::DeviceType::Igpu => WorkerCompute::IntegratedGpu,
         _ => return None,
     };
-    if i64::from(model.capabilities().native_sample_rate) != i64::from(self_test::SAMPLE_RATE_HZ) {
+    if i64::from(model.capabilities().ok()?.native_sample_rate)
+        != i64::from(self_test::SAMPLE_RATE_HZ)
+    {
         return None;
     }
     let samples = self_test::fixture_samples(SELF_TEST_WAV)?;

@@ -142,3 +142,35 @@ impl PasteChord for WtypePasteChord {
         }
     }
 }
+
+/// The paste chord, Shift+Insert, pressed on Narrivy's own uinput keyboard
+/// ([`crate::uinput_keys`]). Opt-in only (the `paste-keyboard` delivery
+/// method): for compositors that drop the modifiers `wtype` sends.
+pub struct UinputPasteChord {
+    unavailable: Option<&'static str>,
+}
+
+impl UinputPasteChord {
+    #[must_use]
+    pub fn shift_insert() -> Self {
+        Self {
+            unavailable: crate::uinput_keys::unavailable_reason(),
+        }
+    }
+}
+
+impl PasteChord for UinputPasteChord {
+    fn qualification(&self) -> RungQualification {
+        match self.unavailable {
+            None => RungQualification::Qualified,
+            Some(reason) => RungQualification::Unqualified(reason),
+        }
+    }
+
+    fn send_paste_chord(&mut self, cancellation: &SessionCancellation) -> Result<(), &'static str> {
+        match self.unavailable {
+            None => crate::uinput_keys::press_shift_insert(cancellation),
+            Some(reason) => Err(reason),
+        }
+    }
+}

@@ -122,6 +122,13 @@ export function resolveMic(status: StatusSnapshot, mode: 'auto' | 'custom'): Res
   return { resolved: compose(true, 'No microphone detected'), source: 'missing capability: mic.available' };
 }
 
+/** Why typing is unavailable, with the fix when it is a missing package (F-C4). */
+export function typingUnavailable(helper: string | null): string {
+  return helper === 'unavailable:wtype_missing'
+    ? 'wtype is not installed (sudo apt install wtype)'
+    : 'typing helper unavailable';
+}
+
 export function resolveDelivery(status: StatusSnapshot, mode: 'auto' | 'custom'): ResolvedCardValue {
   const caps = status.capabilities ?? [];
   if (mode !== 'auto') return { resolved: 'Manually chosen delivery', source: 'settings: delivery.mode' };
@@ -142,7 +149,7 @@ export function resolveDelivery(status: StatusSnapshot, mode: 'auto' | 'custom')
     const targetNote = targetBound ? '' : ', no pre-activation target bound';
     const detail = helperReady
       ? `target-aware routing${targetNote}, direct typing unverified`
-      : `target-aware routing${targetNote}, typing helper unavailable`;
+      : `target-aware routing${targetNote}, ${typingUnavailable(helper)}`;
     return {
       resolved: compose(true, `Inbox recovery (${detail})${clipboardAuthorized ? ' — clipboard restore authorized' : ''}`),
       source: 'capability: delivery.route=target-aware',
@@ -158,7 +165,7 @@ export function resolveDelivery(status: StatusSnapshot, mode: 'auto' | 'custom')
         true,
         helperReady
           ? 'Inbox recovery (direct typing unverified)'
-          : 'Inbox recovery only (typing helper unavailable)',
+          : `Inbox recovery only (${typingUnavailable(wtypeHelper)})`,
       ),
       source: 'capability: delivery.inbox-recovery=enabled',
     };

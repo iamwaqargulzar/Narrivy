@@ -101,6 +101,7 @@ impl DaemonProcess {
             .env("XDG_DATA_HOME", &host.data)
             .env("NARRIVY_RUNTIME_DIR", &host.runtime)
             .env("NARRIVY_SOCKET", &host.socket)
+            .env("NARRIVY_ASR_ENGINE", "mock")
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::piped());
@@ -418,4 +419,27 @@ fn sigterm_stops_a_daemon_that_owns_an_active_session() -> TestResult {
 #[test]
 fn sigint_stops_a_daemon_that_owns_an_active_session() -> TestResult {
     assert_active_session_shutdown("INT")
+}
+
+/// F-M13: a daemon started by hand without the unit's environment refuses to
+/// start rather than serving the mock engine's fake transcripts.
+#[test]
+fn a_daemon_without_an_engine_choice_refuses_to_start() -> TestResult {
+    let host = IsolatedHost::new()?;
+    let output = Command::new(env!("CARGO_BIN_EXE_narrivyd"))
+        .env_clear()
+        .current_dir(host.root.path())
+        .env("HOME", &host.home)
+        .env("XDG_RUNTIME_DIR", &host.runtime)
+        .env("XDG_STATE_HOME", &host.state)
+        .env("XDG_CACHE_HOME", &host.cache)
+        .env("NARRIVY_RUNTIME_DIR", &host.runtime)
+        .env("NARRIVY_SOCKET", &host.socket)
+        .stdin(Stdio::null())
+        .output()?;
+    assert_eq!(output.status.code(), Some(1));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("NARRIVY_ASR_ENGINE is not set"), "{stderr}");
+    assert!(!host.socket.exists());
+    Ok(())
 }

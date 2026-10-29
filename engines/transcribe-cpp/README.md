@@ -7,7 +7,7 @@ owner decision 2026-08-22). Implements `narrivy_asr_api::AsrEngine`.
 
 The transcribe.cpp code license is MIT. The `runtime` CLI path links no native
 library into Narrivy. The separate `resident-worker` feature exact-pins the MIT
-`transcribe-cpp`/`transcribe-cpp-sys` 0.2.3 crates; native unsafe remains inside
+`transcribe-cpp`/`transcribe-cpp-sys` 0.4.1 crates; native unsafe remains inside
 those upstream dependencies and the process-isolated worker. Model licenses
 are reviewed per artifact. Exact pins and limitations are in
 [BUILD-NOTES.md](BUILD-NOTES.md).
@@ -33,7 +33,7 @@ repeated final decode is never presented as streaming.
 - `src/lib.rs` — `TranscribeCppEngine`, both cfg worlds.
 - `src/resident.rs` / `src/resident_protocol.rs` — bounded parent and private
   protocol-v4 resident lifecycle and immutable model binding.
-- `src/bin/narrivy-transcribe-worker.rs` — isolated native 0.2.3 worker.
+- `src/bin/narrivy-transcribe-worker.rs` — isolated native 0.4.1 worker.
 - `src/prep.rs` — pure audio preconditioning (`ensure_mono_16k`: mono +
   16 kHz linear resample + clamp), always compiled, unit-tested.
 - `src/catalog.rs` — serde `GgufModelSpec` catalog for the GGUF variants in

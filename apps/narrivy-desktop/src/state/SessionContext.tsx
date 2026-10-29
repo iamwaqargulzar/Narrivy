@@ -9,6 +9,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MutableRefObject,
   type ReactNode,
 } from 'react';
 import { t } from '../i18n';
@@ -73,6 +74,20 @@ interface SessionContextValue {
    * dictations reload when it changes, even when two results read the same.
    */
   finishedSessions: number;
+  /**
+   * One Start/Cancel latch for the whole app (F-M11): Home, the palette and
+   * Dictation each use their own `useDictationActions`, and a Cancel from
+   * one must stop a Start another is still resolving.
+   */
+  dictationLatch: MutableRefObject<DictationLatch>;
+  /** A Start is resolving or awaiting its acknowledgement, from any screen. */
+  startPending: boolean;
+  setStartPending: (pending: boolean) => void;
+}
+
+export interface DictationLatch {
+  startInFlight: boolean;
+  cancelIntent: 'stop' | 'cancel' | null;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -90,6 +105,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [captureEnd, setCaptureEnd] = useState<string | null>(null);
   const [undoAvailable, setUndoAvailable] = useState(false);
   const [finishedSessions, setFinishedSessions] = useState(0);
+  const dictationLatch = useRef<DictationLatch>({ startInFlight: false, cancelIntent: null });
+  const [startPending, setStartPending] = useState(false);
   const activeIdentity = useRef<{
     sessionId: string;
     transactionId: string;
@@ -102,8 +119,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   // Sync initial phase once the first status snapshot arrives.
   useEffect(() => {
-    if (status?.active_session?.state) setPhase(status.active_session.state);
     const active = status?.active_session;
+    // A snapshot without a session identity is older news than a session
+    // the event stream is following (a reload requested on reconnect can
+    // land after the next session's first event), so it must not reset it.
+    const anonymous = !(active?.session_id && active.transaction_id && active.pipeline_id);
+    if (active?.state && !(anonymous && activeIdentity.current)) setPhase(active.state);
     if (active?.session_id && active.transaction_id && active.pipeline_id) {
       const incoming = {
         sessionId: active.session_id,
@@ -358,6 +379,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       undoAvailable,
       undoToRaw,
       finishedSessions,
+      dictationLatch,
+      startPending,
+      setStartPending,
     }),
     [
       phase,
@@ -370,6 +394,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       undoAvailable,
       undoToRaw,
       finishedSessions,
+      startPending,
     ],
   );
 

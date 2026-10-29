@@ -175,7 +175,6 @@ struct ResourceSampler {
     devices: std::sync::Mutex<Option<(std::time::Instant, AcceleratorCounters, Option<GpuWork>)>>,
 }
 
-
 /// One resource report, content-free.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ResourceReport {
@@ -231,7 +230,11 @@ impl ResourceSampler {
     fn devices_sample(
         &self,
         now: std::time::Instant,
-    ) -> (Result<u32, &'static str>, Result<u32, &'static str>, Option<u32>) {
+    ) -> (
+        Result<u32, &'static str>,
+        Result<u32, &'static str>,
+        Option<u32>,
+    ) {
         let read = accelerator_usage::counters();
         let own = narrivy_process_linux::usage::process_tree(std::process::id());
         let work = accelerator_usage::gpu_work(&own);
@@ -245,7 +248,9 @@ impl ResourceSampler {
             (true, None) => Err("warming_up"),
         };
         let (gpu, gpu_own, npu) = match &*last {
-            Some((at, before, before_work)) if now.duration_since(*at) >= MIN_CPU_SAMPLE_INTERVAL => {
+            Some((at, before, before_work))
+                if now.duration_since(*at) >= MIN_CPU_SAMPLE_INTERVAL =>
+            {
                 let ms = u64::try_from(now.duration_since(*at).as_millis()).unwrap_or(u64::MAX);
                 // Engine work when the driver counts it per client; else the
                 // time the GPU was awake, which reads high.
@@ -407,9 +412,14 @@ pub fn append_diagnostics_capabilities(
                 None => format!("{RESOURCES_CAPABILITY_PREFIX}cpu_permille=unavailable:warming_up"),
             });
             if let Some(own) = report.gpu_own_permille {
-                capabilities.push(format!("{RESOURCES_CAPABILITY_PREFIX}gpu_own_permille={own}"));
+                capabilities.push(format!(
+                    "{RESOURCES_CAPABILITY_PREFIX}gpu_own_permille={own}"
+                ));
             }
-            for (name, share) in [("gpu_permille", report.gpu_permille), ("npu_permille", report.npu_permille)] {
+            for (name, share) in [
+                ("gpu_permille", report.gpu_permille),
+                ("npu_permille", report.npu_permille),
+            ] {
                 capabilities.push(match share {
                     Ok(permille) => format!("{RESOURCES_CAPABILITY_PREFIX}{name}={permille}"),
                     Err(why) => format!("{RESOURCES_CAPABILITY_PREFIX}{name}=unavailable:{why}"),

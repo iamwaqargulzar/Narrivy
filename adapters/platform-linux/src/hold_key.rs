@@ -130,7 +130,8 @@ impl HoldKey {
             .name("narrivy-hold-scan".into())
             .spawn(move || {
                 while !scanner.stop.load(Ordering::Relaxed) {
-                    let list = std::fs::read_to_string("/proc/bus/input/devices").unwrap_or_default();
+                    let list =
+                        std::fs::read_to_string("/proc/bus/input/devices").unwrap_or_default();
                     for device in keyboards(&list) {
                         let fresh = scanner
                             .watched

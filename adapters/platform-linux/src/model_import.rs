@@ -20,6 +20,18 @@ use sha2::{Digest, Sha256};
 
 const COPY_CHUNK_BYTES: usize = 256 * 1024;
 
+/// The one model file the package ships, and the bundled id it carries. It
+/// is root-owned, so it cannot meet the same-user rule for user-chosen files;
+/// it gets its own fixed rule instead (see [`PackagedSource`]).
+const PACKAGED_MODEL_ID: &str = "whisper-tiny.en-Q8_0";
+const PACKAGED_MODEL_COMPONENTS: [&str; 5] = [
+    "usr",
+    "share",
+    "narrivy",
+    "models",
+    "whisper-tiny.en-Q8_0.gguf",
+];
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OfflineModelImportError {
     CancelledBeforePublication,
@@ -249,6 +261,48 @@ trait Hooks {
 struct ProductionHooks;
 impl Hooks for ProductionHooks {}
 
+/// Where an import reads its bytes from, and which ownership rule applies.
+#[derive(Debug, Clone, Copy)]
+enum ImportSource<'a> {
+    /// A file the user chose: it must be owned by the daemon's user.
+    UserFile(&'a Path),
+    /// The packaged bundled model: a fixed path under a trusted system owner.
+    Packaged(PackagedSource<'a>),
+}
+
+impl<'a> ImportSource<'a> {
+    /// The packaged rule applies only to the exact packaged path imported
+    /// under its own bundled id; every other path keeps the same-user rule.
+    fn for_path(path: &'a Path, id: &str) -> Self {
+        let packaged = Path::new("/").join(
+            PACKAGED_MODEL_COMPONENTS
+                .iter()
+                .collect::<std::path::PathBuf>(),
+        );
+        if id == PACKAGED_MODEL_ID && path == packaged {
+            Self::Packaged(PackagedSource {
+                base: Path::new("/"),
+                components: &PACKAGED_MODEL_COMPONENTS,
+                system_owner: 0,
+            })
+        } else {
+            Self::UserFile(path)
+        }
+    }
+}
+
+/// A source file installed by the system package manager. Every directory
+/// from `base` down and the file itself must belong to `system_owner` and be
+/// unwritable by group and others; no component may be a symlink; the file
+/// must be mode 0644. Size and digest are still the registry-pinned ones.
+/// Production uses `/` and uid 0; tests inject their own base and owner.
+#[derive(Debug, Clone, Copy)]
+struct PackagedSource<'a> {
+    base: &'a Path,
+    components: &'a [&'a str],
+    system_owner: u32,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ImportDisposition {
     Published,
@@ -267,7 +321,7 @@ fn import_identity(
     import_identity_with_postpublication_verification(
         cache_root,
         identity,
-        source_path,
+        ImportSource::for_path(source_path, identity.id()),
         cancellation,
         deadline,
         hooks,
@@ -286,7 +340,7 @@ fn import_identity_without_postpublication_rehash(
     import_identity_with_postpublication_verification(
         cache_root,
         identity,
-        source_path,
+        ImportSource::for_path(source_path, identity.id()),
         cancellation,
         deadline,
         hooks,
@@ -298,7 +352,7 @@ fn import_identity_without_postpublication_rehash(
 fn import_identity_with_postpublication_verification(
     cache_root: &Path,
     identity: &impl ImportIdentity,
-    source_path: &Path,
+    source: ImportSource<'_>,
     cancellation: &SessionCancellation,
     deadline: Instant,
     hooks: &mut impl Hooks,
@@ -312,7 +366,10 @@ fn import_identity_with_postpublication_verification(
     let root = open_dedicated_root(cache_root)?;
     check_control(cancellation, deadline)?;
     let owner = rustix::process::getuid().as_raw();
-    let mut source = open_source(source_path, identity.size_bytes(), owner)?;
+    let mut source = match source {
+        ImportSource::UserFile(path) => open_source(path, identity.size_bytes(), owner)?,
+        ImportSource::Packaged(packaged) => open_packaged_source(&packaged, identity.size_bytes())?,
+    };
     check_control(cancellation, deadline)?;
     let source_before = source
         .metadata()
@@ -580,6 +637,85 @@ fn open_source(
         return Err(OfflineModelImportError::SourceUnsafe);
     }
     Ok(file)
+}
+
+/// Open the packaged model under [`PackagedSource`]'s rule. Each directory is
+/// opened relative to the one already checked, so no component can be
+/// swapped for a symlink or an untrusted directory between check and use.
+fn open_packaged_source(
+    packaged: &PackagedSource<'_>,
+    expected_size: u64,
+) -> Result<File, OfflineModelImportError> {
+    let Some((leaf, ancestors)) = packaged.components.split_last() else {
+        return Err(OfflineModelImportError::SourceUnsafe);
+    };
+    if packaged
+        .components
+        .iter()
+        .any(|name| !is_safe_component(name))
+    {
+        return Err(OfflineModelImportError::SourceUnsafe);
+    }
+    let resolve = rustix::fs::ResolveFlags::BENEATH
+        | rustix::fs::ResolveFlags::NO_SYMLINKS
+        | rustix::fs::ResolveFlags::NO_MAGICLINKS;
+    let unavailable_or_unsafe = |error: rustix::io::Errno| {
+        if error == rustix::io::Errno::NOENT {
+            OfflineModelImportError::SourceUnavailable
+        } else {
+            OfflineModelImportError::SourceUnsafe
+        }
+    };
+    let mut directory = rustix::fs::open(
+        packaged.base,
+        OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC | OFlags::NOFOLLOW,
+        Mode::empty(),
+    )
+    .map(File::from)
+    .map_err(unavailable_or_unsafe)?;
+    validate_system_directory(&directory, packaged.system_owner)?;
+    for name in ancestors {
+        directory = rustix::fs::openat2(
+            &directory,
+            *name,
+            OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
+            Mode::empty(),
+            resolve,
+        )
+        .map(File::from)
+        .map_err(unavailable_or_unsafe)?;
+        validate_system_directory(&directory, packaged.system_owner)?;
+    }
+    let file = rustix::fs::openat2(
+        &directory,
+        *leaf,
+        OFlags::RDONLY | OFlags::CLOEXEC | OFlags::NONBLOCK,
+        Mode::empty(),
+        resolve,
+    )
+    .map(File::from)
+    .map_err(unavailable_or_unsafe)?;
+    let metadata = file
+        .metadata()
+        .map_err(|_| OfflineModelImportError::SourceUnsafe)?;
+    if !metadata.is_file()
+        || metadata.uid() != packaged.system_owner
+        || metadata.mode() & 0o7777 != 0o644
+        || metadata.size() != expected_size
+    {
+        return Err(OfflineModelImportError::SourceUnsafe);
+    }
+    Ok(file)
+}
+
+fn validate_system_directory(file: &File, owner: u32) -> Result<(), OfflineModelImportError> {
+    let metadata = file
+        .metadata()
+        .map_err(|_| OfflineModelImportError::SourceUnsafe)?;
+    if !metadata.is_dir() || metadata.uid() != owner || metadata.mode() & 0o022 != 0 {
+        return Err(OfflineModelImportError::SourceUnsafe);
+    }
+    Ok(())
 }
 
 fn open_or_create_private_chain(
@@ -2017,6 +2153,199 @@ mod tests {
         assert_eq!(error, OfflineModelImportError::UnknownModel);
         assert!(!error.to_string().contains(caller));
         assert!(!cache.path().join("staging").exists());
+        Ok(())
+    }
+
+    /// A packaged tree under a test base: `usr/share/narrivy/models/<file>`
+    /// with 0755 directories and a 0644 file, owned by the test's own user,
+    /// which the test injects as the trusted system owner.
+    fn packaged_fixture(
+        identity: &FakeIdentity,
+    ) -> TestResult<(tempfile::TempDir, std::path::PathBuf)> {
+        let base = tempfile::tempdir()?;
+        let models = base.path().join("usr/share/narrivy/models");
+        std::fs::create_dir_all(&models)?;
+        for directory in [
+            "",
+            "usr",
+            "usr/share",
+            "usr/share/narrivy",
+            "usr/share/narrivy/models",
+        ] {
+            std::fs::set_permissions(
+                base.path().join(directory),
+                std::fs::Permissions::from_mode(0o755),
+            )?;
+        }
+        let file = models.join("whisper-tiny.en-Q8_0.gguf");
+        std::fs::write(&file, &identity.bytes)?;
+        std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o644))?;
+        Ok((base, file))
+    }
+
+    fn packaged(base: &Path, system_owner: u32) -> PackagedSource<'_> {
+        PackagedSource {
+            base,
+            components: &PACKAGED_MODEL_COMPONENTS,
+            system_owner,
+        }
+    }
+
+    #[test]
+    fn packaged_rule_applies_only_to_the_exact_packaged_path_and_id() {
+        let path = Path::new("/usr/share/narrivy/models/whisper-tiny.en-Q8_0.gguf");
+        assert!(
+            matches!(
+                ImportSource::for_path(path, PACKAGED_MODEL_ID),
+                ImportSource::Packaged(PackagedSource { base, system_owner: 0, .. })
+                    if base == Path::new("/")
+            ),
+            "the packaged model must use the packaged rule under root"
+        );
+        for (other_path, other_id) in [
+            (path, "fixture-model"),
+            (
+                Path::new("/usr/share/narrivy/models/other.gguf"),
+                PACKAGED_MODEL_ID,
+            ),
+            (
+                Path::new("/usr/share/narrivy/models/../models/whisper-tiny.en-Q8_0.gguf"),
+                PACKAGED_MODEL_ID,
+            ),
+            (
+                Path::new("/home/user/whisper-tiny.en-Q8_0.gguf"),
+                PACKAGED_MODEL_ID,
+            ),
+        ] {
+            assert!(matches!(
+                ImportSource::for_path(other_path, other_id),
+                ImportSource::UserFile(_)
+            ));
+        }
+        // The packaged id is one the bundled registry can import.
+        assert!(
+            BundledModelRegistry::load()
+                .resolve_import(PACKAGED_MODEL_ID)
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn packaged_source_owned_by_the_system_owner_imports() -> TestResult {
+        let (cache, _source_root, _source, identity) = fixture()?;
+        let (base, _file) = packaged_fixture(&identity)?;
+        let uid = rustix::process::getuid().as_raw();
+        let disposition = import_identity_with_postpublication_verification(
+            cache.path(),
+            &identity,
+            ImportSource::Packaged(packaged(base.path(), uid)),
+            &SessionCancellation::new(),
+            future_deadline(),
+            &mut TestHooks::default(),
+            true,
+        )?;
+        assert_eq!(disposition, ImportDisposition::Published);
+        let directory = installed_dir(cache.path(), &identity);
+        assert_eq!(std::fs::read(directory.join("model.gguf"))?, identity.bytes);
+        // The installed copy is the user's own private file, not the 0644 one.
+        assert_eq!(
+            std::fs::metadata(directory.join("model.gguf"))?.mode() & 0o777,
+            0o600
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn packaged_source_rejects_any_unsafe_component() -> TestResult {
+        let identity = FakeIdentity::new();
+        let size = identity.size_bytes();
+        let uid = rustix::process::getuid().as_raw();
+
+        let (base, _file) = packaged_fixture(&identity)?;
+        assert!(open_packaged_source(&packaged(base.path(), uid), size).is_ok());
+        // A different trusted owner (root, in production) than the file's.
+        assert_eq!(
+            open_packaged_source(&packaged(base.path(), uid + 1), size).err(),
+            Some(OfflineModelImportError::SourceUnsafe)
+        );
+        // The registry-pinned size.
+        assert_eq!(
+            open_packaged_source(&packaged(base.path(), uid), size + 1).err(),
+            Some(OfflineModelImportError::SourceUnsafe)
+        );
+
+        // The file mode must be exactly 0644.
+        for mode in [0o600, 0o664, 0o646, 0o4644, 0o755] {
+            let (base, file) = packaged_fixture(&identity)?;
+            std::fs::set_permissions(&file, std::fs::Permissions::from_mode(mode))?;
+            assert_eq!(
+                open_packaged_source(&packaged(base.path(), uid), size).err(),
+                Some(OfflineModelImportError::SourceUnsafe),
+                "mode {mode:o}"
+            );
+        }
+
+        // No ancestor (the base included) may be group- or other-writable.
+        for directory in [
+            "",
+            "usr",
+            "usr/share",
+            "usr/share/narrivy",
+            "usr/share/narrivy/models",
+        ] {
+            for mode in [0o775, 0o757] {
+                let (base, _file) = packaged_fixture(&identity)?;
+                std::fs::set_permissions(
+                    base.path().join(directory),
+                    std::fs::Permissions::from_mode(mode),
+                )?;
+                assert_eq!(
+                    open_packaged_source(&packaged(base.path(), uid), size).err(),
+                    Some(OfflineModelImportError::SourceUnsafe),
+                    "{directory:?} {mode:o}"
+                );
+            }
+        }
+
+        // No component may be a symlink, even to an otherwise valid tree.
+        let (base, _file) = packaged_fixture(&identity)?;
+        std::fs::rename(
+            base.path().join("usr/share"),
+            base.path().join("usr/real-share"),
+        )?;
+        std::os::unix::fs::symlink("real-share", base.path().join("usr/share"))?;
+        assert_eq!(
+            open_packaged_source(&packaged(base.path(), uid), size).err(),
+            Some(OfflineModelImportError::SourceUnsafe)
+        );
+        let (base, file) = packaged_fixture(&identity)?;
+        let real = base.path().join("usr/share/narrivy/models/real.gguf");
+        std::fs::rename(&file, &real)?;
+        std::os::unix::fs::symlink("real.gguf", &file)?;
+        assert_eq!(
+            open_packaged_source(&packaged(base.path(), uid), size).err(),
+            Some(OfflineModelImportError::SourceUnsafe)
+        );
+
+        // A missing file is unavailable, not unsafe.
+        let (base, file) = packaged_fixture(&identity)?;
+        std::fs::remove_file(&file)?;
+        assert_eq!(
+            open_packaged_source(&packaged(base.path(), uid), size).err(),
+            Some(OfflineModelImportError::SourceUnavailable)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn user_chosen_source_still_requires_the_daemon_user() -> TestResult {
+        let (_cache, _source_root, source, identity) = fixture()?;
+        let uid = rustix::process::getuid().as_raw();
+        assert!(open_source(&source, identity.size_bytes(), uid).is_ok());
+        assert_eq!(
+            open_source(&source, identity.size_bytes(), uid + 1).err(),
+            Some(OfflineModelImportError::SourceUnsafe)
+        );
         Ok(())
     }
 }

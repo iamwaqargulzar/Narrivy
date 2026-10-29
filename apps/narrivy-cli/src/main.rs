@@ -25,11 +25,12 @@ use narrivy_ipc::{
     RecognitionContextHintsDto, RecognitionSettingsDto, RecognitionTagDto, ResponsePayload,
     SpokenLanguageDto, ToggleResultDto,
 };
+use narrivy_ipc::{IpcError, IpcErrorCode};
 use narrivy_ipc_unix::{IpcClient, default_socket_path};
 
 use support::SUPPORT_REPORT_COMMAND;
 
-const USAGE: &str = "usage: narrivy-cli <status|start|stop|toggle|cancel|history|models|use-model|download-model|cancel-download|pipeline-engine|pipelines|store|store-remove|meetings|meeting|meeting-start|meeting-stop|meeting-process|meeting-notes|echo-cancel|voice|noise|words|mic|hold|history-keep|numbers|meeting-import|delivery|auto-notes|support-report> [TXID|MODEL-ID|MODEL-ID,DEVICE|MEETING-ID|TITLE|on|off|train|forget] [--pipeline ID] [--socket PATH] [--output PATH]\n       start|toggle recognition: [--language TAG|auto] [--output-language TAG] [--script TAG] [--translate-to TAG] [--locale TAG] [--context-hint TEXT]...\n       toggle accepts only --pipeline raw|clean\n       support-report [--output PATH]: redacted, content-free diagnostics for a bug report";
+const USAGE: &str = "usage: narrivy-cli <status|start|stop|toggle|cancel|history|models|use-model|download-model|cancel-download|pipeline-engine|pipelines|store|store-remove|meetings|meeting|meeting-start|meeting-stop|meeting-process|meeting-notes|echo-cancel|voice|noise|words|mic|hold|history-keep|numbers|language|meeting-import|delivery|auto-notes|support-report> [TXID|MODEL-ID|MODEL-ID,DEVICE|MEETING-ID|TITLE|on|off|train|forget] [--pipeline ID] [--socket PATH] [--output PATH]\n       start|toggle recognition: [--language TAG|auto] [--output-language TAG] [--script TAG] [--translate-to TAG] [--locale TAG] [--context-hint TEXT]...\n       toggle accepts only --pipeline raw|clean\n       support-report [--output PATH]: redacted, content-free diagnostics for a bug report";
 
 /// Bounded wait for every request round-trip.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
@@ -140,6 +141,7 @@ fn parse_args(args: &[String]) -> Result<ParsedArgs, String> {
                             | "hold"
                             | "history-keep"
                             | "numbers"
+                            | "language"
                             | "meeting-import"
                             | "delivery"
                             | "auto-notes"
@@ -246,6 +248,133 @@ fn connect(socket: &Option<String>) -> Result<IpcClient, ExitCode> {
         None => default_socket_path(),
     };
     IpcClient::connect_as(&path, "cli").map_err(|err| {
+        eprintln!("narrivy-cli: connect {} failed: {err}", path.display());
+        ExitCode::from(1)
+    })
+}
+
+const SYSTEMCTL: &str = "/usr/bin/systemctl";
+const GDBUS: &str = "/usr/bin/gdbus";
+const DAEMON_SERVICE: &str = "narrivy-daemon.service";
+/// From the start request to a daemon answering on its socket.
+const DAEMON_START_WAIT: Duration = Duration::from_secs(10);
+const DAEMON_POLL: Duration = Duration::from_millis(100);
+
+/// Connect; when the daemon is not running, start it once and wait for it
+/// (F-H4). A shortcut has nowhere to print, so a failure past the start
+/// also calls `notify` once.
+fn connect_or_start<T>(
+    mut connect: impl FnMut() -> Result<T, IpcError>,
+    start: impl FnOnce() -> bool,
+    notify: impl FnOnce(),
+    mut wait: impl FnMut() -> bool,
+) -> Result<T, IpcError> {
+    let first = match connect() {
+        Ok(client) => return Ok(client),
+        Err(error) if error.code == IpcErrorCode::DaemonUnavailable => error,
+        Err(error) => return Err(error),
+    };
+    if !start() {
+        notify();
+        return Err(first);
+    }
+    loop {
+        if !wait() {
+            notify();
+            return Err(first);
+        }
+        match connect() {
+            Ok(client) => return Ok(client),
+            Err(error) if error.code == IpcErrorCode::DaemonUnavailable => {}
+            Err(error) => {
+                notify();
+                return Err(error);
+            }
+        }
+    }
+}
+
+/// Run a fixed program with no input or output, killed after `bound`.
+fn run_bounded(program: &str, args: &[&str], bound: Duration) -> bool {
+    let Ok(mut child) = std::process::Command::new(program)
+        .args(args)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+    else {
+        return false;
+    };
+    let deadline = std::time::Instant::now() + bound;
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => return status.success(),
+            Ok(None) if std::time::Instant::now() < deadline => {
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            Ok(None) | Err(_) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return false;
+            }
+        }
+    }
+}
+
+/// A content-free desktop notification (org.freedesktop.Notifications).
+fn notify_start_failed() {
+    let _ = run_bounded(
+        GDBUS,
+        &[
+            "call",
+            "--session",
+            "--dest",
+            "org.freedesktop.Notifications",
+            "--object-path",
+            "/org/freedesktop/Notifications",
+            "--method",
+            "org.freedesktop.Notifications.Notify",
+            "Narrivy",
+            "0",
+            "",
+            "Narrivy could not start",
+            "Open Narrivy for details.",
+            "[]",
+            "{}",
+            "5000",
+        ],
+        Duration::from_secs(3),
+    );
+}
+
+/// [`connect`] for `start`/`toggle` from a shortcut: the installed daemon is
+/// started on demand. An explicit `--socket` names a daemon someone else
+/// owns, so it is never started.
+fn connect_for_activation(socket: &Option<String>) -> Result<IpcClient, ExitCode> {
+    if socket.is_some() {
+        return connect(socket);
+    }
+    let path = default_socket_path();
+    let deadline = std::time::Instant::now() + DAEMON_START_WAIT;
+    connect_or_start(
+        || IpcClient::connect_as(&path, "cli"),
+        || {
+            run_bounded(
+                SYSTEMCTL,
+                &["--user", "start", DAEMON_SERVICE],
+                DAEMON_START_WAIT,
+            )
+        },
+        notify_start_failed,
+        || {
+            if std::time::Instant::now() >= deadline {
+                return false;
+            }
+            std::thread::sleep(DAEMON_POLL);
+            true
+        },
+    )
+    .map_err(|err| {
         eprintln!("narrivy-cli: connect {} failed: {err}", path.display());
         ExitCode::from(1)
     })
@@ -364,8 +493,15 @@ fn print_payload(command: &str, payload: ResponsePayload) -> ExitCode {
                 options.noise_suppression
             );
             if command == "mic" {
-                let chosen = if options.microphone.is_empty() { "default" } else { &options.microphone };
-                println!("narrivy-cli mic: chosen={chosen} missing={}", options.microphone_missing);
+                let chosen = if options.microphone.is_empty() {
+                    "default"
+                } else {
+                    &options.microphone
+                };
+                println!(
+                    "narrivy-cli mic: chosen={chosen} missing={}",
+                    options.microphone_missing
+                );
                 for mic in &options.microphones {
                     println!("narrivy-cli mic: available={}", mic.name);
                 }
@@ -374,8 +510,11 @@ fn print_payload(command: &str, payload: ResponsePayload) -> ExitCode {
         }
         ResponsePayload::TextOptions(options) => {
             println!(
-                "narrivy-cli {command}: numbers_as_digits={} delivery={}",
-                options.numbers_as_digits, options.delivery_method
+                "narrivy-cli {command}: numbers_as_digits={} delivery={} language={} languages={}",
+                options.numbers_as_digits,
+                options.delivery_method,
+                options.dictation_language.as_deref().unwrap_or("auto"),
+                options.dictation_languages.join(",")
             );
             ExitCode::SUCCESS
         }
@@ -392,7 +531,10 @@ fn print_payload(command: &str, payload: ResponsePayload) -> ExitCode {
             ExitCode::SUCCESS
         }
         ResponsePayload::AssistantLibrary(json) => {
-            println!("narrivy-cli {command}: assistant_library bytes={}", json.len());
+            println!(
+                "narrivy-cli {command}: assistant_library bytes={}",
+                json.len()
+            );
             ExitCode::SUCCESS
         }
         ResponsePayload::HoldKey(hold) => {
@@ -666,7 +808,12 @@ fn run_command(
         eprintln!("narrivy-cli: recognition settings are accepted only by start or toggle");
         return ExitCode::from(2);
     }
-    let mut client = match connect(socket) {
+    let connected = if matches!(command, "start" | "toggle") {
+        connect_for_activation(socket)
+    } else {
+        connect(socket)
+    };
+    let mut client = match connected {
         Ok(client) => client,
         Err(code) => return code,
     };
@@ -752,7 +899,13 @@ fn run_command(
         "meeting-start" => round_trip(
             &mut client,
             "meeting-start",
-            &Command::MeetingStart { title: detail_txid, watch: false, share: false, microphone: None, computer_sound: None },
+            &Command::MeetingStart {
+                title: detail_txid,
+                watch: false,
+                share: false,
+                microphone: None,
+                computer_sound: None,
+            },
         ),
         "meeting-stop" => round_trip(&mut client, "meeting-stop", &Command::MeetingStop),
         "meetings" => round_trip(&mut client, "meetings", &Command::ListMeetings),
@@ -810,7 +963,7 @@ fn run_command(
                 ExitCode::from(2)
             }
         },
-        // Delivery method (minor 38): `delivery paste|type`.
+        // Delivery method (minor 38): `delivery paste|paste-keyboard|type`.
         "delivery" => match detail_txid {
             None => round_trip(&mut client, "delivery", &Command::GetTextOptions),
             Some(method) => round_trip(
@@ -821,6 +974,8 @@ fn run_command(
                     delivery_method: Some(method),
                     cleanup_idle_minutes: None,
                     spoken_breaks: None,
+                    dictation_language: None,
+                    dictation_languages: None,
                 },
             ),
         },
@@ -835,12 +990,30 @@ fn run_command(
                     delivery_method: None,
                     cleanup_idle_minutes: None,
                     spoken_breaks: None,
+                    dictation_language: None,
+                    dictation_languages: None,
                 },
             ),
             Some(_) => {
                 eprintln!("{USAGE}");
                 ExitCode::from(2)
             }
+        },
+        // The dictation language (minor 54): `language auto|TAG`.
+        "language" => match detail_txid {
+            None => round_trip(&mut client, "language", &Command::GetTextOptions),
+            Some(tag) => round_trip(
+                &mut client,
+                "language",
+                &Command::SetTextOptions {
+                    numbers_as_digits: None,
+                    delivery_method: None,
+                    cleanup_idle_minutes: None,
+                    spoken_breaks: None,
+                    dictation_language: Some(tag),
+                    dictation_languages: None,
+                },
+            ),
         },
         // How long History is kept (minor 34): `history-keep off|7d|30d|forever`.
         "history-keep" => match detail_txid {
@@ -876,7 +1049,11 @@ fn run_command(
                     echo_cancel: None,
                     only_my_voice: None,
                     noise_suppression: None,
-                    microphone: Some(if name == "default" { String::new() } else { name }),
+                    microphone: Some(if name == "default" {
+                        String::new()
+                    } else {
+                        name
+                    }),
                     sounds: None,
                     voice_strictness: None,
                 },
@@ -1036,6 +1213,7 @@ fn main() -> ExitCode {
                     | "hold"
                     | "history-keep"
                     | "numbers"
+                    | "language"
                     | "meeting-import"
                     | "delivery"
                     | "auto-notes"
@@ -1066,6 +1244,96 @@ fn main() -> ExitCode {
             );
             ExitCode::from(2)
         }
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod start_tests {
+    use super::connect_or_start;
+    use narrivy_ipc::{IpcError, IpcErrorCode};
+    use std::cell::Cell;
+
+    fn unavailable() -> IpcError {
+        IpcError::new(IpcErrorCode::DaemonUnavailable, "no socket")
+    }
+
+    #[test]
+    fn a_running_daemon_is_never_started() {
+        let starts = Cell::new(0);
+        let result = connect_or_start(
+            || Ok(7),
+            || {
+                starts.set(1);
+                true
+            },
+            || panic!(),
+            || true,
+        );
+        assert_eq!(result.unwrap(), 7);
+        assert_eq!(starts.get(), 0);
+    }
+
+    #[test]
+    fn a_stopped_daemon_is_started_once_and_the_retry_connects() {
+        let attempts = Cell::new(0);
+        let starts = Cell::new(0);
+        let result = connect_or_start(
+            || {
+                attempts.set(attempts.get() + 1);
+                if attempts.get() < 3 {
+                    Err(unavailable())
+                } else {
+                    Ok("client")
+                }
+            },
+            || {
+                starts.set(starts.get() + 1);
+                true
+            },
+            || panic!("no notification on success"),
+            || true,
+        );
+        assert_eq!(result.unwrap(), "client");
+        assert_eq!(starts.get(), 1);
+        assert_eq!(attempts.get(), 3);
+    }
+
+    #[test]
+    fn a_daemon_that_never_answers_notifies_once() {
+        let notes = Cell::new(0);
+        let waits = Cell::new(0);
+        let result: Result<(), _> = connect_or_start(
+            || Err(unavailable()),
+            || true,
+            || notes.set(notes.get() + 1),
+            || {
+                waits.set(waits.get() + 1);
+                waits.get() < 5
+            },
+        );
+        assert_eq!(result.unwrap_err().code, IpcErrorCode::DaemonUnavailable);
+        assert_eq!(notes.get(), 1);
+    }
+
+    #[test]
+    fn a_failed_start_notifies_and_other_errors_are_not_started() {
+        let notes = Cell::new(0);
+        let result: Result<(), _> = connect_or_start(
+            || Err(unavailable()),
+            || false,
+            || notes.set(1),
+            || panic!(),
+        );
+        assert!(result.is_err());
+        assert_eq!(notes.get(), 1);
+        let result: Result<(), _> = connect_or_start(
+            || Err(IpcError::new(IpcErrorCode::BadRequest, "x")),
+            || panic!("only an absent daemon is started"),
+            || panic!(),
+            || panic!(),
+        );
+        assert_eq!(result.unwrap_err().code, IpcErrorCode::BadRequest);
     }
 }
 

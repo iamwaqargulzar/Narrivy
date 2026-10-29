@@ -20,6 +20,7 @@ import { ThemeCard } from '../components/SettingsCompute/ThemeCard';
 import { EchoCancelCard } from '../components/SettingsCompute/EchoCancelCard';
 import { VoiceCard } from '../components/SettingsCompute/VoiceCard';
 import { StartupCard } from '../components/SettingsCompute/StartupCard';
+import { StartShortcutCard } from '../components/SettingsCompute/StartShortcutCard';
 import { HoldKeyCard } from '../components/SettingsCompute/HoldKeyCard';
 import { CancelShortcutCard } from '../components/SettingsCompute/CancelShortcutCard';
 import { OverlayPositionCard } from '../components/SettingsCompute/OverlayPositionCard';
@@ -27,7 +28,7 @@ import { AutomationCard } from '../components/SettingsCompute/AutomationCard';
 import { ComputeCard } from '../components/SettingsCompute/ComputeCard';
 import { TextDeliveryCard } from '../components/SettingsCompute/TextDeliveryCard';
 import { RecognitionSettingsCard } from '../components/SettingsCompute/RecognitionSettingsCard';
-import { PipelinesIoSection } from '../components/PipelinesIo';
+import { PipelinesIoButtons } from '../components/PipelinesIo';
 import { ComputePriorityCard, InsertionChainCard } from '../components/SettingsCompute/LadderCards';
 import '../components/SettingsCompute/SettingsCompute.css';
 
@@ -95,6 +96,8 @@ function Card({ card }: { card: SectionCard }) {
       return <VoiceCard />;
     case 'startup':
       return <StartupCard />;
+    case 'start':
+      return <StartShortcutCard />;
     case 'hold':
       return <HoldKeyCard />;
     case 'cancel':
@@ -118,7 +121,9 @@ function Card({ card }: { card: SectionCard }) {
     case 'pipelines':
       return (
         <DisclosureSection title={t('settings.pipelines.title')} defaultOpen={false}>
-          <PipelinesIoSection />
+          <div className="page-head-actions">
+            <PipelinesIoButtons />
+          </div>
         </DisclosureSection>
       );
   }
@@ -288,12 +293,8 @@ export function SettingsScreen() {
   }, []);
 
   return (
-    <div className="page-wide settings-page">
-      <div className="page-head settings-head">
-        <div>
-          <h2 className="page-title">{t('nav.settings')}</h2>
-          <p className="page-lead">{t('fm.legend')}</p>
-        </div>
+    <div className="settings-page">
+      <aside className="settings-side" aria-label={t('settings.sections')}>
         <label className="settings-search">
           <Icon name="search" />
           <input
@@ -304,8 +305,6 @@ export function SettingsScreen() {
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
-      </div>
-      <div className="settings-layout">
         <div className="settings-tabs" role="tablist" aria-label={t('settings.sections')} aria-orientation="vertical">
           {FEATURE_SECTIONS.map((section) => (
             <button
@@ -325,48 +324,56 @@ export function SettingsScreen() {
               {t(`fm.${section.id}.title`)}
             </button>
           ))}
-          <p className="settings-tally source">
-            {t('settings.tally', { live: counts.live, planned: counts.planned })}
-          </p>
         </div>
-        {query.trim() !== '' ? (
-          <div className="settings-panel" role="region" aria-label={t('settings.results')}>
-            {results.length === 0 ? (
-              <div className="panel empty-state">
-                <Icon name="search" />
-                <strong>{t('settings.noResults')}</strong>
-              </div>
-            ) : (
-              <div className="settings-card fm-list">
-                {results.map(({ section, item }) => (
-                  <div key={`${section.id}.${item.id}`}>
-                    <button
-                      type="button"
-                      className="fm-crumb"
-                      onClick={() => {
-                        setQuery('');
-                        setActive(section.id);
-                      }}
-                    >
-                      {t(`fm.${section.id}.title`)}
-                      <Icon name="arrowRight" />
-                    </button>
-                    <FeatureRow section={section.id} item={item} status={status} />
-                  </div>
-                ))}
-              </div>
-            )}
+        <p className="settings-tally source">
+          {t('settings.tally', { live: counts.live, planned: counts.planned })}
+        </p>
+      </aside>
+      <div className="settings-main">
+        <div className="page-wide">
+          <div className="page-head">
+            <h2 className="page-title">{t('nav.settings')}</h2>
+            <p className="page-lead">{t('fm.legend')}</p>
           </div>
-        ) : (
-          <div
-            id={`settings-panel-${current.id}`}
-            role="tabpanel"
-            aria-labelledby={`settings-tab-${current.id}`}
-            className="settings-panel"
-          >
-            <SectionBody key={current.id} section={current} status={status} />
-          </div>
-        )}
+          {query.trim() !== '' ? (
+            <div className="settings-panel" role="region" aria-label={t('settings.results')}>
+              {results.length === 0 ? (
+                <div className="panel empty-state">
+                  <Icon name="search" />
+                  <strong>{t('settings.noResults')}</strong>
+                </div>
+              ) : (
+                <div className="settings-card fm-list">
+                  {results.map(({ section, item }) => (
+                    <div key={`${section.id}.${item.id}`}>
+                      <button
+                        type="button"
+                        className="fm-crumb"
+                        onClick={() => {
+                          setQuery('');
+                          setActive(section.id);
+                        }}
+                      >
+                        {t(`fm.${section.id}.title`)}
+                        <Icon name="arrowRight" />
+                      </button>
+                      <FeatureRow section={section.id} item={item} status={status} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div
+              id={`settings-panel-${current.id}`}
+              role="tabpanel"
+              aria-labelledby={`settings-tab-${current.id}`}
+              className="settings-panel"
+            >
+              <SectionBody key={current.id} section={current} status={status} />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

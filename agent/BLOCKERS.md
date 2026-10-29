@@ -198,6 +198,14 @@
   `unic-*`) are listed by ID with reasons in `deny.toml`, accepted by the
   owner, and re-evaluated at every Tauri release. Drop them when Tauri ships
   GTK4 / WebKitGTK 6 on Linux. History below is kept for reference.
+- 2026-10-26 (dependency refresh): Tauri 2.12 no longer pulls `unic-*`, so
+  those five ignores are removed (3 remain). New advisories since, not
+  ignored, so `cargo deny check` fails until the owner decides: zip 8.6
+  (RUSTSEC-2026-0367/0368/0369, extraction; fixed only in zip 9), bincode
+  and paste (unmaintained), all through `harper-core 2.13.0`, the newest
+  release; zbus_names/zvariant/zvariant_derive (unmaintained, merged into
+  zbus 6), through zbus 5, which ashpd 0.13 and
+  tauri-plugin-single-instance 2.5 still require.
 
 
 - Date: 2026-08-28

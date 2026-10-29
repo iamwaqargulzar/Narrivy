@@ -43,6 +43,14 @@ struct Arguments {
 }
 
 fn main() -> std::process::ExitCode {
+    // `execve` made this worker dumpable again; it holds audio, transcripts
+    // or text being rewritten (D37, F-H18). Same call as
+    // `narrivy_process_linux::forbid_core_dumps`.
+    if rustix::process::set_dumpable_behavior(rustix::process::DumpableBehavior::NotDumpable)
+        .is_err()
+    {
+        return std::process::ExitCode::from(1);
+    }
     match run() {
         Ok(()) => std::process::ExitCode::SUCCESS,
         Err(()) => std::process::ExitCode::from(1),
@@ -131,11 +139,18 @@ fn run() -> Result<(), ()> {
                     .map(|bias| bias.hints().iter().map(String::as_str).collect())
                     .unwrap_or_default();
                 let prompt = (!terms.is_empty()).then(|| format!("{}.", terms.join(", ")));
-                let mut outcome =
-                    whisper.transcribe_with_prompt(&samples, language.as_deref(), prompt.as_deref());
+                let mut outcome = whisper.transcribe_with_prompt(
+                    &samples,
+                    language.as_deref(),
+                    prompt.as_deref(),
+                );
                 // Whisper sometimes continues the prompt instead of hearing
                 // the audio: recognise again without it.
-                if prompt.is_some() && outcome.as_deref().is_ok_and(|text| echoes_prompt(text, &terms)) {
+                if prompt.is_some()
+                    && outcome
+                        .as_deref()
+                        .is_ok_and(|text| echoes_prompt(text, &terms))
+                {
                     outcome = whisper.transcribe(&samples, language.as_deref());
                 }
                 match outcome {
@@ -299,7 +314,9 @@ fn echoes_prompt(text: &str, terms: &[&str]) -> bool {
         .filter_map(|(i, entry)| spoken.find(entry.as_str()).map(|_| i))
         .collect();
     // In order: entry i, i+1, i+2 appear one after another in the text.
-    let in_order = entries.windows(3).any(|run| spoken.contains(&run.join(" ")));
+    let in_order = entries
+        .windows(3)
+        .any(|run| spoken.contains(&run.join(" ")));
     let looped = entries
         .iter()
         .any(|entry| spoken.matches(entry.as_str()).count() >= 3);
@@ -472,7 +489,10 @@ mod echo_tests {
         assert!(echoes_prompt("Narrivy, OpenVINO, Waqar.", &terms));
         assert!(echoes_prompt("Lahore Lahore Lahore", &terms));
         assert!(echoes_prompt("Waqar, Lahore", &terms));
-        assert!(!echoes_prompt("Send the Narrivy build to Waqar today.", &terms));
+        assert!(!echoes_prompt(
+            "Send the Narrivy build to Waqar today.",
+            &terms
+        ));
         assert!(!echoes_prompt("Thanks, see you tomorrow.", &terms));
     }
 }

@@ -9,9 +9,7 @@
 //! skeleton binds the CLI sidecar: it is the upstream surface with a stable,
 //! observable contract (argv in, transcript file out, exit status), needs no
 //! `unsafe`, and keeps this crate inside the workspace `unsafe_code = forbid`
-//! rule. Direct staticlib linking through the local `transcribe-sys` stub
-//! remains the P5 option; its hand-written declarations are hypotheses and
-//! MUST be rewritten against the real upstream header before any use.
+//! rule. (The old local `transcribe-sys` FFI stub was deleted, F-L1.)
 //!
 //! # Operator contract (env is read once, at model-load time)
 //!

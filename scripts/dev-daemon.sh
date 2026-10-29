@@ -7,6 +7,9 @@
 #
 # Usage: scripts/dev-daemon.sh [path/to/model.gguf]
 # Set NARRIVY_TRANSCRIBE_COMPUTE=cpu to keep recognition off the GPU.
+# Set NARRIVY_OPENVINO_RUNTIME_DIR to a pack from
+# scripts/build_openvino_runtime_pack.py --version (for example a nightly) to
+# try another OpenVINO build instead of the installed 2026.4 pack.
 # Default model: ~/.cache/narrivy/models/whisper-tiny.en-Q8_0.gguf
 set -euo pipefail
 

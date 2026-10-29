@@ -29,7 +29,10 @@ import { Markdown } from "./Assistant";
 import { clock, meetingContext } from "../../lib/meetingContext";
 import { ScreenLive } from "../components/ScreenLive";
 import { SourceSwitches } from "../components/SourceSwitches";
-import { AutoNotesSwitch, ProcessOnStopSwitch } from "../components/AutoNotesSwitch";
+import {
+  AutoNotesSwitch,
+  ProcessOnStopSwitch,
+} from "../components/AutoNotesSwitch";
 import { MeetingDevices } from "../components/MeetingDevices";
 
 // Speaker colours: blue, green and yellow first, as light tints behind
@@ -49,7 +52,6 @@ const MODEL_LABEL: Record<string, string> = {
   "large-v3": t("meetings.modelLarge"),
   turbo: t("meetings.modelTurbo"),
 };
-
 
 function when(ms: number): string {
   return new Date(ms).toLocaleString(undefined, {
@@ -91,7 +93,11 @@ function WorkControls({ meeting }: { meeting: Meeting }) {
   const [, kind, count] = /^(slides|notes):(.*)$/.exec(stage) ?? [];
   const act = (action: "pause" | "resume" | "stop") => {
     setError(null);
-    bridge.meetingControl(meeting.id, action).catch((e: unknown) => setError((e as { code?: string })?.code ?? "unavailable"));
+    bridge
+      .meetingControl(meeting.id, action)
+      .catch((e: unknown) =>
+        setError((e as { code?: string })?.code ?? "unavailable"),
+      );
   };
   return (
     <div className="meeting-work">
@@ -102,15 +108,28 @@ function WorkControls({ meeting }: { meeting: Meeting }) {
             ? t(`meetings.work.${kind}`, { count: count ?? "" })
             : t("meetings.work.transcribing")}
       </span>
-      <button type="button" className="btn btn-default" onClick={() => act(paused ? "resume" : "pause")}>
+      <button
+        type="button"
+        className="btn btn-default"
+        onClick={() => act(paused ? "resume" : "pause")}
+      >
         <Icon name={paused ? "play" : "pause"} />
         {paused ? t("assistant.watch.resume") : t("assistant.watch.pause")}
       </button>
-      <button type="button" className="btn btn-default" title={t("meetings.work.stopHint")} onClick={() => act("stop")}>
+      <button
+        type="button"
+        className="btn btn-default"
+        title={t("meetings.work.stopHint")}
+        onClick={() => act("stop")}
+      >
         <Icon name="stop" />
         {t("assistant.watch.cancel")}
       </button>
-      {error ? <span className="meeting-error">{t("meetings.error.other", { code: error })}</span> : null}
+      {error ? (
+        <span className="meeting-error">
+          {t("meetings.error.other", { code: error })}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -162,8 +181,10 @@ export function MeetingsScreen() {
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState<MeetingDetail | null>(null);
   const [title, setTitle] = useState("");
-  const [importPath, setImportPath] = useState("");
   const [busy, setBusy] = useState(false);
+  // "New meeting" shows the recorder in place of the open meeting.
+  const [composing, setComposing] = useState(false);
+  const [query, setQuery] = useState("");
   const [now, setNow] = useState(Date.now());
   const selectedRef = useRef<string | null>(null);
   selectedRef.current = selected;
@@ -266,6 +287,7 @@ export function MeetingsScreen() {
         ...list.filter((m) => m.id !== meeting.id),
       ]);
       setSelected(meeting.id);
+      setComposing(false);
     } catch (err) {
       onError(err);
     } finally {
@@ -291,16 +313,25 @@ export function MeetingsScreen() {
     setBusy(true);
     try {
       const meeting = await bridge.meetingImport(trimmed);
-      setImportPath("");
       setMeetings((list) => [
         meeting,
         ...list.filter((m) => m.id !== meeting.id),
       ]);
       setSelected(meeting.id);
+      setComposing(false);
     } catch (err) {
       onError(err);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const chooseRecording = async () => {
+    try {
+      const path = await bridge.pickRecording(t("meetings.importChooseTitle"));
+      if (path) await importFile(path);
+    } catch (err) {
+      onError(err);
     }
   };
 
@@ -325,144 +356,169 @@ export function MeetingsScreen() {
 
   const shown = meetings.find((m) => m.id === selected) ?? null;
 
+  const needle = query.trim().toLowerCase();
+  const listed = needle
+    ? meetings.filter((m) => m.title.toLowerCase().includes(needle))
+    : meetings;
+  const showRecorder = composing || recording !== null || !shown;
+
   return (
-    <div className="meetings-page">
-      <div className="page-head">
-        <h2 className="page-title">{t("nav.meetings")}</h2>
-        <p className="page-lead">{t("meetings.lead")}</p>
-      </div>
-
-      <section className="card meeting-recorder" aria-live="polite">
-        {recording ? (
-          <div className="meeting-recording">
-            <span className="meeting-dot" aria-hidden="true" />
-            <div className="meeting-recording-text">
-              <strong>{recording.title}</strong>
-              <span className="source">{t("meetings.recordingNote")}</span>
-            </div>
-            <span className="meeting-clock">
-              {clock(now - recording.started_unix_ms)}
-            </span>
-            <Button
-              className="btn-live meeting-stop"
-              onClick={stop}
-              disabled={busy}
-            >
-              <Icon name="stop" />
-              {t("meetings.stop")}
-            </Button>
-          </div>
-        ) : (
-          <div className="meeting-begin">
-            <form className="meeting-start" onSubmit={start}>
-              <span className="meeting-begin-label">
-                <Icon name="mic" />
-                {t("meetings.newLabel")}
-              </span>
-              <div className="meeting-begin-row">
-                <input
-                  className="meeting-title-input"
-                  value={title}
-                  maxLength={120}
-                  placeholder={t("meetings.titlePlaceholder")}
-                  aria-label={t("meetings.titleLabel")}
-                  title={t("meetings.hint")}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-                <Button variant="primary" type="submit" disabled={busy}>
-                  {t("meetings.start")}
-                </Button>
-              </div>
-            </form>
-            <form
-              className="meeting-import"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void importFile(importPath);
-              }}
-            >
-              <span className="meeting-begin-label">
-                <Icon name="folder" />
-                {t("meetings.importLabelShort")}
-              </span>
-              <div className="meeting-begin-row">
-                <input
-                  className="meeting-title-input"
-                  value={importPath}
-                  placeholder={t("meetings.importPlaceholder")}
-                  aria-label={t("meetings.importLabel")}
-                  title={t("meetings.importHint")}
-                  onChange={(e) => setImportPath(e.target.value)}
-                />
-                <Button type="submit" disabled={busy || !importPath.trim()}>
-                  {t("meetings.import")}
-                </Button>
-              </div>
-            </form>
-          </div>
-        )}
-        <MeetingDevices
-          recording={Boolean(recording)}
-          extra={
-            recording ? null : (
-              <>
-                <ProcessOnStopSwitch />
-                <AutoNotesSwitch />
-              </>
-            )
-          }
-        />
-      </section>
-
-      <div className="meetings-body">
+    <div className="settings-page meetings-shell">
+      <aside className="settings-side" aria-label={t("meetings.listLabel")}>
+        <button
+          type="button"
+          className="assistant-new"
+          aria-pressed={composing}
+          onClick={() => setComposing(true)}
+        >
+          <Icon name="plus" />
+          {t("meetings.new")}
+        </button>
+        <label className="settings-search">
+          <Icon name="search" />
+          <input
+            type="search"
+            value={query}
+            placeholder={t("meetings.search")}
+            aria-label={t("meetings.search")}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </label>
         <nav className="meeting-list" aria-label={t("meetings.listLabel")}>
           {meetings.length === 0 ? (
             <p className="source meeting-empty">{t("meetings.empty")}</p>
           ) : null}
-          {meetings.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              className={`meeting-item${m.id === selected ? " is-selected" : ""}`}
-              aria-current={m.id === selected ? "true" : undefined}
-              onClick={() => setSelected(m.id)}
-            >
-              <span className="meeting-item-title">{m.title}</span>
-              <span className="meeting-item-meta">
-                {when(m.started_unix_ms)}
-                {m.state !== "recording" && m.duration_ms > 0
-                  ? ` · ${clock(m.duration_ms)}`
-                  : ""}
-                {m.watch ? ` · ${t("meetings.screenRecording")}` : ""}
-              </span>
-              <StateChip meeting={m} />
-            </button>
-          ))}
+          {needle && listed.length === 0 ? (
+            <p className="source meeting-empty">{t("meetings.noneFound")}</p>
+          ) : null}
+          {listed.map((m) => {
+            const current = !composing && m.id === selected;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                className={`meeting-item${current ? " is-selected" : ""}`}
+                aria-current={current ? "true" : undefined}
+                onClick={() => {
+                  setComposing(false);
+                  setSelected(m.id);
+                }}
+              >
+                <span className="meeting-item-title">{m.title}</span>
+                <span className="meeting-item-meta">
+                  {when(m.started_unix_ms)}
+                  {m.state !== "recording" && m.duration_ms > 0
+                    ? ` · ${clock(m.duration_ms)}`
+                    : ""}
+                  {m.watch ? ` · ${t("meetings.screenRecording")}` : ""}
+                </span>
+                <StateChip meeting={m} />
+              </button>
+            );
+          })}
         </nav>
+      </aside>
+      <div className="settings-main">
+        <div className="meetings-page">
+          <div className="page-head">
+            <h2 className="page-title">{t("nav.meetings")}</h2>
+            <p className="page-lead">{t("meetings.lead")}</p>
+          </div>
 
-        <div className="meeting-detail">
-          {shown ? (
-            <MeetingView
-              key={shown.id}
-              meeting={shown}
-              detail={detail && detail.meeting.id === shown.id ? detail : null}
-              onChanged={() => {
-                void refresh();
-                void loadDetail(shown.id);
-              }}
-              onDeleted={() => {
-                setSelected(null);
-                setDetail(null);
-                void refresh();
-                push(t("meetings.deleted"));
-              }}
-            />
-          ) : (
-            <div className="meeting-placeholder">
-              <Icon name="people" />
-              <p>{t("meetings.placeholder")}</p>
-            </div>
-          )}
+          {showRecorder ? (
+            <section className="card meeting-recorder" aria-live="polite">
+              {recording ? (
+                <div className="meeting-recording">
+                  <span className="meeting-dot" aria-hidden="true" />
+                  <div className="meeting-recording-text">
+                    <strong>{recording.title}</strong>
+                    <span className="source">
+                      {t("meetings.recordingNote")}
+                    </span>
+                  </div>
+                  <span className="meeting-clock">
+                    {clock(now - recording.started_unix_ms)}
+                  </span>
+                  <Button
+                    className="btn-live meeting-stop"
+                    onClick={stop}
+                    disabled={busy}
+                  >
+                    <Icon name="stop" />
+                    {t("meetings.stop")}
+                  </Button>
+                </div>
+              ) : (
+                <form className="meeting-start" onSubmit={start}>
+                  <input
+                    className="meeting-title-input"
+                    value={title}
+                    maxLength={120}
+                    placeholder={t("meetings.titlePlaceholder")}
+                    aria-label={t("meetings.titleLabel")}
+                    title={t("meetings.hint")}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
+                  <Button
+                    variant="primary"
+                    type="submit"
+                    className="meeting-record"
+                    disabled={busy}
+                  >
+                    <span className="meeting-record-dot" aria-hidden="true" />
+                    {t("meetings.start")}
+                  </Button>
+                </form>
+              )}
+              <MeetingDevices
+                recording={Boolean(recording)}
+                extra={
+                  recording ? null : (
+                    <>
+                      <ProcessOnStopSwitch />
+                      <AutoNotesSwitch />
+                    </>
+                  )
+                }
+                trailing={
+                  recording ? null : (
+                    <button
+                      type="button"
+                      className="meeting-import-link"
+                      title={t("meetings.importHint")}
+                      disabled={busy}
+                      onClick={() => void chooseRecording()}
+                    >
+                      <Icon name="folder" />
+                      {t("meetings.importChoose")}
+                    </button>
+                  )
+                }
+              />
+            </section>
+          ) : null}
+
+          <div className="meeting-detail">
+            {shown && !composing ? (
+              <MeetingView
+                key={shown.id}
+                meeting={shown}
+                detail={
+                  detail && detail.meeting.id === shown.id ? detail : null
+                }
+                onChanged={() => {
+                  void refresh();
+                  void loadDetail(shown.id);
+                }}
+                onDeleted={() => {
+                  setSelected(null);
+                  setDetail(null);
+                  void refresh();
+                  push(t("meetings.deleted"));
+                }}
+              />
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
@@ -486,7 +542,9 @@ function MeetingView({
   const { askAboutMeeting, busy: assistantBusy } = useAssistant();
   const [showRedo, setShowRedo] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [tab, setTab] = useState<"transcript" | "notes" | "screens">("transcript");
+  const [tab, setTab] = useState<"transcript" | "notes" | "screens">(
+    "transcript",
+  );
 
   // Words still being said (while recording) are not part of the transcript.
   const turns = (detail?.turns ?? []).filter((turn) => !turn.partial);
@@ -660,9 +718,13 @@ function MeetingView({
       {meeting.state === "recording" ? (
         <p className="meeting-note">{t("meetings.recordingDetail")}</p>
       ) : null}
-      {meeting.state === "recording" ? <SourceSwitches meetingId={meeting.id} /> : null}
+      {meeting.state === "recording" ? (
+        <SourceSwitches meetingId={meeting.id} />
+      ) : null}
       {meeting.state === "recording" &&
-      (meeting.watch || detail?.screen_sources?.length || detail?.screen_error) ? (
+      (meeting.watch ||
+        detail?.screen_sources?.length ||
+        detail?.screen_error) ? (
         <ScreenLive meetingId={meeting.id} />
       ) : null}
 
@@ -809,7 +871,13 @@ function MeetingView({
 
 /** What was shown on screen: each kept picture, when, and what the model
  * saw on it. */
-function ScreensPanel({ meetingId, slides }: { meetingId: string; slides: MeetingSlide[] }) {
+function ScreensPanel({
+  meetingId,
+  slides,
+}: {
+  meetingId: string;
+  slides: MeetingSlide[];
+}) {
   return (
     <ol className="meeting-screens">
       {slides.map((slide) => (
@@ -829,7 +897,13 @@ function ScreensPanel({ meetingId, slides }: { meetingId: string; slides: Meetin
   );
 }
 
-function SlidePicture({ meetingId, file }: { meetingId: string; file: string }) {
+function SlidePicture({
+  meetingId,
+  file,
+}: {
+  meetingId: string;
+  file: string;
+}) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
@@ -842,7 +916,11 @@ function SlidePicture({ meetingId, file }: { meetingId: string; file: string }) 
     };
   }, [meetingId, file]);
   return url ? (
-    <img src={url} alt={t("meetings.screen.alt", { time: file })} loading="lazy" />
+    <img
+      src={url}
+      alt={t("meetings.screen.alt", { time: file })}
+      loading="lazy"
+    />
   ) : (
     <span className="meeting-screen-placeholder" aria-hidden="true" />
   );

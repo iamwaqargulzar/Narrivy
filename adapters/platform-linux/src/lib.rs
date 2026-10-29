@@ -28,6 +28,8 @@ pub mod echo_cancel;
 pub mod hold_key;
 /// Recovery Phase 2A real PipeWire capture and Inbox-only delivery ports.
 pub mod recovery;
+/// Shift+Insert through `/dev/uinput`, for the opt-in `paste-keyboard` method.
+pub mod uinput_keys;
 pub mod wayland_selection;
 
 /// P4 audio policy engine (default-sink duck/restore via wpctl).

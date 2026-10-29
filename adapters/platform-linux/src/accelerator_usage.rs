@@ -58,7 +58,11 @@ fn gpu_work_under(proc_dir: &Path, own: &HashSet<u32>) -> Option<GpuWork> {
     let mut clients: HashSet<(String, String)> = HashSet::new();
     let processes = std::fs::read_dir(proc_dir).ok()?;
     for process in processes.flatten().take(MAX_PROCESSES) {
-        let Some(pid) = process.file_name().to_str().and_then(|name| name.parse::<u32>().ok()) else {
+        let Some(pid) = process
+            .file_name()
+            .to_str()
+            .and_then(|name| name.parse::<u32>().ok())
+        else {
             continue;
         };
         let Ok(fds) = std::fs::read_dir(process.path().join("fd")) else {
@@ -69,12 +73,17 @@ fn gpu_work_under(proc_dir: &Path, own: &HashSet<u32>) -> Option<GpuWork> {
             if !std::fs::read_link(fd.path()).is_ok_and(|target| target.starts_with("/dev/dri")) {
                 continue;
             }
-            let Ok(info) = std::fs::read_to_string(process.path().join("fdinfo").join(fd.file_name())) else {
+            let Ok(info) =
+                std::fs::read_to_string(process.path().join("fdinfo").join(fd.file_name()))
+            else {
                 continue;
             };
             let field = |key: &str| {
                 info.lines()
-                    .find_map(|line| line.strip_prefix(key).and_then(|rest| rest.strip_prefix(':')))
+                    .find_map(|line| {
+                        line.strip_prefix(key)
+                            .and_then(|rest| rest.strip_prefix(':'))
+                    })
                     .map(str::trim)
             };
             let Some(client) = field("drm-client-id") else {
@@ -176,7 +185,9 @@ fn entries(dir: &Path, prefix: &str) -> Vec<PathBuf> {
                         .file_name()
                         .to_str()
                         .and_then(|name| name.strip_prefix(prefix))
-                        .is_some_and(|rest| !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit()))
+                        .is_some_and(|rest| {
+                            !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit())
+                        })
                 })
                 .map(|entry| entry.path())
                 .collect()
@@ -227,7 +238,10 @@ mod tests {
         let accel = root.path().join("accel");
         std::fs::create_dir_all(drm.join("card0-eDP-1"))?;
         std::fs::create_dir_all(drm.join("card0/device/tile0/gt0/gtidle"))?;
-        std::fs::write(drm.join("card0/device/tile0/gt0/gtidle/idle_residency_ms"), "197489\n")?;
+        std::fs::write(
+            drm.join("card0/device/tile0/gt0/gtidle/idle_residency_ms"),
+            "197489\n",
+        )?;
         std::fs::create_dir_all(accel.join("accel0/device"))?;
         std::fs::write(accel.join("accel0/device/npu_busy_time_us"), "484228827\n")?;
         let read = counters_under(&drm, &accel);
@@ -250,14 +264,17 @@ mod tests {
             std::os::unix::fs::symlink("/dev/dri/renderD128", dir.join("fd").join(fd.to_string()))?;
             std::fs::write(
                 dir.join("fdinfo").join(fd.to_string()),
-                format!("drm-driver:\txe\ndrm-pdev:\t0000:00:02.0\ndrm-client-id:\t{id}\ndrm-cycles-rcs:\t{rcs}\ndrm-total-cycles-rcs:\t{total}\n"),
+                format!(
+                    "drm-driver:\txe\ndrm-pdev:\t0000:00:02.0\ndrm-client-id:\t{id}\ndrm-cycles-rcs:\t{rcs}\ndrm-total-cycles-rcs:\t{total}\n"
+                ),
             )
         };
         client(10, 3, 1, 100, 1000)?;
         client(10, 4, 1, 100, 1000)?; // the same client again: once
         client(20, 3, 2, 50, 1000)?;
         let own = HashSet::from([20]);
-        let work = gpu_work_under(&root.path().join("proc"), &own).ok_or_else(|| std::io::Error::other("none"))?;
+        let work = gpu_work_under(&root.path().join("proc"), &own)
+            .ok_or_else(|| std::io::Error::other("none"))?;
         assert_eq!(work.busy.get("rcs"), Some(&150));
         assert_eq!(work.own.get("rcs"), Some(&50));
         let later = GpuWork {

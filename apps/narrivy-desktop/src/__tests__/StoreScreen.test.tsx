@@ -87,6 +87,30 @@ describe('StoreScreen', () => {
     expect(screen.getByRole('button', { name: /Speech models are on the Models screen/ })).toBeInTheDocument();
   });
 
+  it('narrows to one section from the side panel, and searches by name and description', async () => {
+    await openStore([
+      item('rt', 'runtime', 'Sample runtime'),
+      item('denoise-deepfilternet', 'module', 'DeepFilterNet noise suppression', { category: 'denoise' }),
+      item('voice-changer', 'extension', 'Voice changer', { category: 'voice' }),
+    ]);
+    await screen.findByTestId('store-rt');
+    const sections = screen.getByRole('tablist', { name: 'Store sections' });
+    // Sections with nothing in them are not offered.
+    expect(within(sections).queryByRole('tab', { name: /Refine/ })).toBeNull();
+
+    fireEvent.click(within(sections).getByRole('tab', { name: /Noise suppression/ }));
+    expect(screen.getByTestId('store-denoise-deepfilternet')).toBeInTheDocument();
+    expect(screen.queryByTestId('store-rt')).toBeNull();
+
+    fireEvent.click(within(sections).getByRole('tab', { name: /Everything/ }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search the store' }), { target: { value: 'calls and games' } });
+    expect(screen.getByTestId('store-voice-changer')).toBeInTheDocument();
+    expect(screen.queryByTestId('store-rt')).toBeNull();
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search the store' }), { target: { value: 'nothing like this' } });
+    expect(screen.getByText('Nothing in the store matches that search.')).toBeInTheDocument();
+  });
+
   it('asks before removing, and never offers removal of an item in use', async () => {
     await openStore([
       item('rt', 'runtime', 'Sample runtime', { state: 'in_use' }),

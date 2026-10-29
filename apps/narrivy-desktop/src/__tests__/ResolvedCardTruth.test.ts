@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { StatusSnapshot } from '../lib/bridge';
 import { resolveCompute, resolveDelivery, resolveMic, resolveModel } from '../lib/resolved';
 import { FIELD_SPECS } from '../lib/settings';
+import { deliveryChip } from '../lib/homeSummary';
 import {
   ROUTED_RECOVERY_CAPABILITIES,
   ROUTED_RECOVERY_NO_HELPER_CAPABILITIES,
@@ -75,10 +76,26 @@ describe('resolved card values', () => {
       'auto',
     );
     expect(delivery.resolved).toContain('Inbox recovery');
-    expect(delivery.resolved).toContain('typing helper unavailable');
+    // A missing package names its fix (F-C4); other reasons stay generic.
+    expect(delivery.resolved).toContain('wtype is not installed (sudo apt install wtype)');
     expect(
       resolveFor('delivery.mode', [...ROUTED_RECOVERY_NO_HELPER_CAPABILITIES]),
-    ).toContain('typing helper unavailable');
+    ).toContain('sudo apt install wtype');
+    const untrusted = resolveDelivery(
+      routedRecoveryStatus({
+        capabilities: ROUTED_RECOVERY_NO_HELPER_CAPABILITIES.map((token) =>
+          token === 'delivery.wtype-helper=unavailable:wtype_missing'
+            ? 'delivery.wtype-helper=unavailable:wtype_untrusted'
+            : token,
+        ),
+      }),
+      'auto',
+    );
+    expect(untrusted.resolved).toContain('typing helper unavailable');
+    expect(untrusted.resolved).not.toContain('apt install');
+    // Home still says the text only goes to the Inbox.
+    expect(deliveryChip(delivery).label).toBe('Saves to Inbox');
+    expect(deliveryChip(untrusted).label).toBe('Saves to Inbox');
   });
 
   it('never advertises clipboard fallback while no trusted helper is accepted', () => {

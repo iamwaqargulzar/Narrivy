@@ -12,9 +12,8 @@
 //! - This crate NEVER vendors or copies upstream code. The `runtime` world
 //!   drives an operator-built CLI sidecar as a versioned subprocess (see
 //!   `sidecar`); nothing upstream links into Narrivy binaries at P2.
-//! - Direct staticlib linking through the local `transcribe-sys` stub stays
-//!   OUT of every build: its hand-written declarations are hypotheses that
-//!   must be rewritten against `include/transcribe.h` before any use (P5).
+//! - The old local `transcribe-sys` FFI stub was deleted (F-L1); the resident
+//!   worker links the upstream safe wrapper behind `resident-worker`.
 //! - The real path lives behind the `runtime` cargo feature (default: off),
 //!   so default workspace builds need no C toolchain or sidecar at all.
 //! - See BUILD-NOTES.md for the pinned revision, model contract, env vars,

@@ -140,7 +140,9 @@ fn config_text(noise: Noise, microphone: Option<&str>) -> String {
         .filter(|name| valid_node_name(name))
         .map(|name| format!("target.object = \"{name}\""))
         .unwrap_or_default();
-    CONFIG.replace("@NOISE@", noise.args()).replace("@MIC@", &target)
+    CONFIG
+        .replace("@NOISE@", noise.args())
+        .replace("@MIC@", &target)
 }
 
 /// PipeWire node names as `pactl` lists them: no quotes, spaces or controls.
@@ -270,12 +272,17 @@ mod tests {
 
     #[test]
     fn noise_levels_reach_the_canceller() {
-        assert!(config_text(Noise::Off, None).contains("aec.args       = { webrtc.noise_suppression = false"));
+        assert!(
+            config_text(Noise::Off, None)
+                .contains("aec.args       = { webrtc.noise_suppression = false")
+        );
         assert!(config_text(Noise::Strong, None).contains("webrtc.experimental_ns = true"));
         assert!(!config_text(Noise::Standard, None).contains("@NOISE@"));
         assert!(!config_text(Noise::Standard, None).contains("@MIC@"));
-        assert!(config_text(Noise::Standard, Some("alsa_input.usb-x.mono"))
-            .contains("target.object = \"alsa_input.usb-x.mono\""));
+        assert!(
+            config_text(Noise::Standard, Some("alsa_input.usb-x.mono"))
+                .contains("target.object = \"alsa_input.usb-x.mono\"")
+        );
         // A name that could break the file is never written.
         assert!(!config_text(Noise::Standard, Some("a\" b")).contains("target.object"));
     }

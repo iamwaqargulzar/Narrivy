@@ -156,6 +156,42 @@ impl InboxStore {
         out.sort();
         out
     }
+
+    /// Remove recovered-text files older than `max_age` (F-M4): the Inbox
+    /// keeps undelivered text only as long as the recovery journal does;
+    /// History is the durable copy. Only regular `<txid>.txt` files are
+    /// touched, never through a symlink. Returns how many were removed.
+    pub fn prune_older_than(
+        &self,
+        max_age: std::time::Duration,
+        now: std::time::SystemTime,
+    ) -> usize {
+        let Ok(entries) = std::fs::read_dir(&self.dir) else {
+            return 0;
+        };
+        let mut removed = 0;
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("txt") {
+                continue;
+            }
+            let Ok(metadata) = std::fs::symlink_metadata(&path) else {
+                continue;
+            };
+            if !metadata.file_type().is_file() {
+                continue;
+            }
+            let expired = metadata
+                .modified()
+                .ok()
+                .and_then(|modified| now.duration_since(modified).ok())
+                .is_some_and(|age| age > max_age);
+            if expired && std::fs::remove_file(&path).is_ok() {
+                removed += 1;
+            }
+        }
+        removed
+    }
 }
 
 /// Reject a symlinked/non-directory Inbox root and enforce private ownership
@@ -177,6 +213,49 @@ fn ensure_private_dir(dir: &std::path::Path) -> Result<(), InboxError> {
     }
     std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))
         .map_err(|e| InboxError::Io(e.to_string()))
+}
+
+#[cfg(test)]
+mod prune_tests {
+    use super::InboxStore;
+    use std::time::{Duration, SystemTime};
+
+    #[test]
+    fn only_old_recovered_text_files_are_removed() -> Result<(), Box<dyn std::error::Error>> {
+        let dir = tempfile::tempdir()?;
+        let old = dir.path().join("tx-old.txt");
+        let fresh = dir.path().join("tx-fresh.txt");
+        let other = dir.path().join("notes.md");
+        for path in [&old, &fresh, &other] {
+            std::fs::write(path, "text")?;
+        }
+        let an_hour_ago = SystemTime::now() - Duration::from_secs(3600);
+        for path in [&old, &other] {
+            std::fs::File::options()
+                .write(true)
+                .open(path)?
+                .set_modified(an_hour_ago)?;
+        }
+        let target = dir.path().join("target.txt");
+        std::fs::write(&target, "outside")?;
+        std::fs::File::options()
+            .write(true)
+            .open(&target)?
+            .set_modified(an_hour_ago)?;
+        let link = dir.path().join("tx-link.txt");
+        std::os::unix::fs::symlink(&target, &link)?;
+
+        let store = InboxStore::new(dir.path().to_path_buf());
+        let removed = store.prune_older_than(Duration::from_secs(15 * 60), SystemTime::now());
+        // The old file and the old `target.txt` go; the fresh file, the
+        // non-.txt file and the symlink stay.
+        assert_eq!(removed, 2);
+        assert!(!old.exists());
+        assert!(fresh.exists());
+        assert!(other.exists());
+        assert!(std::fs::symlink_metadata(&link).is_ok());
+        Ok(())
+    }
 }
 
 #[cfg(test)]

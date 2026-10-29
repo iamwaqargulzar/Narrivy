@@ -179,7 +179,7 @@ pub fn retention_from_env() -> Result<RetentionPolicy, String> {
     }
     let value = raw.to_string_lossy().to_ascii_lowercase();
     value.parse::<RetentionPolicy>().map_err(|_| {
-        format!("{HISTORY_RETENTION_ENV}={value:?} is unsupported (expected off|7d|30d|forever)")
+        format!("{HISTORY_RETENTION_ENV} has an unsupported value (expected off|7d|30d|forever)")
     })
 }
 
@@ -395,11 +395,8 @@ impl RetainedHistory {
 
     /// Count cap for the retained store.
     ///
-    /// The store's public API removes rows only as a whole table, so the cap
-    /// keeps exactly the newest [`MAX_HISTORY_ENTRIES`] rows: the survivor
-    /// window is materialized before the table is cleared, and a reinsert
-    /// failure is reported as a typed storage error rather than silently
-    /// shrinking retention.
+    /// Keeps exactly the newest [`MAX_HISTORY_ENTRIES`] rows, deleting the
+    /// rest in one statement (F-H17).
     ///
     /// `off` is exempt. It disables new writes but deliberately preserves
     /// already-retained rows, so the cap must not run in that mode.
@@ -411,17 +408,8 @@ impl RetainedHistory {
         if total <= MAX_HISTORY_ENTRIES {
             return Ok(0);
         }
-        let survivors = self.store.list(MAX_HISTORY_ENTRIES)?;
-        let excess = total.saturating_sub(survivors.len());
-        self.store.clear_all()?;
-        for survivor in &survivors {
-            if !self.store.insert(survivor)? {
-                return Err(HistoryError::Storage(
-                    "retained history compaction was refused by the store".to_owned(),
-                ));
-            }
-        }
-        Ok(excess)
+        // One statement: a crash part-way can never leave History cleared.
+        self.store.keep_newest(MAX_HISTORY_ENTRIES)
     }
 }
 
@@ -435,12 +423,18 @@ impl RetainedHistory {
 /// application only. It has no `capture_end` column, so the detail DTO
 /// reports that field as absent rather than inventing one.
 fn retained_entry(result: &JournalEntry, app_id: &str) -> Option<HistoryEntry> {
-    if !matches!(
-        result.state,
-        JournalEntryState::Committed
-            | JournalEntryState::Delivered
-            | JournalEntryState::InboxRecovered
-    ) {
+    // A dictation whose microphone disappeared keeps what was said, never
+    // delivered (D6, F-H2); it lists as undelivered, with Copy.
+    let source_ended = result.state == JournalEntryState::FailedRecoverable
+        && result.failure_code.as_deref() == Some(narrivy_core::CAPTURE_SOURCE_ENDED);
+    if !source_ended
+        && !matches!(
+            result.state,
+            JournalEntryState::Committed
+                | JournalEntryState::Delivered
+                | JournalEntryState::InboxRecovered
+        )
+    {
         return None;
     }
     result
@@ -544,9 +538,9 @@ fn wall_clock_unix_ms() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::{
-        HISTORY_LIST_LIMIT, MAX_HISTORY_ENTRIES, RecordOutcome, entry_detail, listing_row,
-        open_retained_history, open_retained_history_with_clock, retained_entry,
-        retained_history_db_path, retained_state_wire, retention_from_env, HISTORY_RETENTION_ENV,
+        HISTORY_LIST_LIMIT, HISTORY_RETENTION_ENV, MAX_HISTORY_ENTRIES, RecordOutcome,
+        entry_detail, listing_row, open_retained_history, open_retained_history_with_clock,
+        retained_entry, retained_history_db_path, retained_state_wire, retention_from_env,
         retention_preference, save_retention_preference,
     };
     use std::os::unix::fs::MetadataExt;
@@ -804,6 +798,20 @@ mod tests {
             format!("{detail:?}").contains("<redacted>"),
             "detail debug must stay redacted"
         );
+    }
+
+    #[test]
+    fn a_dictation_whose_microphone_disappeared_is_kept_undelivered() -> TestResult {
+        let mut kept = committed("tx-mic", None, 7_000);
+        kept.state = JournalEntryState::FailedRecoverable;
+        kept.failure_code = Some(narrivy_core::CAPTURE_SOURCE_ENDED.to_owned());
+        let row = retained_entry(&kept, "").ok_or("the kept text must be retained")?;
+        assert_eq!(row.corrected, "corrected");
+        assert_eq!(retained_state_wire(&row), "committed");
+        // Any other recoverable failure is still not retained here.
+        kept.failure_code = Some("delivery_identity_mismatch".to_owned());
+        assert!(retained_entry(&kept, "").is_none());
+        Ok(())
     }
 
     #[test]

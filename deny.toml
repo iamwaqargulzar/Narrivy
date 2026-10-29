@@ -10,11 +10,6 @@ all-features = true
 # Tauri ships GTK4/WebKitGTK 6 on Linux (wry PR #1767).
 ignore = [
   { id = "RUSTSEC-2024-0370", reason = "proc-macro-error via Tauri's GTK3 menu stack (muda -> gtk 0.18 -> glib-macros); ADR-0075" },
-  { id = "RUSTSEC-2025-0075", reason = "unic-char-range via urlpattern in tauri-utils; ADR-0075" },
-  { id = "RUSTSEC-2025-0080", reason = "unic-common via urlpattern in tauri-utils; ADR-0075" },
-  { id = "RUSTSEC-2025-0081", reason = "unic-char-property via urlpattern in tauri-utils; ADR-0075" },
-  { id = "RUSTSEC-2025-0098", reason = "unic-ucd-version via urlpattern in tauri-utils; ADR-0075" },
-  { id = "RUSTSEC-2025-0100", reason = "unic-ucd-ident via urlpattern in tauri-utils; ADR-0075" },
   { id = "RUSTSEC-2024-0422", reason = "gtk-layer-shell GTK3 bindings for the Linux overlay (Handy approach); ADR-0075" },
   { id = "RUSTSEC-2024-0423", reason = "gtk-layer-shell-sys GTK3 bindings for the Linux overlay (Handy approach); ADR-0075" },
 ]

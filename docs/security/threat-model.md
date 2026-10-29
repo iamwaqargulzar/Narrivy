@@ -73,3 +73,9 @@ already executing as the same UID is therefore out of scope for per-process
 confidentiality/authorization in Linux 1.0; stronger isolation requires a
 separately protected principal or trusted broker, not additional role/path
 checks. See ADR-0031 and ADR-0061.
+
+The daemon and its workers are non-dumpable (D37): another process of the
+same user cannot ptrace them or read their memory, environment or open files
+through `/proc`, and no core file is written. This narrows, but does not
+close, the same-UID gap above: such a process can still use the IPC
+endpoint like any client. See `data-retention.md` for swap.

@@ -34,7 +34,8 @@ vi.mock('../ui/primitives/Toast', async (importOriginal) => {
 // phase so the action hooks are exercised without session-event coupling.
 vi.mock('../state/SessionContext', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
-  return { ...actual, useSession: () => ({ phase: 'idle' }) };
+  const { pinnedSession } = await import('../test/sessionHookMock');
+  return { ...actual, useSession: () => pinnedSession('idle') };
 });
 
 const CLEAN_MODE_DISABLED: PipelineSummary = { ...CLEAN_MODE, enabled: false };
@@ -315,19 +316,17 @@ describe('PipelineFreshnessRace', () => {
     expect(bridge.start).not.toHaveBeenCalled();
   });
 
-  it('surfaces the refresh-driven selection change in the Dictation UI before an intentional start', async () => {
+  it('surfaces the refresh-driven selection change on Home before an intentional start', async () => {
     vi.mocked(bridge.listPipelines).mockResolvedValue([CLEAN_MODE, OTHER_ENABLED]);
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Dictation' }));
-    const select = (await screen.findByTestId('dictation-mode-select')) as HTMLSelectElement;
-    await waitFor(() => expect(select.value).toBe(CLEAN_MODE_ID));
+    await waitFor(() => expect(screen.getByTestId('dictation-selected-id')).toHaveTextContent(CLEAN_MODE_ID));
 
     vi.mocked(bridge.listPipelines).mockResolvedValue([OTHER_ENABLED]);
     fireEvent.click(screen.getByTestId('dictation-pipelines-refresh'));
 
     const notice = await screen.findByTestId('dictation-selection-change');
     expect(notice).toHaveTextContent(/Selected mode is now other-lane/);
-    await waitFor(() => expect(select.value).toBe(OTHER_ENABLED.id));
+    await waitFor(() => expect(screen.getByTestId('dictation-selected-id')).toHaveTextContent(OTHER_ENABLED.id));
     // The refresh alone never starts a lane.
     expect(bridge.start).not.toHaveBeenCalled();
 

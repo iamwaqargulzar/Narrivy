@@ -4,11 +4,9 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from 're
 // primary destinations in the sidebar, About and the version in its footer.
 export const SCREENS = [
   'home',
-  'dictation',
   'pipelines',
   'models',
   'store',
-  'refine',
   'assistant',
   'meetings',
   'applications',
@@ -23,10 +21,8 @@ export const PRIMARY_SCREENS = [
   'pipelines',
   'models',
   'store',
-  'refine',
   'assistant',
   'meetings',
-  'dictation',
   'applications',
   'settings',
   'diagnostics',
@@ -37,11 +33,9 @@ export type ScreenId = (typeof SCREENS)[number];
 
 export const NAV_LABEL_KEYS: Record<ScreenId, string> = {
   home: 'nav.home',
-  dictation: 'nav.dictation',
   pipelines: 'nav.pipelines',
   models: 'nav.models',
   store: 'nav.store',
-  refine: 'nav.refine',
   assistant: 'nav.assistant',
   meetings: 'nav.meetings',
   applications: 'nav.applications',

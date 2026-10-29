@@ -16,6 +16,12 @@ The pack is written to `<out>/store/runtimes/openvino/2026.4-linux-x86_64`,
 its folder in the Store repository (`narrivy/store`). Then run
 `tools/reference-models/build_model_packs.py`, which refreshes the Store's
 index and `upload.sh`; publishing is the owner's step.
+
+`--version` builds a pack of another OpenVINO archive for a developer to
+try (for example a nightly, `2026.5.0.dev20261023`): the libraries are the
+ones with that version's suffix (`.2650`), and the pack is written to
+`<out>/dev/openvino-runtime-<version>-linux-x86_64`. `scripts/dev-daemon.sh`
+uses it when `NARRIVY_OPENVINO_RUNTIME_DIR` names it; it is never published.
 """
 
 from __future__ import annotations
@@ -31,13 +37,21 @@ PACK_ID = "openvino-runtime-2026.4-linux-x86_64"
 STORE_PATH = "store/runtimes/openvino/2026.4-linux-x86_64"
 VERSION = "2026.4.0"
 
-# Library closure the worker needs, by the soname other libraries ask for.
+# Versioned libraries of the closure, by stem: each gets the version's
+# soname suffix (`.2640` for 2026.4.0).
+SDK_VERSIONED = [
+    "libopenvino.so",
+    "libopenvino_c.so",
+    "libopenvino_genai.so",
+    "libopenvino_genai_c.so",
+    "libopenvino_ir_frontend.so",
+]
+# Versioned libraries GenAI links from a given release on: (stem, (year,
+# minor)).
+SDK_VERSIONED_SINCE = [("libopenvino_gguf_frontend.so", (2026, 5))]
+# The rest of the library closure the worker needs, by the soname other
+# libraries ask for.
 SDK_LIBRARIES = [
-    "libopenvino.so.2640",
-    "libopenvino_c.so.2640",
-    "libopenvino_genai.so.2640",
-    "libopenvino_genai_c.so.2640",
-    "libopenvino_ir_frontend.so.2640",
     "libopenvino_tokenizers.so",
     "libopenvino_intel_cpu_plugin.so",
     "libopenvino_intel_gpu_plugin.so",
@@ -58,6 +72,15 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def soname_suffix(version: str) -> str:
+    """`2640` for 2026.4.0 (and 2026.4.0.dev…): the year's last two digits,
+    the minor and the patch number, as OpenVINO names its libraries."""
+    parts = version.split(".")
+    if len(parts) < 3 or not all(p.isdigit() for p in parts[:3]):
+        raise SystemExit(f"not an OpenVINO version: {version}")
+    return f"{int(parts[0]) % 100}{parts[1]}{parts[2]}"
+
+
 def copy_real(source: Path, target: Path) -> None:
     """Copy the file a soname link points at, under the soname."""
     real = source.resolve(strict=True)
@@ -74,7 +97,19 @@ def main() -> int:
     parser.add_argument("--npu-driver", type=Path, required=True,
                         help="directory with libze_loader.so.1 and libze_intel_npu.so.1")
     parser.add_argument("--out", type=Path, required=True, help="staging directory")
+    parser.add_argument("--version", default=VERSION,
+                        help=f"the archive's OpenVINO version (default {VERSION}); another one "
+                        "builds a developer pack, not a Store pack")
     args = parser.parse_args()
+    store_path = STORE_PATH
+    pack_id = PACK_ID
+    version = args.version
+    if version != VERSION:
+        pack_id = f"openvino-runtime-{version}-linux-x86_64"
+        store_path = f"dev/{pack_id}"
+    release = tuple(int(part) for part in version.split(".")[:2])
+    stems = SDK_VERSIONED + [stem for stem, since in SDK_VERSIONED_SINCE if release >= since]
+    libraries = [f"{stem}.{soname_suffix(version)}" for stem in stems] + SDK_LIBRARIES
 
     sdk_lib = args.sdk / "runtime" / "lib" / "intel64"
     tbb_lib = args.sdk / "runtime" / "3rdparty" / "tbb" / "lib"
@@ -83,17 +118,17 @@ def main() -> int:
         if not needed.is_dir():
             raise SystemExit(f"missing directory: {needed}")
 
-    pack = args.out / STORE_PATH
+    pack = args.out / store_path
     if pack.exists():
         shutil.rmtree(pack)
     (pack / "lib").mkdir(parents=True)
     origins: dict[str, str] = {}
-    for name in SDK_LIBRARIES:
+    for name in libraries:
         copy_real(sdk_lib / name, pack / "lib" / name)
-        origins[f"lib/{name}"] = f"openvino_genai {VERSION} archive, runtime/lib/intel64"
+        origins[f"lib/{name}"] = f"openvino_genai {version} archive, runtime/lib/intel64"
     for name in TBB_LIBRARIES:
         copy_real(tbb_lib / name, pack / "lib" / name)
-        origins[f"lib/{name}"] = f"openvino_genai {VERSION} archive, runtime/3rdparty/tbb"
+        origins[f"lib/{name}"] = f"openvino_genai {version} archive, runtime/3rdparty/tbb"
     for name in NPU_DRIVER_LIBRARIES:
         copy_real(args.npu_driver / name, pack / "lib" / name)
         origins[f"lib/{name}"] = "Intel linux-npu-driver / level-zero loader (MIT)"
@@ -102,11 +137,11 @@ def main() -> int:
             target = pack / "licenses" / licence.name
             target.parent.mkdir(exist_ok=True)
             shutil.copyfile(licence, target)
-            origins[f"licenses/{licence.name}"] = f"openvino_genai {VERSION} archive, docs/licensing"
+            origins[f"licenses/{licence.name}"] = f"openvino_genai {version} archive, docs/licensing"
 
     readme = pack / "README.md"
     readme.write_text(
-        f"# OpenVINO runtime {VERSION} for Narrivy (Linux x86_64)\n\n"
+        f"# OpenVINO runtime {version} for Narrivy (Linux x86_64)\n\n"
         "The OpenVINO add-on for Narrivy: the libraries its speech worker loads to run\n"
         "models on an Intel NPU, Intel GPU or the CPU, and Intel's NPU user-space\n"
         "driver. Installed from Narrivy's Store; every file is checked against\n"
@@ -128,10 +163,10 @@ def main() -> int:
         })
     manifest = {
         "schema_version": 1,
-        "id": f"narrivy/{PACK_ID}",
+        "id": f"narrivy/{pack_id}",
         "kind": "runtime",
         "runtime": "openvino",
-        "version": VERSION,
+        "version": version,
         "platform": "linux-x86_64",
         "license": "Apache-2.0 AND MIT",
         "files": files,

@@ -206,6 +206,7 @@ const PATHS = {
   ),
   chevronDown: <path d="m6 9 6 6 6-6" />,
   plus: <path d="M12 5v14M5 12h14" />,
+  screen: <path d="M3.5 5.5h17v11h-17ZM9 20h6M12 16.5V20" />,
   download: <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />,
   clipboard: (
     <>

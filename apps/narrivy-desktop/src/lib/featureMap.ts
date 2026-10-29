@@ -45,6 +45,7 @@ export type SectionCard =
   | 'echoCancel'
   | 'voice'
   | 'startup'
+  | 'start'
   | 'hold'
   | 'cancel';
 
@@ -86,7 +87,7 @@ export const FEATURE_SECTIONS: FeatureSection[] = [
   {
     id: 'shortcuts',
     icon: 'keyboard',
-    cards: ['hold', 'cancel'],
+    cards: ['start', 'hold', 'cancel'],
     items: [
       {
         id: 'toggle',

@@ -555,6 +555,22 @@ does the work.
 - **Open question:** whether the "video area" means importing video files
   (planned in P4) or something else.
 
+## D37 — No beta; how the package delivers text; crash dumps (owner, 2026-10-20)
+
+- **Beta:** no `1.0.0~beta1`. The first public package is 1.0, after the
+  full release gate. (Closes the question left open in D36.)
+- **Delivery in the package:** typing by default. Paste (the clipboard put
+  back afterwards) is a user setting (T2.4), not the unit's environment.
+  Paste through uinput (`paste-keyboard`) stays a further opt-in for users
+  who already have `/dev/uinput` access.
+- **Crash dumps (F-H18):** blocked fully: `LimitCORE=0` in every unit copy
+  and `prctl(PR_SET_DUMPABLE, 0)` early in `narrivyd` and in each worker it
+  starts (check they inherit it or set it again). Amend the ADRs' "release
+  blocker" wording to "core dumps: contained; swap: documented residual",
+  and document swap in `docs/user/privacy.md`.
+- **Package identity:** as D3 (maintainer, homepage, `1.0.0~rcN`, then
+  `1.0.0`).
+
 ## D36 — Windows comes forward; macOS is set aside (owner direction 2026-10-19; amends D7)
 
 **Owner:** "yes we bring windows forward" and "remove the MAC point for
@@ -782,3 +798,12 @@ be active by default." Benchmarking comes later, not now.
 
 The owner wants the D29 scope in the full v1 release. The ordered tasks are
 in `agent/completion-plan/10-v1-features.md` (WP2c).
+
+## D38 — Refine leaves the side menu (owner, 2026-10-21; amends D23)
+
+**Owner:** asked again why Refine was still in the side menu (an earlier
+request had not been recorded anywhere), then chose: move it into
+Pipelines.
+- The Refine sidebar entry is removed. Its clean-up rules and the choice of
+  clean-up model live under the pipeline's Refine stage in Pipelines.
+- The Refine module itself stays an extension in the Store (D30).

@@ -10,7 +10,10 @@ vi.mock('../state/PipelinesContext', () => ({ usePipelines: () => ({
   catalog: { availability: 'ready' },
   resolveStartId: controls.resolveStartId, refresh: controls.refresh,
 }) }));
-vi.mock('../state/SessionContext', () => ({ useSession: () => ({ phase: 'idle' }) }));
+vi.mock('../state/SessionContext', async () => {
+  const { pinnedSession } = await import('../test/sessionHookMock');
+  return { useSession: () => pinnedSession('idle') };
+});
 vi.mock('../state/StatusContext', () => ({ useDaemonStatus: () => ({ status: null }) }));
 vi.mock('../ui/primitives/Toast', () => ({ useErrorHandler: () => controls.report }));
 vi.mock('../lib/bridge', () => ({ bridge: {

@@ -165,9 +165,22 @@ fn open_conn(path: &Path) -> Result<rusqlite::Connection, crate::HistoryError> {
         .map_err(|e| crate::HistoryError::Storage(format!("journal_mode: {e}")))?;
     conn.pragma_update(None, "synchronous", "NORMAL")
         .map_err(|e| crate::HistoryError::Storage(format!("synchronous: {e}")))?;
+    // Deleted transcripts are overwritten, not left readable in free pages.
+    conn.pragma_update(None, "secure_delete", "ON")
+        .map_err(|e| crate::HistoryError::Storage(format!("secure_delete: {e}")))?;
     conn.busy_timeout(std::time::Duration::from_millis(5000))
         .map_err(|e| crate::HistoryError::Storage(format!("busy_timeout: {e}")))?;
     Ok(conn)
+}
+
+/// After rows are deleted, fold the write-ahead log back into the database
+/// and truncate it, so deleted text does not stay readable in the WAL.
+fn checkpoint_after_delete(conn: &rusqlite::Connection, deleted: usize) {
+    if deleted > 0 {
+        // Best effort: a busy reader only delays the truncation to the next
+        // delete; the rows are already gone from the database.
+        let _ = conn.query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |_| Ok(()));
+    }
 }
 
 fn ensure_schema(conn: &rusqlite::Connection) -> Result<(), crate::HistoryError> {
@@ -393,6 +406,7 @@ impl HistoryStore {
         let n = conn
             .execute("DELETE FROM history_entries WHERE id = ?1", [id])
             .map_err(|e| crate::HistoryError::Storage(e.to_string()))?;
+        checkpoint_after_delete(&conn, n);
         Ok(n > 0)
     }
 
@@ -401,6 +415,24 @@ impl HistoryStore {
         let n = conn
             .execute("DELETE FROM history_entries", [])
             .map_err(|e| crate::HistoryError::Storage(e.to_string()))?;
+        checkpoint_after_delete(&conn, n);
+        Ok(n)
+    }
+
+    /// Keep the `keep` newest entries (the order [`Self::list`] uses) and
+    /// delete the rest in one statement, so a crash can never leave History
+    /// cleared. Returns how many were deleted.
+    pub fn keep_newest(&self, keep: usize) -> Result<usize, crate::HistoryError> {
+        let keep = i64::try_from(keep).unwrap_or(i64::MAX);
+        let conn = open_conn(&self.path)?;
+        let n = conn
+            .execute(
+                "DELETE FROM history_entries WHERE id NOT IN \
+                 (SELECT id FROM history_entries ORDER BY ts DESC LIMIT ?1)",
+                [keep],
+            )
+            .map_err(|e| crate::HistoryError::Storage(e.to_string()))?;
+        checkpoint_after_delete(&conn, n);
         Ok(n)
     }
 
@@ -417,6 +449,7 @@ impl HistoryStore {
         let n = conn
             .execute("DELETE FROM history_entries WHERE ts < ?1", [cutoff])
             .map_err(|e| crate::HistoryError::Storage(e.to_string()))?;
+        checkpoint_after_delete(&conn, n);
         Ok(n)
     }
 
@@ -504,6 +537,46 @@ mod tests {
             "unsupported".parse::<RetentionPolicy>(),
             Err(RetentionPolicyParseError)
         );
+    }
+
+    /// F-H17: compaction keeps the newest rows in one statement.
+    #[test]
+    fn keep_newest_deletes_only_the_oldest_rows() -> TestResult {
+        let dir = tempdir()?;
+        let store = HistoryStore::open(dir.path().join("history.db"), RetentionPolicy::Forever)?;
+        for (index, id) in ["tx-1", "tx-2", "tx-3", "tx-4"].iter().enumerate() {
+            let entry = HistoryEntry::new(
+                *id,
+                1_000 + index as u64,
+                "clean",
+                "raw",
+                "corrected",
+                "delivered",
+                "",
+            );
+            assert!(store.insert(&entry)?);
+        }
+        assert_eq!(store.keep_newest(2)?, 2);
+        let kept: Vec<String> = store
+            .list(10)?
+            .iter()
+            .map(|e| e.txid().to_owned())
+            .collect();
+        assert_eq!(kept, ["tx-4", "tx-3"]);
+        assert_eq!(store.keep_newest(2)?, 0);
+        Ok(())
+    }
+
+    #[test]
+    fn deleted_rows_are_overwritten() -> TestResult {
+        let dir = tempdir()?;
+        let path = dir.path().join("history.db");
+        let store = HistoryStore::open(&path, RetentionPolicy::Forever)?;
+        let conn = open_conn(&path)?;
+        let on: i64 = conn.query_row("PRAGMA secure_delete", [], |row| row.get(0))?;
+        assert_eq!(on, 1);
+        drop(store);
+        Ok(())
     }
 
     #[test]

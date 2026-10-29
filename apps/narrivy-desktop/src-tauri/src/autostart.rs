@@ -65,7 +65,11 @@ fn quoted(path: &str) -> String {
 }
 
 fn entry(exe: &str, hidden: bool) -> String {
-    let args = if hidden { format!(" {HIDDEN_ARG}") } else { String::new() };
+    let args = if hidden {
+        format!(" {HIDDEN_ARG}")
+    } else {
+        String::new()
+    };
     format!(
         "[Desktop Entry]\nType=Application\nName=Narrivy\nComment=Local-first voice dictation\nExec={}{args}\nIcon=narrivy\nTerminal=false\nX-GNOME-Autostart-enabled=true\n{MARKER}\n",
         quoted(exe)
