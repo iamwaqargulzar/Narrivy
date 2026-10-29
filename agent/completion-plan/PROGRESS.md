@@ -1569,3 +1569,27 @@ Owner requests, one at a time, each verified in the dev preview
   toggle then writes Urdu; Pipelines → Transcribe → Dictation language
   (choose/add/remove); Alt+B/Alt+C no longer fail. rc12 checks above still
   open.
+
+
+## 2026-10-29: advisories after the 2026-10-26 refresh (B-SUPPLY-010)
+
+- `cargo deny check advisories bans licenses sources`: advisories fail with
+  8 errors; bans, licenses and sources pass. `npm audit --omit=dev` in the
+  desktop app: 0 vulnerabilities.
+- No compatible or small upgrade clears any of them, so nothing changed:
+  - zip 8.6 (RUSTSEC-2026-0367/0368/0369): harper-core 3.0.0 still needs
+    zip 8.6.
+  - bincode and paste: required by harper and burn.
+  - zvariant, zbus_names, zvariant_derive (RUSTSEC-2026-0370/0371/0372):
+    ashpd 0.13.13 and every tauri-plugin-single-instance release still need
+    zbus 5.
+- Baseline tests pass: grammar-harper 7, platform-linux 310.
+- Is our code exposed? The zip extraction functions are never called:
+  harper only reads in-memory Weirpacks, and Narrivy never uses them. paste
+  runs only at compile time. bincode is compiled in but never used (harper's
+  model is MessagePack). The zvariant crates are used in production by the
+  Linux adapter, but those notices are about maintenance only.
+- Report with the owner's choices:
+  `docs/maintainers/supply-chain/advisories-2026-10.md`. Recommended: a new,
+  time-boxed owner acceptance listing each ID in `deny.toml`, plus an
+  upstream harper zip-9 bump. Nothing is ignored until the owner decides.

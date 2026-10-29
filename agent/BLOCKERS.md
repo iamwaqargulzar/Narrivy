@@ -206,6 +206,11 @@
   release; zbus_names/zvariant/zvariant_derive (unmaintained, merged into
   zbus 6), through zbus 5, which ashpd 0.13 and
   tauri-plugin-single-instance 2.5 still require.
+- 2026-10-29: re-checked. There is still no upgrade path (harper-core 3.0.0
+  still needs zip 8.6; ashpd 0.13.13 still needs zbus 5). The zip extraction
+  path cannot be reached from our code. The analysis and the owner's choices
+  are in `docs/maintainers/supply-chain/advisories-2026-10.md`. Still OPEN
+  for the owner's decision.
 
 
 - Date: 2026-08-28
