@@ -34,8 +34,10 @@ use narrivy_ipc_unix::{IpcClient, UnixIpcServer};
 /// test file only; it IS the fixture.
 const EXPECTED_DELIVERED: &str = "Hello world from mock asr.";
 
-const REQ_TIMEOUT: Duration = Duration::from_secs(2);
-const EVENT_WAIT: Duration = Duration::from_secs(5);
+// Generous bounds that only cap a hung daemon; the tests wait for states,
+// never for time, so a loaded machine makes them slower, not flaky.
+const REQ_TIMEOUT: Duration = Duration::from_secs(10);
+const EVENT_WAIT: Duration = Duration::from_secs(60);
 const POLL_INTERVAL: Duration = Duration::from_millis(50);
 
 /// Fixed instant for the synthetic-time retention evidence.
@@ -126,7 +128,8 @@ impl Harness {
     }
 }
 
-/// Drive one full mock dictation to `committed` and return its transaction id.
+/// Drive one full mock dictation until the daemon has finished with it and
+/// return its transaction id.
 fn dictate(client: &mut IpcClient) -> TestResult<String> {
     assert_eq!(
         client.request(&Command::Subscribe, EVENT_WAIT)?,
@@ -160,7 +163,34 @@ fn dictate(client: &mut IpcClient) -> TestResult<String> {
             Err(err) => return Err(err.into()),
         }
     }
-    committed.ok_or_else(|| "session never reached committed".into())
+    let txid: String = committed.ok_or("session never reached committed")?;
+    wait_session_finished(client)?;
+    Ok(txid)
+}
+
+/// Wait until the daemon no longer reports the session (F-M16).
+///
+/// `committed` is published while the session worker still runs; the worker
+/// then mirrors the result into History, and its cleanup guard, dropped
+/// last, removes the session slot. So `active_session == None` means the
+/// History write (or the decision not to write) is done. Reading History
+/// right after `committed` raced that write; with retention off, an empty
+/// read proved nothing.
+fn wait_session_finished(client: &mut IpcClient) -> TestResult {
+    let deadline = Instant::now() + EVENT_WAIT;
+    loop {
+        let ResponsePayload::Status(status) = client.request(&Command::GetStatus, REQ_TIMEOUT)?
+        else {
+            return Err("expected Status payload".into());
+        };
+        if status.active_session.is_none() {
+            return Ok(());
+        }
+        if Instant::now() >= deadline {
+            return Err("the session never finished".into());
+        }
+        std::thread::sleep(POLL_INTERVAL);
+    }
 }
 
 fn capability_values(client: &mut IpcClient) -> TestResult<Vec<String>> {
@@ -204,19 +234,10 @@ fn committed_dictation_is_retained_and_served_over_the_socket() -> TestResult {
     let txid = dictate(&mut client)?;
     assert_eq!(harness.delivered_txid()?, txid);
 
-    // Listing row: content-safe fields only. History is written just after
-    // the result is published, so wait (bounded) for the row rather than
-    // racing the `committed` event (failed about 1 run in 20).
-    let deadline = Instant::now() + EVENT_WAIT;
-    let rows = loop {
-        let ResponsePayload::History(rows) = client.request(&Command::GetHistory, REQ_TIMEOUT)?
-        else {
-            return Err("expected History payload".into());
-        };
-        if !rows.is_empty() || Instant::now() >= deadline {
-            break rows;
-        }
-        std::thread::sleep(POLL_INTERVAL);
+    // Listing row: content-safe fields only. `dictate` returned once the
+    // session was finished, so the row is already written.
+    let ResponsePayload::History(rows) = client.request(&Command::GetHistory, REQ_TIMEOUT)? else {
+        return Err("expected History payload".into());
     };
     assert_eq!(rows.len(), 1, "exactly the committed dictation is retained");
     let row = rows

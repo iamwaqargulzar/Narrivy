@@ -162,7 +162,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             </Button>
             {mic.kind === 'done' ? (
               <p className="diag-result" aria-live="polite">
-                {mic.result.disabled ? t('diag.disabled') : mic.result.pass ? t('diag.pass') : t('diag.fail')}
+                {mic.result.pass ? t('diag.pass') : t('diag.fail')}
                 {mic.result.detail ? (
                   <span className="diag-detail">
                     {' '}

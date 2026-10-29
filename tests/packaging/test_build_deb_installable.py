@@ -1,15 +1,22 @@
 from __future__ import annotations
 
+import dataclasses
+import hashlib
 import io
 import json
 import os
+import platform
+import shutil
 import stat
+import struct
 import subprocess
+import tarfile
 import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -465,6 +472,224 @@ class CleanSourceInstallableTests(unittest.TestCase):
             installable._arguments(_cli_argv("--clean-source"))
         with self.assertRaises(SystemExit), redirect_stderr(io.StringIO()):
             installable._arguments(_cli_argv("--source-root", "/abs/source"))
+
+
+class InstallableBuildCompositionTests(unittest.TestCase):
+    """F-M16: the whole ``build()`` success path, read back independently.
+
+    Everything is real except the bundled model's pinned identity, which is
+    re-pinned to a small fixture (the real 45 MB model is not in the tree;
+    ``test_bundled_model_identity_is_release_pinned`` checks the real pin).
+    The daemon is a compiled ELF that really answers ``--build-features``.
+    """
+
+    MODEL = b"GGUF narrivy fixture model " * 64
+
+    def setUp(self) -> None:
+        if platform.machine() != "x86_64":
+            self.skipTest("the package is amd64; fixture ELFs are x86-64")
+        compiler = shutil.which("cc")
+        if compiler is None:
+            self.skipTest("a C compiler is needed to build the fixture daemon")
+        self.temporary = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary.name).resolve()
+        source = self.root / "narrivyd.c"
+        source.write_text(
+            '#include <stdio.h>\n#include <string.h>\n'
+            "int main(int c, char **v) {\n"
+            '  if (c == 2 && strcmp(v[1], "--build-features") == 0) {\n'
+            '    puts("asr-transcribe-cpp asr-transcribe-resident"); return 0; }\n'
+            "  return 2; }\n",
+            encoding="utf-8",
+        )
+        self.narrivyd = self.root / "narrivyd"
+        subprocess.run(
+            [compiler, "-O1", "-o", os.fspath(self.narrivyd), os.fspath(source)],
+            check=True,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            timeout=60,
+        )
+        header = bytearray(64)
+        header[:7] = b"\x7fELF\x02\x01\x01"
+        struct.pack_into("<HHI", header, 16, 3, 62, 1)
+        struct.pack_into("<Q", header, 32, 64)
+        struct.pack_into("<HHH", header, 52, 64, 56, 1)
+        elf = bytes(header) + struct.pack("<IIQQQQQQ", 1, 5, 0, 0, 0, 120, 120, 8)
+        others = {}
+        for name in ("narrivy-cli", "narrivy-desktop", "worker"):
+            path = self.root / name
+            path.write_bytes(elf + name.encode())
+            path.chmod(0o755)
+            others[name] = path
+        model = self.root / "model.gguf"
+        model.write_bytes(self.MODEL)
+        model.chmod(0o644)
+        self.pin = mock.patch.multiple(
+            installable,
+            MODEL_SIZE=len(self.MODEL),
+            MODEL_SHA256=hashlib.sha256(self.MODEL).hexdigest(),
+        )
+        self.pin.start()
+        deb = ROOT / "packaging/deb"
+        icons = ROOT / "packaging/linux/icons"
+        self.inputs = installable.Inputs(
+            narrivyd=self.narrivyd,
+            cli=others["narrivy-cli"],
+            desktop=others["narrivy-desktop"],
+            worker=others["worker"],
+            model=model,
+            service=(deb / "narrivy-daemon.service").resolve(),
+            desktop_entry=(deb / "narrivy.desktop").resolve(),
+            postinst=(deb / "postinst").resolve(),
+            prerm=(deb / "prerm").resolve(),
+            postrm=(deb / "postrm").resolve(),
+            icon_32=(icons / "32x32/narrivy.png").resolve(),
+            icon_128=(icons / "128x128/narrivy.png").resolve(),
+            icon_256=(icons / "256x256/narrivy.png").resolve(),
+            icon_512=(icons / "512x512/narrivy.png").resolve(),
+            license_file=(ROOT / "LICENSE").resolve(),
+            notices=(ROOT / "THIRD_PARTY_NOTICES.md").resolve(),
+            output=self.root / "out" / "narrivy.deb",
+            version=SAMPLE_VERSION,
+            source_head=SAMPLE_HEAD,
+            source_date_epoch=SAMPLE_EPOCH,
+        )
+
+    def tearDown(self) -> None:
+        self.pin.stop()
+        self.temporary.cleanup()
+
+    def _members(self, mode: str) -> dict[str, tuple[int, int, int, int, bytes | None]]:
+        """Read the published archive with dpkg-deb and tarfile, not with the
+        builder's own reader: name -> (type, mode, uid, gid, payload)."""
+        tar = subprocess.run(
+            ["dpkg-deb", mode, os.fspath(self.inputs.output)],
+            check=True,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            timeout=60,
+        ).stdout
+        members = {}
+        with tarfile.open(fileobj=io.BytesIO(tar)) as archive:
+            for member in archive.getmembers():
+                payload = None
+                if member.isfile():
+                    extracted = archive.extractfile(member)
+                    assert extracted is not None
+                    payload = extracted.read()
+                name = member.name.removeprefix("./") or "."
+                members[name] = (
+                    member.type,
+                    stat.S_IMODE(member.mode),
+                    member.uid,
+                    member.gid,
+                    payload,
+                )
+        return members
+
+    def test_build_publishes_a_root_owned_exact_package(self) -> None:
+        summary = installable.build(self.inputs)
+
+        published = self.inputs.output.read_bytes()
+        self.assertEqual(summary["archive_sha256"], hashlib.sha256(published).hexdigest())
+        self.assertEqual(summary["archive_size_bytes"], len(published))
+        self.assertEqual(summary["classification"], installable.DEFAULT_CLASSIFICATION)
+        self.assertIs(summary["install_blocked"], False)
+        self.assertEqual(stat.S_IMODE(self.inputs.output.stat().st_mode), 0o644)
+
+        data = self._members("--fsys-tarfile")
+        files = {name: value for name, value in data.items() if value[4] is not None}
+        self.assertEqual(summary["data_file_count"], len(files))
+        # Root ownership of every member, files and directories.
+        for name, (_, _, uid, gid, _) in data.items():
+            self.assertEqual((uid, gid), (0, 0), name)
+        # Exact modes: executables 0755, everything else 0644, directories 0755.
+        executables = {
+            "usr/bin/narrivyd",
+            "usr/bin/narrivy-cli",
+            "usr/bin/narrivy-desktop",
+            "usr/lib/narrivy/narrivy-transcribe-worker",
+        }
+        for name, (kind, mode, _, _, payload) in data.items():
+            if payload is None:
+                self.assertEqual((kind, mode), (tarfile.DIRTYPE, 0o755), name)
+            else:
+                self.assertEqual(mode, 0o755 if name in executables else 0o644, name)
+        self.assertEqual(files["usr/bin/narrivyd"][4], self.narrivyd.read_bytes())
+        # The qualifiers check these paths and their fakes install them; they
+        # must be what the real package ships, with the same executable bits.
+        import qualify_candidate
+
+        for path in qualify_candidate.INSTALLED_PATHS:
+            self.assertIn(path.lstrip("/"), files, path)
+        self.assertEqual(
+            {f"/{name}" for name in executables}, set(qualify_candidate.EXECUTABLE_PATHS)
+        )
+        # The bundled model is the pinned bytes at the fixed path the desktop
+        # sends (bridge.rs BUNDLED_MODEL_SOURCE) and the qualifier checks.
+        model = files[installable.MODEL_RELATIVE.as_posix()][4]
+        assert model is not None
+        self.assertEqual(hashlib.sha256(model).hexdigest(), installable.MODEL_SHA256)
+        self.assertEqual(len(model), installable.MODEL_SIZE)
+        bridge = (ROOT / "apps/narrivy-desktop/src-tauri/src/bridge.rs").read_text()
+        self.assertIn(f'"/{installable.MODEL_RELATIVE.as_posix()}"', bridge)
+        # The runtime manifest names the worker that was actually packaged.
+        manifest = json.loads(files["usr/share/narrivy/installed-runtime-manifest.json"][4] or b"")
+        worker = files["usr/lib/narrivy/narrivy-transcribe-worker"][4] or b""
+        self.assertEqual(manifest["worker"]["sha256"], hashlib.sha256(worker).hexdigest())
+
+        control = self._members("--ctrl-tarfile")
+        for script in ("postinst", "prerm", "postrm"):
+            kind, mode, uid, gid, payload = control[script]
+            self.assertEqual((mode, uid, gid), (0o755, 0, 0), script)
+            self.assertEqual(payload, (ROOT / "packaging/deb" / script).read_bytes())
+        self.assertEqual(control["control"][1:4], (0o644, 0, 0))
+        self.assertIn(b"Version: " + SAMPLE_VERSION.encode(), control["control"][4] or b"")
+
+    def test_inspection_rejects_a_package_that_differs_from_its_composition(self) -> None:
+        seen: list[tuple[dict[str, object], dict[str, tuple[int, bytes]]]] = []
+        real_inspect = installable._inspect
+
+        def spy(descriptor, expected, control_files, epoch):
+            seen.append((dict(expected), dict(control_files)))
+            return real_inspect(descriptor, expected, control_files, epoch)
+
+        with mock.patch.object(installable, "_inspect", spy):
+            installable.build(self.inputs)
+        expected, control_files = seen[0]
+
+        def inspect(expected_files, controls) -> None:
+            descriptor = os.open(self.inputs.output, os.O_RDONLY | os.O_CLOEXEC)
+            try:
+                installable._inspect(descriptor, expected_files, controls, SAMPLE_EPOCH)
+            finally:
+                os.close(descriptor)
+
+        inspect(expected, control_files)  # the composition itself passes
+        model = installable.MODEL_RELATIVE.as_posix()
+        wrong_mode = dict(expected)
+        wrong_mode[model] = dataclasses.replace(expected[model], mode=0o755)
+        wrong_digest = dict(expected)
+        wrong_digest[model] = dataclasses.replace(expected[model], sha256="0" * 64)
+        missing = dict(expected)
+        missing["usr/share/narrivy/extra"] = expected[model]
+        script_mode = dict(control_files)
+        script_mode["postinst"] = (0o644, control_files["postinst"][1])
+        for files, controls in (
+            (wrong_mode, control_files),
+            (wrong_digest, control_files),
+            (missing, control_files),
+            (expected, script_mode),
+        ):
+            with self.assertRaises((installable.InstallableError, installable.safe.CandidateError)):
+                inspect(files, controls)
+
+    def test_a_daemon_without_the_resident_engine_is_never_published(self) -> None:
+        self.narrivyd.write_bytes(Path("/bin/true").read_bytes())
+        with self.assertRaises(installable.InstallableError):
+            installable.build(self.inputs)
+        self.assertFalse(self.inputs.output.exists())
 
 
 if __name__ == "__main__":

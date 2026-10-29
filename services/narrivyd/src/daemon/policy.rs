@@ -1445,6 +1445,33 @@ pub fn run_capability_check(id: &str) -> CapabilityCheckResultDto {
     run_capability_check_with(id, theme_override.as_deref())
 }
 
+/// The microphone check's verdict for one recorder-helper status. A trusted
+/// helper is never reported as a working microphone: its presence says
+/// nothing about signal or routing.
+fn mic_check(status: narrivy_platform_linux::recovery::PipeWireRecorderStatus) -> (bool, String) {
+    use narrivy_platform_linux::recovery::PipeWireRecorderStatus;
+    match status {
+        PipeWireRecorderStatus::Available(path) => (
+            false,
+            format!(
+                "trusted pw-record helper at {}; microphone signal and routing unverified",
+                path.display()
+            ),
+        ),
+        PipeWireRecorderStatus::Missing => (false, "trusted pw-record helper missing".to_owned()),
+        PipeWireRecorderStatus::NonExecutable => {
+            (false, "trusted pw-record helper nonexecutable".to_owned())
+        }
+        PipeWireRecorderStatus::Untrusted => (false, "pw-record helper untrusted".to_owned()),
+        PipeWireRecorderStatus::IdentityChanged => {
+            (false, "pw-record helper identity changed".to_owned())
+        }
+        PipeWireRecorderStatus::UnsupportedPlatform => {
+            (false, "pw-record helper isolation unavailable".to_owned())
+        }
+    }
+}
+
 /// [`run_capability_check`] with an injected theme-file location (test and
 /// harness lanes; production reads the env hook exactly once here).
 pub fn run_capability_check_with(
@@ -1460,30 +1487,7 @@ pub fn run_capability_check_with(
         };
     }
     let (available, detail) = match id {
-        "mic" => match narrivy_platform_linux::recovery::pipewire_recorder_status() {
-            narrivy_platform_linux::recovery::PipeWireRecorderStatus::Available(path) => (
-                false,
-                format!(
-                    "trusted pw-record helper at {}; microphone signal and routing unverified",
-                    path.display()
-                ),
-            ),
-            narrivy_platform_linux::recovery::PipeWireRecorderStatus::Missing => {
-                (false, "trusted pw-record helper missing".to_owned())
-            }
-            narrivy_platform_linux::recovery::PipeWireRecorderStatus::NonExecutable => {
-                (false, "trusted pw-record helper nonexecutable".to_owned())
-            }
-            narrivy_platform_linux::recovery::PipeWireRecorderStatus::Untrusted => {
-                (false, "pw-record helper untrusted".to_owned())
-            }
-            narrivy_platform_linux::recovery::PipeWireRecorderStatus::IdentityChanged => {
-                (false, "pw-record helper identity changed".to_owned())
-            }
-            narrivy_platform_linux::recovery::PipeWireRecorderStatus::UnsupportedPlatform => {
-                (false, "pw-record helper isolation unavailable".to_owned())
-            }
-        },
+        "mic" => mic_check(narrivy_platform_linux::recovery::pipewire_recorder_status()),
         "delivery" => {
             portal_delivery_check(narrivy_platform_linux::portal_eis::classify_portal_eis(
                 &narrivy_platform_linux::portal_eis::SystemRemoteDesktopProbe::default(),
@@ -2883,27 +2887,38 @@ mod p3_extension_tests {
 
     #[test]
     fn capability_check_mic_never_promotes_helper_presence_to_signal() {
+        use narrivy_platform_linux::recovery::PipeWireRecorderStatus;
+        // Every recorder state, as controlled input (F-M16: the old test read
+        // the host's pw-record, and on a host without one the "missing"
+        // detail fell into the "available" branch and failed).
+        let (available, detail) = mic_check(PipeWireRecorderStatus::Available(
+            "/usr/bin/pw-record".into(),
+        ));
+        assert!(!available, "a present helper is not a working microphone");
+        assert!(detail.contains("/usr/bin/pw-record"), "{detail}");
+        assert!(
+            detail.contains("microphone signal and routing unverified"),
+            "{detail}"
+        );
+        for (status, reason) in [
+            (PipeWireRecorderStatus::Missing, "missing"),
+            (PipeWireRecorderStatus::NonExecutable, "nonexecutable"),
+            (PipeWireRecorderStatus::Untrusted, "untrusted"),
+            (PipeWireRecorderStatus::IdentityChanged, "identity changed"),
+            (
+                PipeWireRecorderStatus::UnsupportedPlatform,
+                "isolation unavailable",
+            ),
+        ] {
+            let (available, detail) = mic_check(status);
+            assert!(!available, "{detail}");
+            assert!(detail.contains(reason), "{detail}");
+            assert!(!detail.contains("unverified"), "{detail}");
+        }
+        // The real check on this host goes through the same mapping.
         let result = run_capability_check("mic");
         assert!(!result.available);
-        if result.detail.contains("trusted pw-record helper") {
-            assert!(
-                result
-                    .detail
-                    .contains("microphone signal and routing unverified")
-            );
-        } else {
-            assert!(
-                [
-                    "missing",
-                    "nonexecutable",
-                    "untrusted",
-                    "identity changed",
-                    "isolation unavailable",
-                ]
-                .iter()
-                .any(|reason| result.detail.contains(reason))
-            );
-        }
+        assert_eq!(result.id, "mic");
     }
 
     #[test]

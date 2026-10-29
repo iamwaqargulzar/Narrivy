@@ -26,8 +26,13 @@ use narrivy_ipc_unix::{IpcClient, UnixIpcServer};
 /// in this test file only (it IS the fixture).
 const EXPECTED_DELIVERED: &str = "Hello world from mock asr.";
 
-const EVENT_WAIT: Duration = Duration::from_secs(5);
+// Generous bounds that only cap a hung daemon; the tests wait for states.
+const EVENT_WAIT: Duration = Duration::from_secs(60);
 const POLL_INTERVAL: Duration = Duration::from_millis(50);
+/// How long a held worker waits before running. Far longer than any test
+/// step: the held tests cancel it, and the hold ends as soon as they do, so
+/// a slow machine cannot let the worker run (and deliver) before the cancel.
+const WORKER_HOLD: Duration = Duration::from_secs(120);
 
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
@@ -137,10 +142,10 @@ fn collect_until(client: &mut IpcClient, want: &str, budget: Duration) -> TestRe
 
 /// Poll GetStatus until the daemon reports no active session.
 fn wait_no_active_session(client: &mut IpcClient) -> TestResult {
-    let deadline = Instant::now() + Duration::from_secs(2);
+    let deadline = Instant::now() + EVENT_WAIT;
     loop {
         let ResponsePayload::Status(status) =
-            client.request(&Command::GetStatus, Duration::from_secs(1))?
+            client.request(&Command::GetStatus, Duration::from_secs(10))?
         else {
             return Err("expected Status payload".into());
         };
@@ -273,9 +278,9 @@ fn e2e_mock_dictation_full_transaction_over_unix_socket() -> TestResult {
 #[test]
 fn e2e_cancel_right_after_start_delivers_nothing() -> TestResult {
     let dir = private_tempdir()?;
-    // Widen the window so CancelSession deterministically lands before the
-    // worker reaches its first cancellation checkpoint.
-    let harness = start_harness(dir.path(), Some(Duration::from_millis(600)))?;
+    // Hold the worker so CancelSession lands before its first cancellation
+    // checkpoint, however slow the machine is.
+    let harness = start_harness(dir.path(), Some(WORKER_HOLD))?;
 
     let mut client = IpcClient::connect_as(&dir.path().join("narrivyd.sock"), "e2e-test")?;
     assert_eq!(
@@ -340,7 +345,7 @@ fn e2e_cancel_right_after_start_delivers_nothing() -> TestResult {
 #[test]
 fn e2e_supervisor_shutdown_during_active_session_is_bounded_and_terminal() -> TestResult {
     let dir = private_tempdir()?;
-    let harness = start_harness(dir.path(), Some(Duration::from_millis(600)))?;
+    let harness = start_harness(dir.path(), Some(WORKER_HOLD))?;
     let mut client = IpcClient::connect_as(&dir.path().join("narrivyd.sock"), "e2e-test")?;
     assert_eq!(
         client.request(
@@ -353,7 +358,7 @@ fn e2e_supervisor_shutdown_during_active_session_is_bounded_and_terminal() -> Te
         )?,
         ResponsePayload::Accepted
     );
-    let deadline = Instant::now() + Duration::from_secs(1);
+    let deadline = Instant::now() + EVENT_WAIT;
     while harness.supervisor.live_worker_count() == 0 && Instant::now() < deadline {
         std::thread::sleep(Duration::from_millis(5));
     }

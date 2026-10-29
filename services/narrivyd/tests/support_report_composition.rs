@@ -43,8 +43,11 @@ const TRANSCRIPT_CANARY: &str = daemon_bin::daemon::policy::MOCK_TRANSCRIPT;
 /// Content that exists in the product while the report is produced.
 const AUDIO_CANARY_MARKER: &str = "44100-sample-mono-pcm";
 
-const REQ_TIMEOUT: Duration = Duration::from_secs(2);
-const EVENT_WAIT: Duration = Duration::from_secs(10);
+// Generous bounds: they only cap a hung daemon. Correctness never depends on
+// how fast the daemon is (the tests wait for states, not for time), so a
+// loaded machine makes these tests slower, not flaky.
+const REQ_TIMEOUT: Duration = Duration::from_secs(10);
+const EVENT_WAIT: Duration = Duration::from_secs(60);
 const POLL_INTERVAL: Duration = Duration::from_millis(50);
 
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
@@ -169,18 +172,29 @@ fn dictate(client: &mut IpcClient) -> TestResult<String> {
         }
     }
     let txid: String = committed.ok_or("session never reached committed")?;
-    // History is written after the session result, so a read right after
-    // `committed` can come before the row (F-M16). Wait for it, bounded; a
-    // daemon composed without History rejects the read, and there is nothing
-    // to wait for.
-    while Instant::now() < deadline {
-        match client.request(&Command::GetHistory, REQ_TIMEOUT) {
-            Ok(ResponsePayload::History(rows)) if rows.iter().any(|row| row.txid == txid) => break,
-            Ok(_) => std::thread::sleep(POLL_INTERVAL),
-            Err(_) => break,
-        }
-    }
+    wait_session_finished(client)?;
     Ok(txid)
+}
+
+/// Wait until the daemon no longer reports the session (F-M16).
+///
+/// `committed` is published while the session worker still runs: it then
+/// records the diagnostics observation and mirrors the result into History.
+/// The worker's cleanup guard is dropped last and only then removes the
+/// session slot, so `active_session == None` in a status read means both are
+/// done. The old wait raced `committed` against the History write and, when
+/// its shared deadline ran out, carried on silently.
+fn wait_session_finished(client: &mut IpcClient) -> TestResult {
+    let deadline = Instant::now() + EVENT_WAIT;
+    loop {
+        if status(client)?.active_session.is_none() {
+            return Ok(());
+        }
+        if Instant::now() >= deadline {
+            return Err("the session never finished".into());
+        }
+        std::thread::sleep(POLL_INTERVAL);
+    }
 }
 
 /// A composed daemon advertises the support-report gate, and a real finished

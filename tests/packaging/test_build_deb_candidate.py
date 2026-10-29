@@ -427,14 +427,17 @@ class DisposableDebCandidateTests(unittest.TestCase):
         self.assertEqual(list(outside.iterdir()), [])
 
     def test_dpkg_failure_does_not_leave_candidate_or_call_legacy_builder(self) -> None:
+        # The released 0.2.3 package is a local, untracked artifact; on a
+        # fresh checkout it is absent, and it must stay absent.
         protected = {
-            path: hashlib.sha256(path.read_bytes()).hexdigest()
+            path: hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
             for path in (
                 ROOT / "artifacts/releases/narrivy_0.2.3_amd64.deb",
                 ROOT / "packaging/deb/BUILD_LOG.md",
                 ROOT / "scripts/build_deb.sh",
             )
         }
+        self.assertIsNotNone(protected[ROOT / "scripts/build_deb.sh"])
         real_run = subprocess.run
 
         def fail_build(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess[bytes]:
@@ -446,7 +449,8 @@ class DisposableDebCandidateTests(unittest.TestCase):
             with self.assertRaises(candidate.CandidateError):
                 candidate.compose_disposable_candidate(self.inputs)
         for path, digest in protected.items():
-            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), digest)
+            after = hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
+            self.assertEqual(after, digest, path)
 
     def test_archive_output_symlink_and_hardlink_collisions_cannot_overwrite(self) -> None:
         for collision in ("symlink", "hardlink"):
