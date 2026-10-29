@@ -153,6 +153,9 @@ toolchain="$(rustc --version); $(cargo --version); node $(node --version); npm $
 builder_os="$(. /etc/os-release && echo "$PRETTY_NAME") $(uname -r)"
 bundle="$candidates/$version"
 rm -rf "$bundle"
+# The SBOM reads licences with an offline `cargo metadata --all-features`,
+# which needs every locked crate (all targets) in the Cargo cache.
+cargo fetch --locked
 python3 scripts/build_candidate_supply_chain.py \
     --candidate "$output" --source-root "$repo" --output "$bundle" \
     --expected-sha256 "$package_sha" \

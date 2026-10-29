@@ -2528,7 +2528,7 @@
       ],
       "runner": {
         "path": "scripts/record_controlled_integration_evidence.py",
-        "sha256": "74214c49f2d6237fd8d06c3e6b59d03494b4c880c4ec9a0254bef222a247b816",
+        "sha256": "068087f29048a38d6c2094cb89bc24f9db689f21c0d9b419e1bacd45794877eb",
         "argv_index": 1
       },
       "permitted_substitutions": [],

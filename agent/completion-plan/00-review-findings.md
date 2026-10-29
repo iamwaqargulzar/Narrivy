@@ -881,6 +881,9 @@ is the only 1.0 typing route.
   P10 has historical `p10-deb-install.json` and `p10-deb-build.json` next to
   `VER-OPS-002.json`. Move historical duplicates to `agent/history/` (WP4
   T4.6).
+  *Status 2026-10-29:* P10 done. The six `p10-*.json` records moved to
+  `agent/history/superseded-p10-evidence-2026-10-29/`. Other phases (P0F, P2,
+  P9, P11) still have duplicate IDs.
 - **P-3 (High, confirmed):** the SEC-004 runner pin is stale.
   `spec/evidence-verification-profiles.json:2531` pins `74214c49…` (the
   recorder at `1ccafff`). The recorder changed in `5bf08b9` and `bd6adec` and
