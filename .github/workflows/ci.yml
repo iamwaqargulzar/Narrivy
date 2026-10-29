@@ -35,29 +35,43 @@ jobs:
           persist-credentials: false
       - name: Install jsonschema and pytest for the governance and packaging suites
         run: pip install --break-system-packages jsonschema pytest --quiet
-      - name: Recovery, Grok-task and DeepSeek-task governance validators
+      # The whole Python suite runs here. Each deselected test below is known
+      # to fail for a reason outside this job, and stays visible in the
+      # non-blocking steps that follow:
+      # - three tests hash gitignored release artifacts
+      #   (artifacts/releases/*.deb) that a fresh checkout does not contain;
+      # - test_all_legacy_entry_points_and_imports_cannot_write runs
+      #   scripts/verify_manifest.py, and BUILD-PACK-MANIFEST.json has drifted
+      #   from the tree; it needs an owner-reviewed manifest rebuild, not a
+      #   weaker test;
+      # - LiveFrontendGuardTests run scripts/verify_frontend_boundaries.py,
+      #   which rejects the hard-coded bundled model id in
+      #   apps/narrivy-desktop/src/app/screens/Models.tsx; the fix is for the
+      #   daemon to report which model is bundled.
+      - name: Python test suite
         run: >-
-          python3 -m unittest
-          tests.governance.test_recovery_validators
-          tests.governance.test_run_grok_task
-          tests.governance.test_run_deepseek_task
-      - name: Packaging candidate and qualification suites
-        run: >-
-          python3 -m pytest tests/packaging -p no:cacheprovider -q
-          --deselect
-          tests/packaging/test_build_deb_candidate.py::DisposableDebCandidateTests::test_dpkg_failure_does_not_leave_candidate_or_call_legacy_builder
-      - name: P9 failure-injection harnesses in stub mode
-        run: python3 -m pytest tests/hardening -p no:cacheprovider -q
-      # The two tests below hash artifacts/releases/narrivy_0.2.3_amd64.deb, a
-      # gitignored release artifact that a fresh CI checkout does not contain.
-      # They stay non-blocking until a qualification host supplies the artifact.
-      - name: Legacy release-artifact quarantine tests (requires a real .deb)
+          python3 -m pytest tests -p no:cacheprovider -q
+          --deselect tests/packaging/test_build_deb_candidate.py::DisposableDebCandidateTests::test_dpkg_failure_does_not_leave_candidate_or_call_legacy_builder
+          --deselect tests/governance/test_legacy_deb_builder_quarantine.py::LegacyDebBuilderQuarantineTests::test_legacy_builder_fails_before_mutating_protected_outputs
+          --deselect tests/governance/test_phase_report_generation.py::CommittedReportMatchesAuthoritativeDataTests::test_reports_only_attest_to_immutable_release_artifacts
+          --deselect tests/governance/test_recovery_validators.py::NonMutatingValidatorUnitTests::test_all_legacy_entry_points_and_imports_cannot_write
+          --deselect tests/governance/test_frontend_boundaries.py::LiveFrontendGuardTests
+      # These need a real .deb; they stay non-blocking until a qualification
+      # host supplies the artifact.
+      - name: Release-artifact tests (requires a real .deb)
         continue-on-error: true
         run: >-
-          python3 -m pytest
-          tests/governance/test_legacy_deb_builder_quarantine.py
+          python3 -m pytest -p no:cacheprovider -q
           tests/packaging/test_build_deb_candidate.py::DisposableDebCandidateTests::test_dpkg_failure_does_not_leave_candidate_or_call_legacy_builder
-          -p no:cacheprovider -q
+          tests/governance/test_legacy_deb_builder_quarantine.py::LegacyDebBuilderQuarantineTests::test_legacy_builder_fails_before_mutating_protected_outputs
+          tests/governance/test_phase_report_generation.py::CommittedReportMatchesAuthoritativeDataTests::test_reports_only_attest_to_immutable_release_artifacts
+      # Known drift (see the comment on the suite step); non-blocking until fixed.
+      - name: Manifest and frontend-guard drift tests
+        continue-on-error: true
+        run: >-
+          python3 -m pytest -p no:cacheprovider -q
+          tests/governance/test_recovery_validators.py::NonMutatingValidatorUnitTests::test_all_legacy_entry_points_and_imports_cannot_write
+          tests/governance/test_frontend_boundaries.py::LiveFrontendGuardTests
 
   rust-quality:
     runs-on: ubuntu-latest

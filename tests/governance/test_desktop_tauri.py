@@ -93,6 +93,10 @@ EXPECTED_COMMANDS = {
     "daemon_vocabulary",
     "open_meeting_folder",
     "pick_folder",
+    "pick_file",
+    "pick_recording",
+    "daemon_set_dictation_language",
+    "daemon_set_dictation_languages",
 }
 # The frontend reads and writes the theme through its own settings layer.
 EXPECTED_FRONTEND_COMMANDS = EXPECTED_COMMANDS - {"theme_get", "theme_set"}

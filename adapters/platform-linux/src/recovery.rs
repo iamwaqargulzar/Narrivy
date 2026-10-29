@@ -3085,6 +3085,73 @@ mod tests {
     }
 
     #[test]
+    fn two_second_consumer_stall_loses_no_audio_and_stays_within_the_queue_bound() -> TestResult {
+        // The recorder runs at real time (one 80 ms chunk per 80 ms). The
+        // consumer takes the first chunk, then stalls for 2 s, about 25 chunks.
+        // That is well under the 64-chunk bound, so the stream must survive
+        // the stall and still deliver every sample once, in order.
+        const STALL: Duration = Duration::from_secs(2);
+        let chunk_ms =
+            u64::try_from(STREAM_CAPTURE_CHUNK_SAMPLES)? * 1_000 / u64::from(CAPTURE_RATE_HZ);
+        let stalled_chunks = usize::try_from(STALL.as_millis())? / usize::try_from(chunk_ms)?;
+        assert!(stalled_chunks < STREAM_CAPTURE_QUEUE_CHUNKS);
+
+        let dir = tempfile::tempdir()?;
+        let marker = dir.path().join("stream.pid");
+        let window_seconds = 4.0_f32;
+        let total = usize::try_from(
+            capture_frame_budget(window_seconds).map_err(|error| io::Error::other(error.code))?,
+        )?;
+        let program = controlled_stream_program(dir.path(), &marker, total, chunk_ms, 0)?;
+        let mut capture = streaming_capture_for_window(program, window_seconds, None);
+        let control = SessionControl::new();
+        let mut session = capture
+            .start_stream_owned(&control)
+            .map_err(|error| io::Error::other(error.code))?;
+        session
+            .wait_ready(&control)
+            .map_err(|error| io::Error::other(error.code))?;
+
+        let mut delivered = 0_usize;
+        let mut expected_sequence = 0_u64;
+        loop {
+            match session
+                .next_event(&control)
+                .map_err(|error| io::Error::other(error.code))?
+            {
+                CaptureStreamEvent::Audio(chunk) => {
+                    assert_eq!(chunk.sequence, expected_sequence);
+                    assert!(chunk.audio.samples.len() <= STREAM_CAPTURE_CHUNK_SAMPLES);
+                    assert!(chunk.audio.samples.iter().all(|sample| *sample == 0.25));
+                    delivered += chunk.audio.samples.len();
+                    expected_sequence += 1;
+                    if expected_sequence == 1 {
+                        std::thread::sleep(STALL);
+                        // The producer kept reading during the stall and the
+                        // queue held its output without reaching the bound.
+                        assert_eq!(
+                            StreamProducerTerminal::load(&session.terminal),
+                            StreamProducerTerminal::Running
+                        );
+                    }
+                }
+                CaptureStreamEvent::End(summary) => {
+                    assert_eq!(summary.end, CaptureEnd::SafetyLimit);
+                    assert_eq!(summary.total_samples, u64::try_from(total)?);
+                    break;
+                }
+            }
+        }
+        assert_eq!(delivered, total);
+        assert_eq!(
+            expected_sequence,
+            u64::try_from(total.div_ceil(STREAM_CAPTURE_CHUNK_SAMPLES))?
+        );
+        assert_pid_is_gone(&marker, "stalled-consumer recorder")?;
+        Ok(())
+    }
+
+    #[test]
     fn bounded_stream_queue_overflow_is_terminal_and_never_drops_silently() -> TestResult {
         let dir = tempfile::tempdir()?;
         let marker = dir.path().join("stream.pid");
