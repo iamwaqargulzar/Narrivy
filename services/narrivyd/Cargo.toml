@@ -72,4 +72,5 @@ asr-transcribe-resident = [
 [dev-dependencies]
 serde_json.workspace = true
 tempfile.workspace = true
+proptest.workspace = true
 sha2.workspace = true

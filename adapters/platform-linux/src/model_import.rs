@@ -2348,4 +2348,74 @@ mod tests {
         );
         Ok(())
     }
+
+    /// Every kind of source that is not the user's own regular file of the
+    /// pinned size is refused with a typed error, without blocking: a link,
+    /// a FIFO (opened non-blocking, so no writer is waited for), a device,
+    /// a directory, a path with `..`, a relative path, and a huge or
+    /// wrong declared size. A hard link is the file itself and is held to
+    /// the digest like any other source.
+    #[test]
+    fn sources_that_are_not_plain_regular_files_are_refused() -> TestResult {
+        let (cache, source_root, source, identity) = fixture()?;
+        let uid = rustix::process::getuid().as_raw();
+        let size = identity.size_bytes();
+        let dir = source_root.path();
+
+        std::os::unix::fs::symlink(&source, dir.join("link.gguf"))?;
+        rustix::fs::mknodat(
+            rustix::fs::CWD,
+            dir.join("fifo.gguf"),
+            rustix::fs::FileType::Fifo,
+            Mode::RUSR | Mode::WUSR,
+            0,
+        )?;
+        std::fs::create_dir(dir.join("dir.gguf"))?;
+        let refused = |path: &Path, size: u64| open_source(path, size, uid).err();
+        for path in [
+            dir.join("link.gguf"),
+            dir.join("fifo.gguf"),
+            dir.join("dir.gguf"),
+            Path::new("/dev/null").to_path_buf(),
+            Path::new("/dev/zero").to_path_buf(),
+            dir.join("sub/../model.gguf"),
+            Path::new("model.gguf").to_path_buf(),
+            Path::new("../model.gguf").to_path_buf(),
+        ] {
+            assert_eq!(
+                refused(&path, size),
+                Some(OfflineModelImportError::SourceUnsafe),
+                "{path:?}"
+            );
+        }
+        for wrong in [0, size - 1, size + 1, u64::MAX] {
+            assert_eq!(
+                refused(&source, wrong),
+                Some(OfflineModelImportError::SourceUnsafe)
+            );
+        }
+        assert_eq!(
+            refused(&dir.join("missing.gguf"), size),
+            Some(OfflineModelImportError::SourceUnavailable)
+        );
+
+        let mut changed = identity.bytes.clone();
+        changed[0] ^= 0x01;
+        std::fs::write(dir.join("other.gguf"), changed)?;
+        std::fs::set_permissions(
+            dir.join("other.gguf"),
+            std::fs::Permissions::from_mode(0o600),
+        )?;
+        std::fs::hard_link(dir.join("other.gguf"), dir.join("hard.gguf"))?;
+        assert_eq!(
+            import_test(
+                cache.path(),
+                &identity,
+                &dir.join("hard.gguf"),
+                &mut TestHooks::default()
+            ),
+            Err(OfflineModelImportError::BytesMismatch)
+        );
+        Ok(())
+    }
 }

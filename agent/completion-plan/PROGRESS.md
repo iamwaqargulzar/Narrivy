@@ -1569,3 +1569,56 @@ Owner requests, one at a time, each verified in the dev preview
   toggle then writes Urdu; Pipelines → Transcribe → Dictation language
   (choose/add/remove); Alt+B/Alt+C no longer fail. rc12 checks above still
   open.
+
+## 2026-10-30: property and fuzz tests at the untrusted-input boundaries
+
+- New property tests (proptest, dev-only, no default features) on: IPC
+  frame decoding, hellos, envelopes and command parsing
+  (`crates/narrivy-ipc/tests/untrusted_input.rs`); the Unix socket server
+  with slow, oversized and random frames
+  (`adapters/ipc-unix/src/untrusted_peer_tests.rs`); pack manifest paths,
+  links, devices, sockets and huge sizes (`engines/openvino`); local pack
+  copies (`narrivyd` `download.rs`); model import sources
+  (`model_import.rs`); dictation language tags (`text_options.rs`). They
+  run in normal `cargo test` in a few seconds. Longer runs:
+  `scripts/fuzz-untrusted-input.sh [cases]`, not in CI.
+- There are no archives in model import or downloads: a pack is a pinned
+  manifest plus separately verified files, and import takes one file. The
+  archive cases (`..`, absolute paths, links, devices, huge sizes, hash
+  mismatch) were tested against those instead.
+- Bugs found and fixed:
+  1. Pack paths: `is_plain_relative` judged a path after `Path`
+     normalisation, so `a//b`, `a/./b` and `a/` passed. The installer splits
+     on `/` itself, so `a//b` gave the name `/b`, and joining it replaced the
+     staging folder with the filesystem root (a local-source pack wrote and
+     removed files outside its folder). Names are now checked as written.
+  2. Local pack copy: the source was opened following links and blocking,
+     so a FIFO hung the install and `/dev/zero` was read until the size cap.
+     It is now opened `O_NOFOLLOW | O_NONBLOCK` and must be a regular file.
+  3. IPC server: the socket timeout restarted on every byte, so a peer
+     sending a frame one byte at a time held a connection and its thread
+     for ever. A whole frame (hello included) must now arrive within the
+     idle timeout from its first byte.
+  4. IPC framing: a frame that ended right after its 4-byte header was
+     reported as a polite close (`Cancelled`), so the server closed without
+     a rejection. It is now a typed truncation (`BadRequest`).
+  5. Dictation language: `AUTO` (any case but `auto`) was stored as a
+     language called `auto` and sent to the engine. `auto` in any case now
+     means automatic and is never put on the list.
+  6. Dictation language list: an over-long request was checked only after
+     de-duplicating all of it (quadratic work on 10 000 tags), and a
+     hand-edited `text.json` could put bad tags or more than 16 on the list.
+     The list now stops at the 17th distinct tag, and what is read from the
+     file is cleaned and cut to 16.
+- Checked and already safe: oversized lengths are refused after the prefix
+  without allocating; invalid UTF-8, unknown kinds, any minor and wrong
+  majors give typed results; JSON nesting is refused past 64 levels (the
+  parser stops at 128), no stack overflow at 200 000; import sources that
+  are links, FIFOs, devices, directories, relative, `..` or the wrong size
+  are refused; hash mismatches are refused in import, downloads and packs.
+- Checked: `cargo clippy --workspace --all-targets -- -D warnings` passes.
+  `cargo test --workspace`: all new tests pass; 2 older tests fail in the
+  cloud container and fail the same way on unchanged rc13 (no PipeWire
+  there: `capability_check_mic_never_promotes_helper_presence_to_signal`;
+  timing: `latency_histogram_p99_under_load_stays_under_50us`).
+  `scripts/fuzz-untrusted-input.sh 5000` passes.

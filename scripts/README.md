@@ -28,6 +28,14 @@ cd apps/narrivy-desktop && npm run build && cargo run -p narrivy-desktop
 evidence. Without it, `narrivyd` runs the mock lane: sessions finish
 instantly and nothing is typed.
 
+## Fuzzing the untrusted-input boundaries
+
+```bash
+scripts/fuzz-untrusted-input.sh [cases]   # longer property-test runs (default 20000 cases); not in CI
+```
+
+The same tests run with small case counts in `cargo test`.
+
 ## Documentation
 
 ```bash
