@@ -2230,6 +2230,50 @@ mod tests {
 
     type TestResult = Result<(), Box<dyn std::error::Error>>;
 
+    /// Bound for one test child, start to exit. Generous on purpose: it only
+    /// caps a hang, so a slow machine makes a test slower, never failed.
+    const CHILD_DEADLINE: Duration = Duration::from_secs(30);
+
+    /// Collect a contained child's whole stdout and wait for it to exit, both
+    /// under one deadline (F-M16). The tests used to read the pipe to EOF
+    /// before their deadline loop, so a hung child, or a descendant holding
+    /// the pipe, blocked the test forever and the deadline never applied.
+    /// Here the read runs on its own thread; a missed deadline kills the
+    /// group and fails the test.
+    fn collect_contained(
+        child: &mut Child,
+    ) -> Result<(ExitStatus, Vec<u8>), Box<dyn std::error::Error>> {
+        let deadline = Instant::now() + CHILD_DEADLINE;
+        let mut stdout = child.stdout.take().ok_or("missing child stdout")?;
+        let (sender, receiver) = mpsc::channel();
+        let reader = std::thread::spawn(move || {
+            let mut bytes = Vec::new();
+            let _ = sender.send(stdout.read_to_end(&mut bytes).map(|_| bytes));
+        });
+        let output = match receiver.recv_timeout(deadline.saturating_duration_since(Instant::now()))
+        {
+            Ok(read) => {
+                let _ = reader.join();
+                read?
+            }
+            Err(_) => {
+                let _ = terminate_group_and_reap(child, Instant::now() + Duration::from_secs(2));
+                return Err("child output did not end before the deadline".into());
+            }
+        };
+        loop {
+            match try_wait_contained(child, deadline)? {
+                Some(status) => return Ok((status, output)),
+                None if Instant::now() < deadline => std::thread::sleep(POLL),
+                None => {
+                    let _ =
+                        terminate_group_and_reap(child, Instant::now() + Duration::from_secs(2));
+                    return Err("child did not exit before the deadline".into());
+                }
+            }
+        }
+    }
+
     const NON_DUMPABLE_CHILD: &str = "NARRIVY_TEST_NON_DUMPABLE_CHILD";
 
     /// `forbid_core_dumps` in a child copy of this test binary: the child
@@ -2260,20 +2304,46 @@ mod tests {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()?;
+        let deadline = Instant::now() + CHILD_DEADLINE;
         let mut stdout = child.stdout.take().ok_or("no stdout")?;
-        let mut seen = String::new();
-        let mut byte = [0_u8; 1];
-        while !seen.contains("ready\n") {
-            if stdout.read(&mut byte)? == 0 {
-                break;
+        // Read up to "ready" on a helper thread so a child that never gets
+        // there fails the test at the deadline instead of hanging it.
+        let (sender, receiver) = mpsc::channel();
+        std::thread::spawn(move || {
+            let mut seen = String::new();
+            let mut byte = [0_u8; 1];
+            while !seen.contains("ready\n") {
+                match stdout.read(&mut byte) {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => seen.push(char::from(byte[0])),
+                }
             }
-            seen.push(char::from(byte[0]));
-        }
+            let _ = sender.send(seen);
+            // Keep the pipe open and drained until the child ends: closing
+            // it early would fail the child's own later output.
+            let _ = io::copy(&mut stdout, &mut io::sink());
+        });
+        let Ok(seen) = receiver.recv_timeout(deadline.saturating_duration_since(Instant::now()))
+        else {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err("the child never reported ready".into());
+        };
         let pid = child.id();
         let environ = std::fs::read(format!("/proc/{pid}/environ"));
         let status = std::fs::read_to_string(format!("/proc/{pid}/status"));
         drop(child.stdin.take());
-        let exit = child.wait()?;
+        let exit = loop {
+            if let Some(exit) = child.try_wait()? {
+                break exit;
+            }
+            if Instant::now() >= deadline {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err("the child did not exit before the deadline".into());
+            }
+            std::thread::sleep(POLL);
+        };
         assert!(seen.contains("ready\n"), "child output: {seen:?}");
         assert!(exit.success(), "child failed: {exit:?}");
         if !rustix::process::geteuid().is_root() {
@@ -2732,23 +2802,8 @@ mod tests {
             .stdout(Stdio::piped())
             .stderr(Stdio::null());
         let mut child = command.spawn()?;
-        let mut output = Vec::new();
-        child
-            .stdout
-            .take()
-            .ok_or("missing data child stdout")?
-            .read_to_end(&mut output)?;
-        let deadline = Instant::now() + Duration::from_secs(2);
-        loop {
-            match try_wait_contained(&mut child, deadline)? {
-                Some(status) => {
-                    assert!(status.success());
-                    break;
-                }
-                None if Instant::now() < deadline => std::thread::sleep(POLL),
-                None => return Err("data inspection child did not exit".into()),
-            }
-        }
+        let (status, output) = collect_contained(&mut child)?;
+        assert!(status.success());
         assert_eq!(output, original);
         Ok(())
     }
@@ -3189,23 +3244,9 @@ mod tests {
             .stdout(Stdio::piped())
             .stderr(Stdio::null());
         let mut child = command.spawn()?;
-        let mut output = String::new();
-        child
-            .stdout
-            .take()
-            .ok_or("missing descriptor probe stdout")?
-            .read_to_string(&mut output)?;
-        let deadline = Instant::now() + Duration::from_secs(2);
-        loop {
-            match try_wait_contained(&mut child, deadline)? {
-                Some(status) => {
-                    assert!(status.success());
-                    break;
-                }
-                None if Instant::now() < deadline => std::thread::sleep(POLL),
-                None => return Err("descriptor probe did not exit".into()),
-            }
-        }
+        let (status, output) = collect_contained(&mut child)?;
+        assert!(status.success());
+        let output = String::from_utf8(output)?;
 
         let mut lines = output.lines();
         let inherited = lines
@@ -3414,20 +3455,9 @@ mod tests {
         assert!(!debug.contains(&digest));
 
         let mut child = command.spawn()?;
-        let mut stdout = child.stdout.take().ok_or("missing shell stdout")?;
-        let mut output = String::new();
-        stdout.read_to_string(&mut output)?;
-        let deadline = Instant::now() + Duration::from_secs(2);
-        loop {
-            match try_wait_contained(&mut child, deadline)? {
-                Some(status) => {
-                    assert!(status.success());
-                    break;
-                }
-                None if Instant::now() < deadline => std::thread::sleep(POLL),
-                None => return Err("artifact inspection child did not exit".into()),
-            }
-        }
+        let (status, output) = collect_contained(&mut child)?;
+        assert!(status.success());
+        let output = String::from_utf8(output)?;
         let mut lines = output.lines();
         assert_eq!(lines.next().map(str::trim), Some("NoNewPrivs:\t1"));
         assert_eq!(lines.next(), Some(""), "artifact inherited descriptor(s)");
@@ -3480,20 +3510,8 @@ mod tests {
             .stdout(Stdio::piped())
             .stderr(Stdio::null());
         let mut child = command.spawn()?;
-        let mut stdout = child.stdout.take().ok_or("missing env stdout")?;
-        let mut bytes = Vec::new();
-        stdout.read_to_end(&mut bytes)?;
-        let deadline = Instant::now() + Duration::from_secs(2);
-        loop {
-            match try_wait_contained(&mut child, deadline)? {
-                Some(status) => {
-                    assert!(status.success());
-                    break;
-                }
-                None if Instant::now() < deadline => std::thread::sleep(POLL),
-                None => return Err("environment helper did not exit".into()),
-            }
-        }
+        let (status, bytes) = collect_contained(&mut child)?;
+        assert!(status.success());
         assert!(bytes.is_empty(), "resident artifact inherited environment");
         Ok(())
     }
@@ -3619,16 +3637,8 @@ mod tests {
         let mut command = trusted.command(HelperEnvironment::WaylandTextInput)?;
         command.stdout(Stdio::piped()).stderr(Stdio::null());
         let mut child = command.spawn()?;
-        let mut output = String::new();
-        child
-            .stdout
-            .take()
-            .ok_or_else(|| io::Error::other("stdout missing"))?
-            .read_to_string(&mut output)?;
-        let deadline = Instant::now() + Duration::from_secs(2);
-        while try_wait_contained(&mut child, deadline)?.is_none() {
-            std::thread::sleep(POLL);
-        }
+        let (_, output) = collect_contained(&mut child)?;
+        let output = String::from_utf8(output)?;
         assert!(!output.contains("PATH="));
         assert!(!output.contains("LD_PRELOAD="));
         // F-H8: the typing helper always gets a UTF-8 locale.

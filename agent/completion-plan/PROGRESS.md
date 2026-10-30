@@ -1631,3 +1631,106 @@ Owner requests, one at a time, each verified in the dev preview
   helper_presence_to_signal`, built into 5 test targets. It depends on this
   machine's microphone, and this cloud machine has no audio. `cargo deny`
   was not run here.
+
+## 2026-10-29: F-M16, tests that faked their states (branch `cloud/honest-tests`)
+
+Each test below now runs the real decision code with controlled inputs; the
+fakes that remain stand in for hardware or a container and can fail.
+
+- **Desktop `CapabilityDisabledState`:** the test mocked the bridge to
+  return `disabled: true`. Neither the wire DTO (`CapabilityCheckResultDto`:
+  id, available, detail) nor the shell's `CapabilityCheckResult` has such a
+  field, so the Diagnostics "Disabled" verdict (and the wizard's) could never
+  appear in the real app. **Real defect, fixed:** the dead state is removed
+  (type, Diagnostics, Onboarding, preview bridge, the `diag.disabled` string
+  and its CSS). The test now runs the real `TauriBridge` over a fake `invoke`
+  (`src/test/fakeDaemonInvoke.ts`) answering in the Rust shape: Fail with the
+  service detail, Pass only when available, the error (no verdict) when the
+  call fails.
+- **Desktop `BundledModelInstall`:** the mocked install returned an instant
+  `ready` while status said no model. It now goes through the real bridge to
+  a fake daemon that behaves like the service: the install returns a running
+  operation, and status reads move it importing → activating → ready, which
+  the real StatusProvider poll follows until the card goes away; a
+  `source_rejected` install (F-C5's code) shows the reason. Checked that it
+  fails when the fake daemon never advances.
+- **`tests/packaging` qualifier fakes:** they answered `ok()` to any command
+  they did not know, so the installed-paths, removal, cache and sentinel
+  checks could not fail. New `tests/packaging/container_fake.py` models the
+  container filesystem (install adds the package's files, remove/purge
+  delete them, the daemon creates its socket and pid file, provisioning
+  writes the cache) and fails unknown commands with 127. The upgrade fake
+  hashes what was actually written and reports the real owner. New negative
+  cases, each failing at the named step with its detail: missing desktop
+  binary, non-executable worker, missing bundled model, remove leaving the
+  daemon, an unknown command (candidate); purge deleting config, upgrade
+  rewriting state, upgrade chowning the cache, remove leaving the CLI,
+  current package without the worker (upgrade).
+- **Builder success path** (`InstallableBuildCompositionTests`): the whole
+  `build()` with real `dpkg-deb`, a compiled daemon that really answers
+  `--build-features`, fixture ELFs and a small fixture model (the pin is
+  re-pinned to it; the real pin has its own test). The published `.deb` is
+  read back with `dpkg-deb` + `tarfile`, not the builder's reader: every
+  member root:root, directories 0755, executables 0755, other files 0644,
+  maintainer scripts 0755 and byte-equal to `packaging/deb`, the model at the
+  path `bridge.rs` sends with the pinned digest, the manifest naming the
+  packaged worker, and the qualifiers' `INSTALLED_PATHS`/`EXECUTABLE_PATHS`
+  matching what is shipped. `_inspect` rejects a wrong mode, a wrong digest,
+  an extra member and a 0644 `postinst`; a non-resident daemon is never
+  published.
+- **`daemon_shutdown_signals`, packaged shape:** new tests start `narrivyd`
+  with the shipped unit's `Environment=` lines parsed from
+  `packaging/deb/narrivy-daemon.service` and the default socket path. Here
+  (no installed runtime) it checks the daemon refuses with exit 1 and never
+  serves. The SIGTERM/SIGINT run in that shape is `#[ignore]`: it needs the
+  installed package (`cargo test -p narrivyd --features
+  asr-transcribe-resident --test daemon_shutdown_signals -- --ignored`).
+  **Not run** (no package on this machine).
+- **History and support-report tests** (`support_report_composition`,
+  `history_retention_composition`): they read History right after
+  `committed`, racing the History write, and the support-report wait gave up
+  silently when its shared deadline ran out. With retention off, the "empty
+  History" check passed even if the write had not happened yet. They now wait
+  for `active_session == None`. The worker's cleanup guard is dropped last
+  and removes the session slot after the diagnostics observation and the
+  History mirror, so that state means both are done. Bounds raised to 60 s
+  (they only cap a hang).
+- **`e2e_mock_dictation`:** the cancel and supervisor-shutdown tests relied
+  on a 600 ms worker hold outlasting the test's own steps. Under load the
+  worker could run and deliver first. The hold is now 120 s; the cancel ends
+  it at once.
+- **process-linux:** six tests read a child's stdout to EOF before their
+  deadline loop (and the core-dump test read until "ready", then `wait()`ed
+  with no bound), so a hung child or a descendant holding the pipe blocked
+  forever. New `collect_contained` reads on a helper thread under one 30 s
+  deadline and kills the group if it is missed; the core-dump test is bounded
+  the same way (and keeps draining the pipe so the child's own output does
+  not hit EPIPE).
+- **Found on the way:** `capability_check_mic_never_promotes_helper_presence_to_signal`
+  failed on any host without `pw-record`: "trusted pw-record helper missing"
+  matched the "available" branch. The verdict mapping is now `mic_check`, and
+  the test covers every recorder status as controlled input.
+  `test_dpkg_failure_does_not_leave_candidate_or_call_legacy_builder` failed
+  on a fresh checkout because it hashed the untracked local
+  `artifacts/releases/narrivy_0.2.3_amd64.deb`; a missing artifact must now
+  stay missing.
+- **Clippy:** `cargo clippy --workspace --all-targets -- -D warnings` was
+  already clean (the `assistant_probe` fix is in the 2026-10-20 entry). It
+  only needs `apps/narrivy-desktop/dist` built first (`npm run build`):
+  `tauri::generate_context!` fails without it.
+
+**Checked here** (cloud container, no audio/GPU/display; webkit2gtk,
+pipewire and gtk-layer-shell dev packages installed with apt):
+`cargo test --workspace` passes (ignored, needing hardware or a session:
+`overlay_preview`, the current-session portal observation, the uinput device,
+two Wayland clipboard tests, plus the helper-only process-linux test).
+`cargo test -p narrivyd --features asr-transcribe-resident --test
+daemon_shutdown_signals` passes (7, 1 ignored). Workspace clippy is clean,
+and so is narrivyd clippy with `asr-transcribe-resident`. `cargo fmt
+--check` is clean. Desktop `npm test` passes 217 and `tsc` is clean.
+`python3 -m pytest tests/packaging` passes 128. Full `pytest tests` has 7
+governance failures, and all 7 fail without these changes too: the manifest
+hash drift waiting for the reviewed regeneration, the `'whisper'` literal in
+`Models.tsx:9`, the legacy-builder and P10 report tests that need local
+`artifacts/releases/*.deb`, and two Tauri/recovery-validator checks.
+`BUILD-PACK-MANIFEST.json` was not regenerated.

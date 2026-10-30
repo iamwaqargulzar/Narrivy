@@ -92,7 +92,7 @@ export class PreviewBridge extends FakeBridge {
       checks: {
         mic: { id: 'mic', pass: true, detail: 'PipeWire capture helper is ready' },
         delivery: { id: 'delivery', pass: true, detail: 'Typing helper ready; Inbox recovery enabled' },
-        shortcuts: { id: 'shortcuts', pass: false, disabled: true, detail: 'No global shortcut is configured' },
+        shortcuts: { id: 'shortcuts', pass: false, detail: 'No global shortcut is configured' },
         'theme-store': { id: 'theme-store', pass: true, detail: 'Theme preference is readable and writable' },
       },
     });

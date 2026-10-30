@@ -252,7 +252,6 @@
   "diag.running": "Running…",
   "diag.pass": "Pass",
   "diag.fail": "Fail",
-  "diag.disabled": "Disabled",
   "diag.error": "Error",
   "diag.runAria": "Run {title} check",
   "diag.idle": "Not run yet",

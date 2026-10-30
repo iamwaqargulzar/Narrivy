@@ -516,7 +516,6 @@ details.disclosure > .disclosure-body { padding: 0 18px 16px; }
 .check-glyph svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .check-glyph[data-verdict='pass'] { background: var(--ok-soft); color: var(--ok); }
 .check-glyph[data-verdict='fail'], .check-glyph[data-verdict='error'] { background: var(--err-soft); color: var(--err); }
-.check-glyph[data-verdict='disabled'] { background: var(--warn-soft); color: var(--warn); }
 .check-glyph[data-verdict='running'] svg { animation: spin 0.9s linear infinite; }
 .check-title { color: var(--text-strong); font-weight: var(--fw-semibold); }
 .check-id { color: var(--faint); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }

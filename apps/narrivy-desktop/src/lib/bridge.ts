@@ -250,7 +250,6 @@ export interface HistoryEntryFull extends JournalEntryDto {
 export interface CapabilityCheckResult {
   id: string;
   pass: boolean;
-  disabled?: boolean;
   detail?: string;
 }
 

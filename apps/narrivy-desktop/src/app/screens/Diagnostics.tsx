@@ -1,20 +1,18 @@
 import { allCapabilityStates } from '../../lib/capabilityStates';
 // Isolated capability checks, each with its own Run action. A result shows
-// pass/fail, Disabled when the capability is present but turned off, and the
-// daemon's detail line.
+// pass/fail (the service's `available`) and the daemon's detail line.
 import { Button } from '../../ui/primitives/Button';
 import { Icon, type IconName } from '../../ui/icons';
 import { t } from '../../i18n';
 import { DIAGNOSTIC_CHECKS, useDiagnostics } from '../../state/DiagnosticsContext';
 
-type Verdict = 'idle' | 'running' | 'pass' | 'fail' | 'disabled' | 'error';
+type Verdict = 'idle' | 'running' | 'pass' | 'fail' | 'error';
 
 const GLYPHS: Record<Verdict, IconName> = {
   idle: 'info',
   running: 'refresh',
   pass: 'check',
   fail: 'close',
-  disabled: 'alert',
   error: 'alert',
 };
 
@@ -33,8 +31,8 @@ function CheckRow({ id, title }: { id: (typeof DIAGNOSTIC_CHECKS)[number]['id'];
     detail = state.error?.message;
   } else if (state?.status === 'done') {
     const r = state.result;
-    verdict = r?.disabled ? 'disabled' : r?.pass ? 'pass' : 'fail';
-    line = r?.disabled ? t('diag.disabled') : r?.pass ? t('diag.pass') : t('diag.fail');
+    verdict = r?.pass ? 'pass' : 'fail';
+    line = r?.pass ? t('diag.pass') : t('diag.fail');
     detail = r?.detail;
   }
   return (

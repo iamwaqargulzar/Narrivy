@@ -443,3 +443,124 @@ fn a_daemon_without_an_engine_choice_refuses_to_start() -> TestResult {
     assert!(!host.socket.exists());
     Ok(())
 }
+
+// ---------------------------------------------------------------------------
+// Packaged shape (F-M16). The tests above run the mock engine with a test
+// socket path. These run the daemon exactly as the shipped user unit does:
+// its `Environment=` lines, read from `packaging/deb/narrivy-daemon.service`
+// (`%S`/`%C` resolved to the isolated host), the default socket under
+// `$XDG_RUNTIME_DIR`, and nothing test-only.
+// ---------------------------------------------------------------------------
+
+#[cfg(feature = "asr-transcribe-resident")]
+mod packaged {
+    use super::*;
+
+    /// The shipped unit's environment, `%S`/`%C` resolved to `host`.
+    fn packaged_unit_environment(host: &IsolatedHost) -> TestResult<Vec<(String, String)>> {
+        let unit = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../packaging/deb/narrivy-daemon.service");
+        let text = std::fs::read_to_string(&unit)?;
+        let mut environment = Vec::new();
+        for line in text.lines() {
+            let Some(assignment) = line.strip_prefix("Environment=") else {
+                continue;
+            };
+            let (key, value) = assignment
+                .split_once('=')
+                .ok_or("malformed Environment= line in the shipped unit")?;
+            let value = match value {
+                "%S" => host.state.display().to_string(),
+                "%C" => host.cache.display().to_string(),
+                other if other.contains('%') => {
+                    return Err(format!("unresolved unit specifier in {key}={other}").into());
+                }
+                other => other.to_owned(),
+            };
+            environment.push((key.to_owned(), value));
+        }
+        if !environment
+            .iter()
+            .any(|(key, value)| key == "NARRIVY_TRANSCRIBE_RUNTIME" && value == "installed")
+        {
+            return Err("the shipped unit no longer selects the installed runtime".into());
+        }
+        Ok(environment)
+    }
+
+    /// Launch the daemon as the shipped unit does (systemd also provides `HOME`
+    /// and `XDG_RUNTIME_DIR` for a user service).
+    fn packaged_command(host: &IsolatedHost) -> TestResult<Command> {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_narrivyd"));
+        command
+            .env_clear()
+            .current_dir(host.root.path())
+            .env("HOME", &host.home)
+            .env("XDG_RUNTIME_DIR", &host.runtime)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped());
+        for (key, value) in packaged_unit_environment(host)? {
+            command.env(key, value);
+        }
+        if let Some(path) = std::env::var_os("PATH") {
+            command.env("PATH", path);
+        }
+        Ok(command)
+    }
+
+    const INSTALLED_RUNTIME_MANIFEST: &str = "/usr/share/narrivy/installed-runtime-manifest.json";
+
+    /// Without the installed runtime the packaged daemon refuses to start with
+    /// exit 1 (which the unit's `RestartPreventExitStatus=1` does not restart)
+    /// and never serves.
+    #[test]
+    fn the_packaged_daemon_refuses_to_start_without_the_installed_runtime() -> TestResult {
+        if Path::new(INSTALLED_RUNTIME_MANIFEST).exists() {
+            // Covered by the ignored packaged-shape shutdown test instead.
+            return Ok(());
+        }
+        let host = IsolatedHost::new()?;
+        let output = packaged_command(&host)?.output()?;
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert_eq!(output.status.code(), Some(1), "{stderr}");
+        assert!(
+            stderr.contains("installed resident runtime failed verification"),
+            "{stderr}"
+        );
+        assert!(!host.runtime.join(narrivy_ipc_unix::SOCKET_SUBPATH).exists());
+        Ok(())
+    }
+
+    /// SIGTERM and SIGINT stop the daemon in its packaged shape within the
+    /// unit's `TimeoutStopSec`, with success and the socket removed.
+    #[test]
+    #[ignore = "needs the installed Narrivy runtime (/usr/lib/narrivy, /usr/share/narrivy); \
+                run on a machine with the package installed: cargo test -p narrivyd \
+                --features asr-transcribe-resident --test daemon_shutdown_signals -- --ignored"]
+    fn the_packaged_daemon_stops_on_sigterm_and_sigint() -> TestResult {
+        if !Path::new(INSTALLED_RUNTIME_MANIFEST).exists() {
+            return Err(
+                format!("{INSTALLED_RUNTIME_MANIFEST} is missing: install the package").into(),
+            );
+        }
+        for signal in ["TERM", "INT"] {
+            let host = IsolatedHost::new()?;
+            let socket = host.runtime.join(narrivy_ipc_unix::SOCKET_SUBPATH);
+            let mut daemon = DaemonProcess {
+                child: packaged_command(&host)?.spawn()?,
+                socket: socket.clone(),
+            };
+            daemon.wait_until_ready(READY_DEADLINE)?;
+            require_socket_present(&socket)?;
+            let signalled = Instant::now();
+            deliver_signal(daemon.pid(), signal)?;
+            let status = daemon.wait_for_exit(EXIT_DEADLINE)?;
+            let elapsed = signalled.elapsed();
+            assert_success(status)?;
+            assert_within_idle_budget(elapsed)?;
+            assert_socket_removed(&socket)?;
+        }
+        Ok(())
+    }
+}

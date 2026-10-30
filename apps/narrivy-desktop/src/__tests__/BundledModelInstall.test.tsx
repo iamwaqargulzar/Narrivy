@@ -1,93 +1,78 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import App from '../App';
-import { bridge } from '../lib/bridge';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createFakeDaemon, type FakeDaemon } from '../test/fakeDaemonInvoke';
 
-vi.mock('../lib/bridge', async () => {
-  const { createMockBridgeModule } = await import('../test/mockBridge');
-  return createMockBridgeModule();
-});
+// The real TauriBridge runs; only the transport underneath it is faked, by a
+// daemon that answers the install the way the service does: the install call
+// returns an operation that is still running, and only later status reads say
+// whether the model became ready (F-M16: the old test mocked an instant
+// "ready" from the install call while status said no model).
+let daemon: FakeDaemon;
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: (cmd: string, args?: Record<string, unknown>) => daemon.invoke(cmd, args),
+}));
+vi.mock('@tauri-apps/api/event', () => ({ listen: async () => () => {} }));
+
+async function renderApp() {
+  const { default: App } = await import('../App');
+  render(<App />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Models' }));
+}
+
+const installCalls = () => daemon.calls.filter(([cmd]) => cmd === 'model_install_bundled');
 
 describe('bundled model installation', () => {
-  it('starts only from the explicit Models action', async () => {
+  beforeEach(() => {
     window.localStorage.setItem('narrivy.onboarded.v1', '1');
-    vi.mocked(bridge.status).mockResolvedValue({
-      capabilities: [],
-      active_session: null,
-      installed_model: 'awaiting_model',
-    });
-    render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Models' }));
-
-    const install = await screen.findByRole('button', { name: 'Set up' });
-    expect(bridge.installBundledModel).not.toHaveBeenCalled();
-    fireEvent.click(install);
-
-    await waitFor(() => expect(bridge.installBundledModel).toHaveBeenCalledTimes(1));
-    // The mocked daemon still reports no model, so the card stays, idle.
-    expect(await screen.findByRole('heading', { name: /set up speech recognition/i })).toBeInTheDocument();
+  });
+  afterEach(() => {
+    vi.resetModules();
   });
 
-  it('says why an install failed, in words (F-M11)', async () => {
-    window.localStorage.setItem('narrivy.onboarded.v1', '1');
-    vi.mocked(bridge.status).mockResolvedValue({
-      capabilities: [],
-      active_session: null,
-      installed_model: 'awaiting_model',
-      model_provisioning: {
-        operation_id: 'op',
-        state: 'failed',
-        publication: 'not_published',
-        cleanup: 'not_required',
-        failure: 'source_rejected',
-        revision: 2,
-      },
+  it('starts only from the explicit Models action and follows it to ready', async () => {
+    daemon = createFakeDaemon({ bundled: 'ready' });
+    await renderApp();
+
+    const install = await screen.findByRole('button', { name: 'Set up' });
+    expect(installCalls()).toHaveLength(0);
+    fireEvent.click(install);
+
+    await waitFor(() => expect(installCalls()).toHaveLength(1));
+    // The real command, with no path from the page: the shell sends the one
+    // packaged source itself.
+    expect(installCalls()[0]).toEqual(['model_install_bundled', undefined]);
+    // Running: the step in words, with Cancel.
+    expect(await screen.findByTestId('model-install')).toHaveTextContent(
+      /Checking and copying the model…|Starting the speech engine…/,
+    );
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+    // The status poll follows the operation until the daemon says ready, and
+    // then the card goes away.
+    await waitFor(() => expect(screen.queryByTestId('model-install')).toBeNull(), {
+      timeout: 5000,
     });
-    render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Models' }));
+  });
+
+  it('says why an install failed, in words (F-M11, F-C5)', async () => {
+    daemon = createFakeDaemon({ bundled: 'source_rejected' });
+    await renderApp();
+    fireEvent.click(await screen.findByRole('button', { name: 'Set up' }));
+
     const reason = await screen.findByTestId('model-install-failure');
     expect(reason).toHaveTextContent(/failed its checks/i);
+    // Still not set up: the card stays and offers to try again.
+    expect(screen.getByTestId('model-install')).toBeInTheDocument();
   });
 
   it('hides the install panel once the model is in use', async () => {
-    window.localStorage.setItem('narrivy.onboarded.v1', '1');
-    vi.mocked(bridge.status).mockResolvedValue({
+    daemon = createFakeDaemon();
+    daemon.on('daemon_status', () => ({
       capabilities: [],
       active_session: null,
       installed_model: 'ready',
-      model_provisioning: {
-        operation_id: 'op',
-        state: 'ready',
-        publication: 'published',
-        cleanup: 'not_required',
-        revision: 3,
-      },
-    });
-    render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Models' }));
+    }));
+    await renderApp();
     await screen.findAllByRole('heading', { name: 'Models' });
     expect(screen.queryByTestId('model-install')).toBeNull();
-  });
-
-  it('shows the setup step in words while it runs, with Cancel', async () => {
-    window.localStorage.setItem('narrivy.onboarded.v1', '1');
-    vi.mocked(bridge.status).mockResolvedValue({
-      capabilities: [],
-      active_session: null,
-      installed_model: 'provisioning',
-      model_provisioning: {
-        operation_id: 'op',
-        state: 'importing',
-        publication: 'not_published',
-        cleanup: 'not_required',
-        revision: 1,
-      },
-    });
-    render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Models' }));
-    const card = await screen.findByTestId('model-install');
-    expect(card).toHaveTextContent('Checking and copying the model…');
-    expect(card).not.toHaveTextContent(/importing/);
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
   });
 });

@@ -10,11 +10,13 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import probe_installed_status as probe  # noqa: E402
 import qualify_candidate as qualification  # noqa: E402
 import qualify_installed_model as installed  # noqa: E402
 from qualify_candidate import CommandResult, DockerError, InputError  # noqa: E402
+from container_fake import ContainerFs, ok, unmodelled  # noqa: E402
 
 
 CANDIDATE = b"narrivy candidate package bytes"
@@ -46,19 +48,32 @@ REQUIRED_STEPS = (
 )
 
 
-def ok(stdout: bytes = b"") -> CommandResult:
-    return CommandResult(0, stdout, b"")
+class Lifecycle(ContainerFs):
+    """Scripted in-container behavior for one successful lifecycle.
 
-
-class Lifecycle:
-    """Scripted in-container behavior for one successful lifecycle."""
+    The container is a small filesystem model: installing the candidate adds
+    the package's files, removing or purging deletes them, the daemon creates
+    its socket and pid file and provisioning writes the model cache. Path
+    checks, digests and sizes answer from that model, so a step whose
+    precondition is not true in the container fails here too.
+    """
 
     def __init__(self) -> None:
+        super().__init__()
         self.provisioned = False
         self.exited = False
         self.purged = False
         self.supervisor_starts = 0
         self.pipeline_enabled = True
+        self.exit_code = 0
+        self.files[qualification.CANDIDATE_IN_CONTAINER] = 0o644
+        # What the package ships at the paths the qualifier checks.
+        # `test_build_publishes_a_root_owned_exact_package` ties these paths
+        # and modes to what the real builder puts in the archive.
+        self.package = {
+            path: 0o755 if path in qualification.EXECUTABLE_PATHS else 0o644
+            for path in qualification.INSTALLED_PATHS
+        }
 
     def digest(self, target: str) -> str:
         if target == qualification.CANDIDATE_IN_CONTAINER:
@@ -69,51 +84,119 @@ class Lifecycle:
             return WORKER_SHA
         return "f" * 64
 
+    def daemon_running(self) -> bool:
+        return qualification.SOCKET_PATH in self.files
+
+    def shell(self, script: str) -> CommandResult:
+        if script == qualification.EMPTY_CACHE_SCRIPT:
+            prefix = f"{qualification.CACHE_DIR}/narrivy/models/"
+            if any(path.startswith(prefix) for path in self.files):
+                return CommandResult(1, b"cache_not_empty\n", b"")
+            return ok()
+        return super().shell(script)
+
     def __call__(self, argv: tuple[str, ...], detached: bool) -> CommandResult:
+        if argv[0] == "sh" and argv[1] == "-c":
+            return self.shell(argv[2])
         if argv[0] == "sha256sum":
             target = argv[-1]
+            if target not in self.files:
+                return CommandResult(1, b"", b"No such file or directory")
             return ok(f"{self.digest(target)}  {target}\n".encode())
+        if argv[0] == "stat" and argv[1:3] == ("-c", "%s"):
+            if argv[3] not in self.files:
+                return CommandResult(1, b"", b"No such file or directory")
+            return ok(f"{qualification.MODEL_SIZE}\n".encode())
         if argv[0] == "cat":
             if argv[1] == "/etc/os-release":
                 return ok(b'ID=ubuntu\nVERSION_ID="24.04"\n')
+            if argv[1] not in self.files:
+                return CommandResult(1, b"", b"No such file or directory")
             if argv[1] == qualification.PID_FILE:
                 return ok(b"4242\n")
             if argv[1] == qualification.EXIT_FILE:
-                return ok(b"0\n")
-            return CommandResult(1, b"", b"")
+                return ok(f"{self.exit_code}\n".encode())
+            return unmodelled(argv)
+        if argv[0] == "rm" and argv[1] == "-f":
+            for path in argv[2:]:
+                self.files.pop(path, None)
+            return ok()
+        if argv[0] == "apt-get":
+            if argv[1] == "update":
+                return ok()
+            if argv[1] == "install" and argv[-1] == qualification.CANDIDATE_IN_CONTAINER:
+                if argv[-1] not in self.files:
+                    return CommandResult(100, b"", b"E: Unable to locate package")
+                self.files.update(self.package)
+                self.purged = False
+                return ok()
+            if argv[1] == "install" and argv[-1] == "python3":
+                return ok()
+            if argv[1] in ("remove", "purge"):
+                if self.daemon_running():
+                    # Removing a package under a running daemon is what the
+                    # qualifier must never do.
+                    return CommandResult(1, b"", b"daemon still running")
+                for path in self.package:
+                    self.files.pop(path, None)
+                self.purged = self.purged or argv[1] == "purge"
+                return ok()
+            return unmodelled(argv)
+        if argv[0] == "dpkg-query":
+            return CommandResult(0 if not self.purged else 1, b"", b"")
         if argv[0] == "python3" and argv[1] == "-c":
+            if qualification.MANIFEST_WORKER_READ[2] != argv[2]:
+                return unmodelled(argv)
+            if "/usr/share/narrivy/installed-runtime-manifest.json" not in self.files:
+                return CommandResult(1, b"", b"FileNotFoundError")
             return ok(f"{WORKER_SHA}\n".encode())
         if argv[0] == "python3" and argv[1].endswith("probe_installed_status.py"):
+            if not self.daemon_running():
+                return CommandResult(1, b"", b"daemon_unavailable")
             if self.provisioned:
                 return ok(json.dumps({"installed_model": "ready", "worker_ready": True,
                     "pipeline": "clean", "pipeline_enabled": self.pipeline_enabled}).encode())
             return ok(b'{"installed_model":"awaiting_model","worker_ready":false,"pipeline":"clean","pipeline_enabled":false}\n')
         if argv[0] == "python3" and argv[1].endswith("qualify_installed_model.py"):
+            if not self.daemon_running() or qualification.INSTALLED_MODEL not in self.files:
+                return CommandResult(1, b"", b"")
             self.provisioned = True
+            model_dir = str(PurePosixPath(qualification.CACHE_MODEL_PATH).parent)
+            self.files[qualification.CACHE_MODEL_PATH] = 0o644
+            self.files[f"{model_dir}/meta.json"] = 0o644
             return ok(json.dumps({"cleanup": "confirmed", "installed_model": "ready",
                 "publication": "verified", "state": "ready", "worker_ready": True,
                 "pipeline": "clean", "pipeline_enabled": self.pipeline_enabled}).encode())
-        if argv[0] == "/bin/sh" and argv[1] == "-c" and "kill -TERM" in argv[2]:
+        if argv[0] == "/bin/sh" and argv[1] == "-c" and argv[2] == "kill -TERM \"$1\"":
+            if not self.daemon_running():
+                return CommandResult(1, b"", b"No such process")
             self.exited = True
+            self.files.pop(qualification.SOCKET_PATH, None)
+            self.files[qualification.EXIT_FILE] = 0o644
             return ok()
-        if argv[0] == "/bin/sh" and argv[1] == "-c" and "/usr/bin/narrivyd" in argv[2]:
+        if argv[0] == "/bin/sh" and argv[1] == "-c" and argv[2] == qualification.DAEMON_START_SCRIPT:
+            if "/usr/bin/narrivyd" not in self.files:
+                # The script records exit 127 for a missing daemon.
+                self.exit_code = 127
+                self.files[qualification.EXIT_FILE] = 0o644
+                return ok()
+            self.exit_code = 0
             self.exited = False
             self.supervisor_starts += 1
+            self.files.pop(qualification.EXIT_FILE, None)
+            self.files[qualification.PID_FILE] = 0o644
+            self.files[qualification.SOCKET_PATH] = 0o600
             return ok()
         if argv[0] == "test":
             if argv[1] == "-S":
-                return CommandResult(0 if not self.exited else 1, b"", b"")
-            if argv[1] == "-f" and argv[2] == qualification.EXIT_FILE:
-                return CommandResult(0 if self.exited else 1, b"", b"")
-            return ok()
-        if argv[0] == "dpkg-query":
-            return CommandResult(0 if not self.purged else 1, b"", b"")
-        if argv[0] == "apt-get" and "purge" in argv:
-            self.purged = True
-            return ok()
-        if argv[0] == "stat":
-            return ok(f"{qualification.MODEL_SIZE}\n".encode())
-        return ok()
+                return CommandResult(0 if argv[2] in self.files else 1, b"", b"")
+            if argv[1] == "-f":
+                return CommandResult(0 if argv[2] in self.files else 1, b"", b"")
+            if argv[1:3] == ("!", "-e"):
+                return CommandResult(1 if self.exists(argv[3]) else 0, b"", b"")
+            if argv[1:3] == ("!", "-d"):
+                return CommandResult(1 if argv[3] in self.directories else 0, b"", b"")
+        return unmodelled(argv)
 
 
 class AptInstallFails(Lifecycle):
@@ -449,6 +532,58 @@ class CandidateQualificationTests(unittest.TestCase):
         stored = json.loads(self.result_path.read_text())
         self.assertEqual(stored["result"], "failed")
         self.assertEqual(stored["failed_step"], "apt_install_package")
+
+    def test_the_fake_container_fails_what_a_real_one_would(self) -> None:
+        # F-M16: each of these used to pass against a fake that answered ok()
+        # to any command it did not recognise.
+        class MissingDesktop(Lifecycle):
+            def __init__(self) -> None:
+                super().__init__()
+                del self.package["/usr/bin/narrivy-desktop"]
+
+        class WorkerNotExecutable(Lifecycle):
+            def __init__(self) -> None:
+                super().__init__()
+                self.package["/usr/lib/narrivy/narrivy-transcribe-worker"] = 0o644
+
+        class RemoveLeavesTheDaemon(Lifecycle):
+            def __call__(self, argv: tuple[str, ...], detached: bool) -> CommandResult:
+                if argv[0] == "apt-get" and argv[1] == "remove":
+                    result = super().__call__(argv, detached)
+                    self.files["/usr/bin/narrivyd"] = 0o755
+                    return result
+                return super().__call__(argv, detached)
+
+        class NoBundledModel(Lifecycle):
+            def __init__(self) -> None:
+                super().__init__()
+                del self.package[qualification.INSTALLED_MODEL]
+
+        class UnknownCommandsFail(Lifecycle):
+            def __call__(self, argv: tuple[str, ...], detached: bool) -> CommandResult:
+                if argv[0] == "apt-get" and argv[1] == "update":
+                    return unmodelled(argv)
+                return super().__call__(argv, detached)
+
+        for handler, step, detail in (
+            (MissingDesktop(), "installed_paths", "missing=/usr/bin/narrivy-desktop"),
+            (
+                WorkerNotExecutable(),
+                "installed_paths",
+                "not_executable=/usr/lib/narrivy/narrivy-transcribe-worker",
+            ),
+            (RemoveLeavesTheDaemon(), "remove", "present=/usr/bin/narrivyd"),
+            (NoBundledModel(), "installed_paths", f"missing={qualification.INSTALLED_MODEL}"),
+            (UnknownCommandsFail(), "apt_update", None),
+        ):
+            with self.subTest(handler=type(handler).__name__):
+                self.result_path.unlink(missing_ok=True)
+                outcome, _ = self.run_qualification(handler)
+                self.assertEqual(outcome["result"], "failed")
+                self.assertEqual(outcome["failed_step"], step)
+                if detail is not None:
+                    self.assertIn(detail, outcome["failure_detail"])
+                self.assertTrue(outcome["container"]["removed"])
 
     def test_sigterm_timeout_identifies_the_shutdown_step(self) -> None:
         class NeverExits(Lifecycle):
