@@ -1734,3 +1734,30 @@ hash drift waiting for the reviewed regeneration, the `'whisper'` literal in
 `Models.tsx:9`, the legacy-builder and P10 report tests that need local
 `artifacts/releases/*.deb`, and two Tauri/recovery-validator checks.
 `BUILD-PACK-MANIFEST.json` was not regenerated.
+
+## 2026-10-29: durable Inbox, no Inbox copy for typed text (F-M3, F-M4, F-M18)
+
+- F-M3: the Inbox moved from `$XDG_RUNTIME_DIR/narrivy/inbox` (tmpfs) to
+  the private state root, `$XDG_STATE_HOME/narrivy/inbox` (0700 dir, 0600
+  files), so recovered text survives logout and reboot. Bounded retention:
+  24 h and at most 100 files, oldest first (`INBOX_RETENTION`,
+  `INBOX_MAX_FILES`), pruned at start and after each dictation as before.
+  Files in the old runtime-dir Inbox are moved at start. The owner's D6 "Recovered text" list in
+  the desktop is still open.
+- F-M4: in the routed ladder (the packaged lane), a rung whose helper
+  accepted the whole text (`wtype`, portal) now ends as
+  `SubmittedUnverified` with no Inbox file. The core accepts that report
+  shape (journal `Delivered`, attempts say unverified; new
+  `RecoveryTerminal::SubmittedUnverified`), so it is never replayed to the
+  Inbox. Clipboard-only results, failures after dispatch, nothing
+  qualified and Inbox-write failures keep the Inbox copy. The legacy
+  single-rung `linux-mic-wtype-inbox` lane is unchanged.
+- F-M18: `services/narrivyd/tests/daemon_kill_recovery.rs` starts the real
+  daemon (mock ASR), holds it after commit and before delivery
+  (`NARRIVY_MOCK_DELIVERY_HOLD_MS`, mock lane only, max 60 s), sends
+  SIGKILL, wipes the runtime dir, restarts, and checks the exact text in the
+  state-dir Inbox with 0700/0600 modes. To make this possible, the mock lane
+  now journals `Committed` with its delivery intent before it delivers, like
+  the strict lanes. Checked that the test fails without that change.
+- Headless only: no hardware or desktop behaviour claimed. Branch
+  `cloud/inbox-durable`.

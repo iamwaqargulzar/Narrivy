@@ -13,10 +13,12 @@
 //!    order, and record why every other rung was skipped (including rungs that
 //!    are deliberately reported unavailable);
 //! 4. the first rung that can VERIFY its durable target result ends the ladder
-//!    as [`DeliveryOutcome::Delivered`]; a rung that dispatched without
-//!    verification also ends the ladder (a later rung would insert the text
-//!    twice); every outcome except `Delivered` is followed by exactly one
-//!    atomic Inbox recovery write under the same transaction id;
+//!    as [`DeliveryOutcome::Delivered`]; a rung whose helper accepted the
+//!    whole payload without verification ends the ladder as
+//!    [`DeliveryOutcome::SubmittedUnverified`] with no Inbox copy (F-M4), since
+//!    a later rung would insert the text twice; every other outcome (clipboard
+//!    only, a failure after dispatch, nothing qualified) is followed by exactly
+//!    one atomic Inbox recovery write under the same transaction id;
 //! 5. a bounded, transaction-keyed replay record binds every dispatched
 //!    transaction to the SHA-256 digest and byte length of the exact payload,
 //!    so a stale retry can never re-dispatch and a reused transaction id with
@@ -24,9 +26,10 @@
 //!
 //! No rung may claim `Delivered` from "the helper was spawned": only a rung
 //! that observed a durable target result reports [`RungOutcome::Committed`].
-//! The concrete Linux candidates in production remain unverified or
-//! unqualified, so the honest terminal fact is Inbox recovery — which is
-//! exactly what the portable tail validates.
+//! The concrete Linux candidates in production remain unverified, so a
+//! successful typed submission is reported as `SubmittedUnverified` and a
+//! failed or uncertain one as Inbox recovery — exactly the shapes the
+//! portable tail validates.
 //!
 //! # Privacy
 //! Target identity, clipboard contents and transcript text are routing inputs
@@ -202,11 +205,11 @@ pub enum RungQualification {
 /// Fact observed by one rung attempt.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RungOutcome {
-    /// The rung verified its own durable target result. This is the only
-    /// outcome that ends the ladder without an Inbox recovery write.
+    /// The rung verified its own durable target result.
     Committed,
     /// A transport/helper accepted the payload but target retention cannot be
-    /// verified. An attempt fact, never a delivery claim.
+    /// verified. An attempt fact, never a verified-delivery claim. Like
+    /// `Committed`, it ends the ladder without an Inbox recovery write (F-M4).
     SubmittedUnverified,
     /// The payload is on the clipboard; insertion was not attempted or not
     /// proven.
@@ -646,16 +649,24 @@ impl DeliveryPort for RoutedThenInboxDelivery {
                     return Ok(report);
                 }
                 RungOutcome::SubmittedUnverified => {
-                    // The text most likely landed. A later rung would insert
-                    // it a second time, so the ladder ends here and only the
-                    // Inbox copy follows.
-                    dispatched = true;
+                    // The helper accepted the whole payload, so the text most
+                    // likely landed. A later rung would insert it a second
+                    // time, so the ladder ends here. A successful submission
+                    // leaves no plaintext Inbox copy (F-M4): the Inbox keeps
+                    // only text whose delivery failed or is uncertain.
                     attempts.push(attempt(
                         rung.attempt_backend(),
                         DeliveryOutcome::SubmittedUnverified,
                         None,
                     ));
-                    break;
+                    let report = self.report(
+                        &intent.transaction_id,
+                        attempts,
+                        DeliveryOutcome::SubmittedUnverified,
+                        None,
+                    );
+                    self.replay.record(&intent.transaction_id, text, &report);
+                    return Ok(report);
                 }
                 RungOutcome::CopiedOnly => {
                     dispatched = true;
@@ -1591,17 +1602,15 @@ mod tests {
             0,
             "a later rung would insert the same text a second time"
         );
-        assert_eq!(report.outcome, DeliveryOutcome::InboxFallback);
+        assert_eq!(report.outcome, DeliveryOutcome::SubmittedUnverified);
+        assert_eq!(report.failure_reason, None);
         assert_eq!(
             attempt_pairs(&report),
-            vec![
-                ("clipboard-paste", DeliveryOutcome::SubmittedUnverified),
-                ("inbox", DeliveryOutcome::InboxFallback),
-            ]
+            vec![("clipboard-paste", DeliveryOutcome::SubmittedUnverified)]
         );
-        assert_eq!(
-            InboxStore::new(inbox).read_text(&intent.transaction_id)?,
-            "only once"
+        assert!(
+            !inbox.join("tx-routed-once.txt").exists(),
+            "a successful submission leaves no plaintext Inbox copy (F-M4)"
         );
         Ok(())
     }
@@ -1706,9 +1715,9 @@ mod tests {
                     "wtype-virtual-keyboard",
                     DeliveryOutcome::SubmittedUnverified
                 ),
-                ("inbox", DeliveryOutcome::InboxFallback),
             ]
         );
+        assert_eq!(report.outcome, DeliveryOutcome::SubmittedUnverified);
         Ok(())
     }
 
@@ -1730,7 +1739,7 @@ mod tests {
         let retry_intent = intent("tx-routed-retry");
         let first_report =
             platform(delivery.deliver(&retry_intent, "once only", &SessionCancellation::new()))?;
-        assert_eq!(first_report.outcome, DeliveryOutcome::InboxFallback);
+        assert_eq!(first_report.outcome, DeliveryOutcome::SubmittedUnverified);
         assert_eq!(first_attempts.load(std::sync::atomic::Ordering::SeqCst), 1);
         let retried =
             platform(delivery.deliver(&retry_intent, "once only", &SessionCancellation::new()))?;
@@ -1743,9 +1752,9 @@ mod tests {
             1,
             "a stale retry must never re-dispatch insertion"
         );
-        assert_eq!(
-            InboxStore::new(inbox.clone()).read_text(&retry_intent.transaction_id)?,
-            "once only"
+        assert!(
+            !inbox.join("tx-routed-retry.txt").exists(),
+            "a successful submission leaves no plaintext Inbox copy (F-M4)"
         );
 
         // Cancellation before any dispatch is a clean terminal cancellation:
@@ -2258,7 +2267,7 @@ mod tests {
             "frozen admission text",
             &SessionCancellation::new(),
         ))?;
-        assert_eq!(first.outcome, DeliveryOutcome::InboxFallback);
+        assert_eq!(first.outcome, DeliveryOutcome::SubmittedUnverified);
         assert_eq!(
             observed_binding(&observed),
             admission_binding,
@@ -2308,7 +2317,9 @@ mod tests {
         let (rung, _observed, dispatched) = recording_rung(
             "wtype-virtual-keyboard",
             false,
-            RungOutcome::SubmittedUnverified,
+            // A failure after dispatch keeps an Inbox copy, which the
+            // rejected reuse must not overwrite.
+            RungOutcome::Failed(FallbackReason::Timeout),
         );
         let mut delivery = platform(RoutedThenInboxDelivery::new(
             inbox.clone(),
@@ -2385,7 +2396,9 @@ mod tests {
         let (rung, _observed, dispatched) = recording_rung(
             "wtype-virtual-keyboard",
             false,
-            RungOutcome::SubmittedUnverified,
+            // A failure after dispatch keeps an Inbox copy, which the
+            // rejected reuse must not overwrite.
+            RungOutcome::Failed(FallbackReason::Timeout),
         );
         let mut delivery = platform(RoutedThenInboxDelivery::new(
             inbox.clone(),
@@ -2447,7 +2460,7 @@ mod tests {
         let b = intent("tx-replay-b");
         let first_a = platform(delivery.deliver(&a, "payload a", &SessionCancellation::new()))?;
         let first_b = platform(delivery.deliver(&b, "payload b", &SessionCancellation::new()))?;
-        assert_eq!(first_b.outcome, DeliveryOutcome::InboxFallback);
+        assert_eq!(first_b.outcome, DeliveryOutcome::SubmittedUnverified);
 
         // The stale retry of A after B must observe A's own facts.
         let stale_a = platform(delivery.deliver(&a, "payload a", &SessionCancellation::new()))?;
@@ -2550,7 +2563,9 @@ mod tests {
         let first_rung = Box::new(RecordingRung {
             id: "portal-eis-text",
             requires_target: true,
-            outcome: RungOutcome::SubmittedUnverified,
+            // A bounded failure after dispatch: the text may have left the
+            // process, so the Inbox copy is mandatory.
+            outcome: RungOutcome::Failed(FallbackReason::Timeout),
             observed: Arc::clone(&first_observed),
             dispatched: Arc::clone(&first_dispatched),
             cancel_after_dispatch: Some(cancellation.clone()),
@@ -2579,7 +2594,7 @@ mod tests {
         assert_eq!(
             dispatch_pairs(&report),
             vec![
-                ("portal-eis-text", DeliveryOutcome::SubmittedUnverified),
+                ("portal-eis-text", DeliveryOutcome::Failed),
                 ("inbox", DeliveryOutcome::InboxFallback),
             ]
         );

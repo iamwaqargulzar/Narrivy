@@ -332,6 +332,11 @@ pub use daemon::session::{
 #[allow(unused_imports)]
 pub use daemon::shutdown::{DAEMON_SHUTDOWN_TOTAL, ShutdownBudget, join_thread_bounded};
 
+/// The durable, private Inbox directory below the state root (F-M3).
+fn inbox_dir(state_dir: &std::path::Path) -> std::path::PathBuf {
+    state_dir.join("inbox")
+}
+
 fn recover_startup_results(
     journal: &narrivy_core::Journal,
     inbox_dir: std::path::PathBuf,
@@ -500,10 +505,18 @@ fn main() -> std::process::ExitCode {
         return exit_code(EXIT_FAILURE);
     }
 
-    let inbox_dir = runtime_dir.join("inbox");
-    if let Err(err) = std::fs::create_dir_all(&inbox_dir) {
+    // Recovered text is durable, private user data (F-M3): it lives under the
+    // 0700 state root so it survives logout and reboot, never on the runtime
+    // tmpfs. Text a previous version left in the runtime-dir Inbox is moved.
+    let inbox_dir = inbox_dir(&state_dir);
+    let inbox_store = narrivy_platform_linux::delivery::InboxStore::new(inbox_dir.clone());
+    if let Err(err) = inbox_store.ensure_private_directory() {
         eprintln!("narrivyd: inbox dir unavailable: {err}");
         return exit_code(EXIT_FAILURE);
+    }
+    let adopted = inbox_store.adopt_from(&runtime_dir.join("inbox"));
+    if adopted > 0 {
+        eprintln!("narrivyd: moved {adopted} recovered-text file(s) to the durable Inbox");
     }
     match recover_startup_results(&*journal, inbox_dir.clone()) {
         Ok(report) if report.recovered > 0 || report.delivery_failed > 0 => eprintln!(
@@ -1002,7 +1015,7 @@ mod shutdown_attempt_tests {
             backend: "routed-then-inbox".to_owned(),
         });
         journal.write(&entry)?;
-        let inbox = root.path().join("runtime/inbox");
+        let inbox = super::inbox_dir(root.path());
 
         let report = recover_startup_results(&journal, inbox.clone())?;
 

@@ -732,12 +732,17 @@ fn transcribe_duration_us(timing: &RecoveryTimingTrace) -> Option<u64> {
         .checked_sub(timing.offset_us(CaptureEnded)?)
 }
 
-/// Remove Inbox files older than the recovery journal's lifetime (F-M4):
-/// History is the durable copy of a dictation; the Inbox only bridges a
-/// delivery that could not be verified.
+/// Enforce the Inbox's bounded retention (F-M3): files older than
+/// [`INBOX_RETENTION`](narrivy_platform_linux::delivery::INBOX_RETENTION) go,
+/// then the oldest beyond
+/// [`INBOX_MAX_FILES`](narrivy_platform_linux::delivery::INBOX_MAX_FILES).
+/// History is the long-term copy of a dictation; the Inbox only keeps text
+/// whose delivery failed or is uncertain.
 pub(crate) fn prune_inbox(dir: PathBuf) {
-    let removed = narrivy_platform_linux::delivery::InboxStore::new(dir).prune_older_than(
-        Duration::from_millis(narrivy_core::JOURNAL_TTL_MS),
+    use narrivy_platform_linux::delivery::{INBOX_MAX_FILES, INBOX_RETENTION, InboxStore};
+    let removed = InboxStore::new(dir).prune(
+        INBOX_RETENTION,
+        INBOX_MAX_FILES,
         std::time::SystemTime::now(),
     );
     if removed > 0 {
@@ -3062,6 +3067,10 @@ impl DaemonState {
         let corrected = correction.applies(&raw);
         variants.corrected = Some(corrected.clone());
 
+        // Commit before delivery, like the strict lanes: once the corrected
+        // text is final it is durable with its delivery intent, so a crash
+        // during delivery is replayed into the Inbox at the next start.
+        Self::finalize_entry_with_intent(journal, &txid, variants)?;
         self.publish_session_event(step!(SessionState::Delivering), pipeline_id.clone());
         match delivery(&corrected) {
             Ok(()) => {
@@ -3094,6 +3103,29 @@ impl DaemonState {
                 Ok(DeliveryOutcome::InboxFallback)
             }
         }
+    }
+
+    /// Journal the final corrected text as `Committed` with its delivery
+    /// intent, before any delivery side effect.
+    fn finalize_entry_with_intent(
+        journal: &Journal,
+        txid: &TransactionId,
+        variants: &TranscriptVariants,
+    ) -> Result<(), CoreError> {
+        let mut entry = journal.read(txid.as_str())?.ok_or_else(|| {
+            CoreError::Journal(narrivy_core::JournalError::Storage(
+                "missing admitted transaction before delivery".to_owned(),
+            ))
+        })?;
+        entry.state = JournalEntryState::Committed;
+        entry.variants = variants.clone();
+        entry.delivery_intent = Some(narrivy_types::DeliveryIntent {
+            transaction_id: txid.clone(),
+            backend: "null-platform".to_owned(),
+        });
+        entry.updated_unix_ms = unix_now_ms();
+        journal.write(&entry)?;
+        Ok(())
     }
 
     fn finalize_entry(
@@ -4035,6 +4067,7 @@ fn start_admitted_session(
     let job_model_path = engine_config.transcribe_model_path.clone();
     let job_delivery_backend = engine_config.delivery_backend;
     let job_force_delivery_failure = engine_config.force_delivery_failure;
+    let job_mock_delivery_hold = engine_config.mock_delivery_hold;
     let job_inbox_dir = engine_config.inbox_dir.clone();
     // One admitted lane value for the whole owned worker. The lane
     // selects capture/delivery composition only; pipeline identity
@@ -4378,7 +4411,7 @@ fn start_admitted_session(
                     job_app_id.as_deref(),
                     transcribe_duration_us(&job_timing),
                 );
-                // Recovered text lasts as long as the journal does (F-M4).
+                // Recovered text has a bounded retention (F-M3).
                 if let Some(dir) = job_inbox_dir.clone() {
                     prune_inbox(dir);
                 }
@@ -4487,7 +4520,16 @@ fn start_admitted_session(
         let backend_kind = job_delivery_backend;
         let inbox_dir = job_inbox_dir.clone();
         let _ = &inbox_dir;
+        let hold_cancel = supervisor_cancel.clone();
         let delivery = move |text: &str| -> Result<(), CoreError> {
+            // Controlled crash window (F-M18): the transaction is already
+            // journaled as committed; a kill here must not lose the text.
+            if let Some(hold) = job_mock_delivery_hold {
+                let deadline = std::time::Instant::now() + hold;
+                while std::time::Instant::now() < deadline && !hold_cancel.is_cancelled() {
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+            }
             if force_fail {
                 return Err(CoreError::Platform(narrivy_platform_api::PlatformError {
                     code: "forced_failure",

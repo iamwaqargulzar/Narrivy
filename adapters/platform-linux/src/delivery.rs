@@ -40,7 +40,7 @@ pub use backend::{
     WlClipboardOrXclip, WtypeBackend,
 };
 pub use clipboard_paste::{UinputPasteChord, WaylandClipboardHandoff, WtypePasteChord};
-pub use inbox::{InboxError, InboxStore, validate_txid};
+pub use inbox::{INBOX_MAX_FILES, INBOX_RETENTION, InboxError, InboxStore, validate_txid};
 pub use probe::{generate_txid, probe_tool, probe_wtype, probe_wtype_at};
 pub use routed::{
     ClipboardCopyRung, ClipboardHandoff, ClipboardOwnership, ClipboardPasteRung,

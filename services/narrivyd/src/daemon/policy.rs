@@ -357,6 +357,9 @@ impl StrictRecoveryLane {
     }
 }
 
+/// Upper bound of the mock lane's controlled crash-window probe.
+pub const MAX_MOCK_DELIVERY_HOLD: std::time::Duration = std::time::Duration::from_secs(60);
+
 /// Immutable per-process composition choices. Defaults reproduce the P1
 /// mock-dictation contract exactly; `from_env` is called once in `main`.
 #[derive(Debug, Clone)]
@@ -389,6 +392,12 @@ pub struct EngineConfig {
     pub delivery_backend: DeliveryBackendKind,
     /// Force the delivery closure to fail (typed InboxFallback proof).
     pub force_delivery_failure: bool,
+    /// Controlled crash-window probe for the mock lane
+    /// (`NARRIVY_MOCK_DELIVERY_HOLD_MS`, at most [`MAX_MOCK_DELIVERY_HOLD`]):
+    /// the worker waits this long after the transaction is journaled as
+    /// committed and before it delivers, so a test can kill the process in
+    /// exactly that window (F-M18). Rejected in every strict lane.
+    pub mock_delivery_hold: Option<std::time::Duration>,
     /// Effective bounded live-capture window in seconds (pipewire source only).
     /// Ordinary dictation uses the documented production maximum and ends on
     /// Stop/endpoint/cancel; the `NARRIVY_CAPTURE_SECONDS` environment hook is a
@@ -423,6 +432,7 @@ impl Default for EngineConfig {
             audio_source: AudioSourceKind::SineFixture,
             delivery_backend: DeliveryBackendKind::NullSink,
             force_delivery_failure: false,
+            mock_delivery_hold: None,
             pipewire_capture_seconds: narrivy_types::MAX_CAPTURE_SECONDS as f32,
             transcribe_model_path: None,
             transcribe_model_sha256: None,
@@ -543,6 +553,17 @@ impl EngineConfig {
                     );
                 }
             };
+        }
+        if let Some(v) = std::env::var_os("NARRIVY_MOCK_DELIVERY_HOLD_MS") {
+            let millis = v
+                .to_string_lossy()
+                .parse::<u64>()
+                .map_err(|_| "NARRIVY_MOCK_DELIVERY_HOLD_MS must be a whole number".to_owned())?;
+            let hold = std::time::Duration::from_millis(millis);
+            if hold > MAX_MOCK_DELIVERY_HOLD {
+                return Err("NARRIVY_MOCK_DELIVERY_HOLD_MS exceeds its 60 s bound".to_owned());
+            }
+            cfg.mock_delivery_hold = Some(hold);
         }
         if let Some(v) = std::env::var_os("NARRIVY_CAPTURE_SECONDS") {
             let raw = v.to_string_lossy();
@@ -669,6 +690,9 @@ impl EngineConfig {
             Err("installed_resident_configuration_invalid") => {
                 return Err("installed resident ASR requires transcribe.cpp, one registered model ID, and no raw worker or model identity".to_owned());
             }
+            Err("mock_delivery_hold_requires_mock_lane") => {
+                return Err("NARRIVY_MOCK_DELIVERY_HOLD_MS is accepted only with the mock ASR lane and no strict recovery mode".to_owned());
+            }
             Err(_) => return Err("strict recovery configuration is invalid".to_owned()),
         }
         Ok(cfg)
@@ -679,6 +703,12 @@ impl EngineConfig {
     /// strict lane that silently substitutes a mock, fixture, null sink, or
     /// the broad platform router.
     fn validate_strict_recovery_configuration(&self) -> Result<(), &'static str> {
+        // The crash-window probe exists only for the mock lane.
+        if self.mock_delivery_hold.is_some()
+            && (self.is_strict_recovery() || self.asr_engine != AsrEngineKind::Mock)
+        {
+            return Err("mock_delivery_hold_requires_mock_lane");
+        }
         if self.transcribe_installed
             && (self.asr_engine != AsrEngineKind::TranscribeCpp
                 || !self.transcribe_resident
