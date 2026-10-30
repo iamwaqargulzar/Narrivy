@@ -310,7 +310,8 @@ recorder, logged in `PROGRESS.md`.
      `(phase, verification_id)`;
    - move every historical duplicate (for example
      `agent/evidence/P10/p10-deb-install.json` and `p10-deb-build.json`) to
-     `agent/history/<date>/` with a README, as was done for PORT-001;
+     `agent/history/<date>/` with a README, as was done for PORT-001
+     (P10 done 2026-10-29: `agent/history/superseded-p10-evidence-2026-10-29/`);
    - add a governance test: exactly one live record per `(phase,
      verification_id)`.
 3. **P-3, SEC-004 runner pin:**

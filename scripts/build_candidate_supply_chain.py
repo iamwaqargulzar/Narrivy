@@ -6,6 +6,11 @@ the source Git toplevel, and a new output directory, plus the expected package
 SHA-256 and caller-supplied builder identity strings. It never infers
 reproducibility, signing, qualification, or release status.
 
+Licences come from ``cargo metadata`` run on an export of the exact source
+commit (offline, so the crates must already be in the local Cargo cache, as
+they are right after the build) and from the desktop ``package-lock.json`` at
+that commit. A crate that declares no licence stays ``NOASSERTION``.
+
 The bundle is classified ``candidate-supply-chain-unqualified``. It is
 bookkeeping for one exact package, not native qualification, signing,
 immutable-builder proof, or release-gate evidence.
@@ -43,6 +48,9 @@ RELEASE_ARTIFACTS_NAME = "release-artifacts.json"
 RESULT_NAME = "result.json"
 GIT = "/usr/bin/git"
 GIT_TIMEOUT_SECONDS = 5
+CARGO = "cargo"
+CARGO_TIMEOUT_SECONDS = 300
+NPM_LOCKFILE = "apps/narrivy-desktop/package-lock.json"
 GIT_ENV = {
     "PATH": "/usr/bin:/bin",
     "LC_ALL": "C",
@@ -58,6 +66,8 @@ MAX_CANDIDATE_BYTES = 512 * 1024 * 1024
 MAX_BUILD_INFO_BYTES = 64 * 1024
 MAX_CONTROL_BYTES = 16 * 1024
 MAX_LOCKFILE_BYTES = 8 * 1024 * 1024
+MAX_SOURCE_ARCHIVE_BYTES = 512 * 1024 * 1024
+MAX_CARGO_METADATA_BYTES = 128 * 1024 * 1024
 MAX_GIT_TEXT_BYTES = 4096
 MAX_AR_MEMBERS = 8
 MAX_TAR_MEMBERS = 4096
@@ -66,6 +76,7 @@ MAX_SOURCE_DATE_EPOCH = 253_402_300_799
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 COMMIT_RE = re.compile(r"[0-9a-f]{40}")
 SPDX_TOKEN_RE = re.compile(r"[^A-Za-z0-9.-]+")
+SPDX_EXPRESSION_RE = re.compile(r"[A-Za-z0-9.+()-]+(?: [A-Za-z0-9.+()-]+)*")
 SCHEMA_PATH_RE = re.compile(r"^(?!/)(?!.*(?:^|/)\.\.(?:/|$)).+$")
 EMBEDDED_KEYS = (
     "narrivyd",
@@ -92,6 +103,8 @@ class Inputs:
     toolchain: str
     git: str = GIT
     timeout: float = GIT_TIMEOUT_SECONDS
+    cargo: str = CARGO
+    cargo_timeout: float = CARGO_TIMEOUT_SECONDS
 
 
 @dataclass(frozen=True)
@@ -109,6 +122,15 @@ class LockPackage:
     version: str
     source: str | None
     checksum: str | None
+    license: str | None = None
+
+
+@dataclass(frozen=True)
+class NpmPackage:
+    name: str
+    version: str
+    resolved: str | None
+    license: str | None
 
 
 def _canonical_json(value: object) -> bytes:
@@ -561,6 +583,134 @@ def _parse_lockfile(payload: bytes) -> list[LockPackage]:
     return sorted(unique.values(), key=lambda item: (item.name.lower(), item.version))
 
 
+def _spdx_license(value: object) -> str | None:
+    """Return an SPDX expression, or None when nothing usable is declared.
+
+    Old Cargo manifests write ``MIT/Apache-2.0``; SPDX spells that ``OR``.
+    """
+    if not isinstance(value, str) or not value.strip():
+        return None
+    text = value.strip()
+    if "/" in text:
+        text = " OR ".join(part.strip() for part in text.split("/"))
+    if not SPDX_EXPRESSION_RE.fullmatch(text):
+        return None
+    return text
+
+
+def _export_commit(
+    source_root: Path, commit: str, destination: Path, *, git: str, timeout: float
+) -> None:
+    payload = _run_git(
+        source_root,
+        ("archive", "--format=tar", commit),
+        git=git,
+        timeout=timeout,
+        maximum=MAX_SOURCE_ARCHIVE_BYTES,
+    )
+    try:
+        with tarfile.open(fileobj=io.BytesIO(payload), mode="r:") as archive:
+            archive.extractall(destination, filter="data")
+    except (tarfile.TarError, OSError) as error:
+        raise SupplyChainError("source commit export failed") from error
+
+
+def _cargo_metadata(
+    source_root: Path, commit: str, *, git: str, timeout: float, cargo: str, cargo_timeout: float
+) -> bytes:
+    """Run ``cargo metadata`` on an export of the exact commit, offline."""
+    with tempfile.TemporaryDirectory(prefix="narrivy-supply-chain-source-") as temporary:
+        export = Path(temporary)
+        _export_commit(source_root, commit, export, git=git, timeout=timeout)
+        try:
+            result = subprocess.run(
+                [
+                    cargo, "metadata", "--format-version", "1", "--locked", "--offline",
+                    "--all-features", "--manifest-path", os.fspath(export / "Cargo.toml"),
+                ],
+                cwd=export,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                timeout=cargo_timeout,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as error:
+            raise SupplyChainError("cargo metadata timed out") from error
+        except OSError as error:
+            raise SupplyChainError("cargo metadata failed") from error
+    if result.returncode != 0 or len(result.stdout) > MAX_CARGO_METADATA_BYTES:
+        raise SupplyChainError("cargo metadata failed")
+    return result.stdout
+
+
+def _with_cargo_licenses(
+    lock_packages: list[LockPackage], metadata: bytes
+) -> list[LockPackage]:
+    """Attach declared licences; the metadata must describe exactly Cargo.lock."""
+    try:
+        document = json.loads(metadata)
+        entries = document["packages"]
+        licenses = {
+            (item["name"], item["version"], item["source"]): _spdx_license(item.get("license"))
+            for item in entries
+        }
+    except (ValueError, KeyError, TypeError) as error:
+        raise SupplyChainError("cargo metadata is malformed") from error
+    keys = {(item.name, item.version, item.source) for item in lock_packages}
+    if len(licenses) != len(entries) or set(licenses) != keys:
+        raise SupplyChainError("cargo metadata does not match Cargo.lock")
+    return [
+        LockPackage(
+            item.name,
+            item.version,
+            item.source,
+            item.checksum,
+            licenses[(item.name, item.version, item.source)],
+        )
+        for item in lock_packages
+    ]
+
+
+def _workspace_license(manifest: bytes) -> str | None:
+    """The licence the root Cargo.toml declares for the workspace crates."""
+    try:
+        document = tomllib.loads(manifest.decode("utf-8"))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
+        raise SupplyChainError("Cargo.toml is malformed") from error
+    workspace = document.get("workspace")
+    package = workspace.get("package") if isinstance(workspace, dict) else None
+    if not isinstance(package, dict):
+        package = document.get("package")
+    return _spdx_license(package.get("license")) if isinstance(package, dict) else None
+
+
+def _parse_npm_lockfile(payload: bytes) -> list[NpmPackage]:
+    """Production (shipped) packages of the desktop front end."""
+    try:
+        document = json.loads(payload)
+    except (UnicodeDecodeError, ValueError) as error:
+        raise SupplyChainError("package-lock.json is malformed") from error
+    packages = document.get("packages") if isinstance(document, dict) else None
+    if not isinstance(packages, dict):
+        raise SupplyChainError("package-lock.json is malformed")
+    result: list[NpmPackage] = []
+    for key, item in packages.items():
+        if not key or not isinstance(item, dict):
+            continue
+        if item.get("dev") or item.get("devOptional") or item.get("link"):
+            continue
+        name = key.rsplit("node_modules/", 1)[-1]
+        version = item.get("version")
+        resolved = item.get("resolved")
+        if not name or not isinstance(version, str) or not version:
+            raise SupplyChainError("package-lock.json is malformed")
+        if resolved is not None and not isinstance(resolved, str):
+            raise SupplyChainError("package-lock.json is malformed")
+        result.append(NpmPackage(name, version, resolved, _spdx_license(item.get("license"))))
+    return sorted(set(result), key=lambda item: (item.name.lower(), item.version))
+
+
 def _spdx_token(value: str) -> str:
     token = SPDX_TOKEN_RE.sub("-", value).strip("-")
     return token or "package"
@@ -576,14 +726,22 @@ def _allocate_spdx_id(used: set[str], token: str) -> str:
     return candidate
 
 
-def _spdx_lock_package(item: LockPackage, used: set[str]) -> dict[str, object]:
+def _spdx_lock_package(
+    item: LockPackage, used: set[str], workspace_license: str | None
+) -> dict[str, object]:
+    declared = item.license or "NOASSERTION"
+    concluded = declared
+    if item.license is None and item.source is None and workspace_license:
+        # A workspace crate without its own licence field ships under the
+        # workspace licence.
+        concluded = workspace_license
     document: dict[str, object] = {
         "SPDXID": _allocate_spdx_id(used, _spdx_token(f"{item.name}-{item.version}")),
         "copyrightText": "NOASSERTION",
         "downloadLocation": item.source if item.source else "NOASSERTION",
         "filesAnalyzed": False,
-        "licenseConcluded": "NOASSERTION",
-        "licenseDeclared": "NOASSERTION",
+        "licenseConcluded": concluded,
+        "licenseDeclared": declared,
         "name": item.name,
         "versionInfo": item.version,
     }
@@ -600,18 +758,36 @@ def _iso8601(epoch: int) -> str:
     )
 
 
+def _spdx_npm_package(item: NpmPackage, used: set[str]) -> dict[str, object]:
+    license_text = item.license or "NOASSERTION"
+    return {
+        "SPDXID": _allocate_spdx_id(used, _spdx_token(f"npm-{item.name}-{item.version}")),
+        "copyrightText": "NOASSERTION",
+        "downloadLocation": item.resolved or "NOASSERTION",
+        "filesAnalyzed": False,
+        "licenseConcluded": license_text,
+        "licenseDeclared": license_text,
+        "name": item.name,
+        "versionInfo": item.version,
+    }
+
+
 def _spdx_document(
-    identity: EmbeddedIdentity, lock_packages: list[LockPackage]
+    identity: EmbeddedIdentity,
+    lock_packages: list[LockPackage],
+    npm_packages: list[NpmPackage],
+    workspace_license: str | None,
 ) -> dict[str, object]:
     used: set[str] = {"SPDXRef-DOCUMENT"}
     product_id = _allocate_spdx_id(used, "narrivy")
+    product_license = workspace_license or "NOASSERTION"
     product = {
         "SPDXID": product_id,
         "copyrightText": "NOASSERTION",
         "downloadLocation": "NOASSERTION",
         "filesAnalyzed": False,
-        "licenseConcluded": "NOASSERTION",
-        "licenseDeclared": "NOASSERTION",
+        "licenseConcluded": product_license,
+        "licenseDeclared": product_license,
         "name": PACKAGE_NAME,
         "versionInfo": identity.version,
     }
@@ -623,8 +799,9 @@ def _spdx_document(
             "spdxElementId": "SPDXRef-DOCUMENT",
         }
     ]
-    for item in lock_packages:
-        package = _spdx_lock_package(item, used)
+    dependencies = [_spdx_lock_package(item, used, workspace_license) for item in lock_packages]
+    dependencies += [_spdx_npm_package(item, used) for item in npm_packages]
+    for package in dependencies:
         packages.append(package)
         relationships.append(
             {
@@ -952,12 +1129,41 @@ def build(inputs: Inputs) -> dict[str, object]:
         timeout=inputs.timeout,
     )
     lock_packages = _parse_lockfile(lock_bytes)
+    metadata = _cargo_metadata(
+        source_root,
+        identity.source_head,
+        git=inputs.git,
+        timeout=inputs.timeout,
+        cargo=inputs.cargo,
+        cargo_timeout=inputs.cargo_timeout,
+    )
+    lock_packages = _with_cargo_licenses(lock_packages, metadata)
+    workspace_license = _workspace_license(
+        _run_git(
+            source_root,
+            ("cat-file", "blob", f"{identity.source_head}:Cargo.toml"),
+            git=inputs.git,
+            timeout=inputs.timeout,
+            maximum=MAX_LOCKFILE_BYTES,
+        )
+    )
+    npm_packages = _parse_npm_lockfile(
+        _run_git(
+            source_root,
+            ("cat-file", "blob", f"{identity.source_head}:{NPM_LOCKFILE}"),
+            git=inputs.git,
+            timeout=inputs.timeout,
+            maximum=MAX_LOCKFILE_BYTES,
+        )
+    )
     lock_hash = _digest_of(lock_bytes)
     candidate_rel = _posix_relative(candidate_path, source_root)
     output_rel = _posix_relative(destination, source_root)
     spdx_rel = f"{output_rel}/{SPDX_NAME}"
     provenance_rel = f"{output_rel}/{PROVENANCE_NAME}"
-    spdx_payload = _canonical_json(_spdx_document(identity, lock_packages))
+    spdx_payload = _canonical_json(
+        _spdx_document(identity, lock_packages, npm_packages, workspace_license)
+    )
     provenance_payload = _canonical_json(
         _provenance_document(
             identity, candidate_rel, candidate_digest, lock_hash, inputs

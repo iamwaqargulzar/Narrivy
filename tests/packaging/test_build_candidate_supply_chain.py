@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import io
 import json
@@ -47,6 +48,44 @@ source = "git+https://example.local/from-git?rev=deadbeef#deadbeef"
 name = "local-crate"
 version = "0.0.0"
 """ % REGISTRY_CHECKSUM
+WORKSPACE_MANIFEST = """[workspace]
+members = []
+
+[workspace.package]
+license = "MIT"
+"""
+NPM_LOCKFILE = json.dumps(
+    {
+        "lockfileVersion": 3,
+        "packages": {
+            "": {"name": "narrivy-desktop", "license": "MIT"},
+            "node_modules/react": {
+                "version": "19.0.0",
+                "resolved": "https://registry.npmjs.org/react/-/react-19.0.0.tgz",
+                "license": "MIT",
+            },
+            "node_modules/@fontsource/inter": {"version": "5.0.0", "license": "OFL-1.1"},
+            "node_modules/vite": {"version": "7.0.0", "license": "MIT", "dev": True},
+        },
+    }
+)
+# Licences the fake `cargo metadata` reports. `local-crate` declares none.
+CARGO_LICENSES = {"example": "MIT/Apache-2.0", "from-git": "MIT"}
+FAKE_CARGO = """import json, sys, tomllib
+from pathlib import Path
+args = sys.argv[1:]
+assert args[:3] == ["metadata", "--format-version", "1"], args
+assert "--locked" in args and "--offline" in args and "--all-features" in args, args
+root = Path(args[args.index("--manifest-path") + 1]).parent
+lock = tomllib.loads((root / "Cargo.lock").read_text())
+licenses = %r
+packages = [
+    {"name": item["name"], "version": item["version"], "source": item.get("source"),
+     "license": licenses.get(item["name"])}
+    for item in lock["package"]
+]
+json.dump({"packages": packages[:DROP], "workspace_root": str(root)}, sys.stdout)
+""" % CARGO_LICENSES
 CHANGED_LOCKFILE = LOCKFILE + """
 [[package]]
 name = "should-not-appear"
@@ -121,6 +160,9 @@ class CandidateSupplyChainTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
+        self.fake_cargo = self._write_executable(
+            "fake-cargo", f"#!{sys.executable}\n" + FAKE_CARGO.replace("DROP", "None")
+        )
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
@@ -148,9 +190,13 @@ class CandidateSupplyChainTests(unittest.TestCase):
         repo = self.root / name
         repo.mkdir()
         (repo / "Cargo.lock").write_text(lockfile, encoding="utf-8")
+        (repo / "Cargo.toml").write_text(WORKSPACE_MANIFEST, encoding="utf-8")
+        npm_lock = repo / supply.NPM_LOCKFILE
+        npm_lock.parent.mkdir(parents=True)
+        npm_lock.write_text(NPM_LOCKFILE, encoding="utf-8")
         (repo / "id.txt").write_text(f"{name}\n", encoding="utf-8")
         self._git(repo, "init", "--initial-branch=main")
-        self._git(repo, "add", "Cargo.lock", "id.txt")
+        self._git(repo, "add", "Cargo.lock", "Cargo.toml", supply.NPM_LOCKFILE, "id.txt")
         self._git(repo, "commit", "--no-gpg-sign", "-m", f"lock-{name}")
         head = self._git(repo, "rev-parse", "--verify", "HEAD").stdout.strip()
         return repo, head
@@ -238,6 +284,7 @@ class CandidateSupplyChainTests(unittest.TestCase):
             "builder_image": "narrivy-test-builder",
             "builder_image_digest": "unverified-test-image",
             "toolchain": "rustc 1.97.1 + cargo 1.97.1",
+            "cargo": str(self.fake_cargo),
         }
         values.update(overrides)
         return supply.Inputs(**values)  # type: ignore[arg-type]
@@ -323,9 +370,31 @@ class CandidateSupplyChainTests(unittest.TestCase):
         )
         self.assertNotIn("checksums", packages["from-git"])
         self.assertEqual(packages["local-crate"]["downloadLocation"], "NOASSERTION")
+        licenses = {
+            name: (package["licenseDeclared"], package["licenseConcluded"])
+            for name, package in packages.items()
+        }
+        self.assertEqual(
+            licenses,
+            {
+                "narrivy": ("MIT", "MIT"),
+                # Old Cargo "/" syntax is written as an SPDX OR expression.
+                "example": ("MIT OR Apache-2.0", "MIT OR Apache-2.0"),
+                "from-git": ("MIT", "MIT"),
+                # A workspace crate with no licence field ships under the
+                # workspace licence; nothing is declared for it.
+                "local-crate": ("NOASSERTION", "MIT"),
+                "react": ("MIT", "MIT"),
+                "@fontsource/inter": ("OFL-1.1", "OFL-1.1"),
+            },
+        )
+        self.assertNotIn("vite", names)
+        self.assertEqual(
+            packages["react"]["downloadLocation"],
+            "https://registry.npmjs.org/react/-/react-19.0.0.tgz",
+        )
+        self.assertEqual(packages["@fontsource/inter"]["downloadLocation"], "NOASSERTION")
         for package in spdx["packages"]:
-            self.assertEqual(package["licenseConcluded"], "NOASSERTION")
-            self.assertEqual(package["licenseDeclared"], "NOASSERTION")
             self.assertIs(package["filesAnalyzed"], False)
 
         provenance = json.loads((output / supply.PROVENANCE_NAME).read_text(encoding="utf-8"))
@@ -419,7 +488,12 @@ class CandidateSupplyChainTests(unittest.TestCase):
             "rustc 1.97.1 + cargo 1.97.1",
         ]
         stdout = io.StringIO()
-        with redirect_stdout(stdout):
+        parse = supply._arguments
+        with redirect_stdout(stdout), mock.patch.object(
+            supply,
+            "_arguments",
+            lambda values: dataclasses.replace(parse(values), cargo=str(self.fake_cargo)),
+        ):
             status = supply.main(argv)
         self.assertEqual(status, 0)
         printed = stdout.getvalue()
@@ -641,6 +715,39 @@ class CandidateSupplyChainTests(unittest.TestCase):
             supply.build(self._inputs(incomplete, incomplete_candidate, incomplete_output))
         self.assertIn("Cargo.lock is malformed", str(raised.exception))
         self._assert_no_output(incomplete_output, incomplete)
+
+    def test_cargo_metadata_mismatch_and_failure_fail_closed(self) -> None:
+        repo, head = self._repo()
+        candidate = self._write_candidate(repo, self._debian(head))
+        output = repo / "bundle"
+        partial = self._write_executable(
+            "partial-cargo", f"#!{sys.executable}\n" + FAKE_CARGO.replace("DROP", "-1")
+        )
+        with self.assertRaises(supply.SupplyChainError) as raised:
+            supply.build(self._inputs(repo, candidate, output, cargo=str(partial)))
+        self.assertIn("does not match Cargo.lock", str(raised.exception))
+        self._assert_no_output(output, repo)
+        failing = self._write_executable("fail-cargo", "#!/bin/sh\nexit 101\n")
+        with self.assertRaises(supply.SupplyChainError) as raised:
+            supply.build(self._inputs(repo, candidate, output, cargo=str(failing)))
+        self.assertIn("cargo metadata failed", str(raised.exception))
+        self._assert_no_output(output, repo)
+        garbage = self._write_executable("garbage-cargo", "#!/bin/sh\necho not-json\n")
+        with self.assertRaises(supply.SupplyChainError) as raised:
+            supply.build(self._inputs(repo, candidate, output, cargo=str(garbage)))
+        self.assertIn("cargo metadata is malformed", str(raised.exception))
+        self._assert_no_output(output, repo)
+
+    def test_spdx_license_normalization(self) -> None:
+        self.assertEqual(supply._spdx_license("MIT/Apache-2.0"), "MIT OR Apache-2.0")
+        self.assertEqual(supply._spdx_license("Apache-2.0 / MIT"), "Apache-2.0 OR MIT")
+        self.assertEqual(
+            supply._spdx_license("(MIT OR Apache-2.0) AND Unicode-3.0"),
+            "(MIT OR Apache-2.0) AND Unicode-3.0",
+        )
+        self.assertIsNone(supply._spdx_license(None))
+        self.assertIsNone(supply._spdx_license(""))
+        self.assertIsNone(supply._spdx_license("see LICENSE; ask"))
 
     def test_existing_output_fails_closed(self) -> None:
         repo, head = self._repo()

@@ -662,36 +662,6 @@
       "sha256": "4db1ced2db40e9cda7866ec893dbcfd99d016f697bf970a4af94533ea065a324"
     },
     {
-      "path": "agent/evidence/P10/p10-deb-build.json",
-      "bytes": 5009,
-      "sha256": "cc671b45d42a045539b1b092c14408cc378d42e829af9f85ff2f231fac1d1893"
-    },
-    {
-      "path": "agent/evidence/P10/p10-deb-install.json",
-      "bytes": 5013,
-      "sha256": "b9d00953647d6d9be6eb551a99572478e260a141496e8e176a22fc6ccdb5b8ad"
-    },
-    {
-      "path": "agent/evidence/P10/p10-provenance.json",
-      "bytes": 2614,
-      "sha256": "c5261953ace5ba59326c04534f7f6c38b900d632b9cd5cc9d578b60e4183f705"
-    },
-    {
-      "path": "agent/evidence/P10/p10-release-notes.json",
-      "bytes": 1702,
-      "sha256": "90a1abb8f663f7e691314d87c2bbda1771abca21efeb948aef093f4684931025"
-    },
-    {
-      "path": "agent/evidence/P10/p10-sbom.json",
-      "bytes": 2125,
-      "sha256": "34ade0eabef9ef755c2b40148675a6539272b82b884b56afa72d7ed35f499d77"
-    },
-    {
-      "path": "agent/evidence/P10/p10-upgrade-uninstall.json",
-      "bytes": 2861,
-      "sha256": "0508c8ae93bfbd1d020d47024ed002c7e4e12ea0048bea6c6ed003b5def88b00"
-    },
-    {
       "path": "agent/evidence/P11/VER-TEST-010.json",
       "bytes": 331,
       "sha256": "04784ad7219e1423b4c6fed2e985d7a2e7cb5aff3f67a14ee4d966f47ed21d4a"
@@ -1290,6 +1260,36 @@
       "path": "agent/history/post-release-deferred-2026-09-28/VER-PORT-001.json",
       "bytes": 330,
       "sha256": "1919559e3df40f166d2d53b34438c50da1c01866b2452203285ebc7c2ba994ea"
+    },
+    {
+      "path": "agent/history/superseded-p10-evidence-2026-10-29/p10-deb-build.json",
+      "bytes": 5009,
+      "sha256": "cc671b45d42a045539b1b092c14408cc378d42e829af9f85ff2f231fac1d1893"
+    },
+    {
+      "path": "agent/history/superseded-p10-evidence-2026-10-29/p10-deb-install.json",
+      "bytes": 5013,
+      "sha256": "b9d00953647d6d9be6eb551a99572478e260a141496e8e176a22fc6ccdb5b8ad"
+    },
+    {
+      "path": "agent/history/superseded-p10-evidence-2026-10-29/p10-provenance.json",
+      "bytes": 2614,
+      "sha256": "c5261953ace5ba59326c04534f7f6c38b900d632b9cd5cc9d578b60e4183f705"
+    },
+    {
+      "path": "agent/history/superseded-p10-evidence-2026-10-29/p10-release-notes.json",
+      "bytes": 1702,
+      "sha256": "90a1abb8f663f7e691314d87c2bbda1771abca21efeb948aef093f4684931025"
+    },
+    {
+      "path": "agent/history/superseded-p10-evidence-2026-10-29/p10-sbom.json",
+      "bytes": 2125,
+      "sha256": "34ade0eabef9ef755c2b40148675a6539272b82b884b56afa72d7ed35f499d77"
+    },
+    {
+      "path": "agent/history/superseded-p10-evidence-2026-10-29/p10-upgrade-uninstall.json",
+      "bytes": 2861,
+      "sha256": "0508c8ae93bfbd1d020d47024ed002c7e4e12ea0048bea6c6ed003b5def88b00"
     },
     {
       "path": "agent/history/verified-work-through-2026-09-17.md",

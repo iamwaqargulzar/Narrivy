@@ -25,13 +25,13 @@
   "metrics": {
     "build_id_source": "BUILD-PACK-VERSION plus the live git HEAD short hash, suffixed with -dirty when the worktree is dirty",
     "evidence_index_policy": "release-evidence-v2-required",
-    "evidence_on_disk_not_registered": 91,
-    "evidence_records_on_disk": 147,
+    "evidence_on_disk_not_registered": 85,
+    "evidence_records_on_disk": 141,
     "evidence_registered_hash_mismatches": 0,
     "evidence_registered_in_index": 56,
     "evidence_registered_missing_on_disk": 0,
     "evidence_schema_version_counts": {
-      "1": 91,
+      "1": 85,
       "2": 15,
       "3": 41
     },

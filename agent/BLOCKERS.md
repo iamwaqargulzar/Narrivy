@@ -360,3 +360,31 @@
   their exact digests. P10 runner/refresh writers are quarantined too, so the
   stale artifact cannot be promoted through legacy evidence. The replacement
   release builder and clean-machine lifecycle are still absent.
+
+## B-LEGAL-016 — Model licence records [OPEN]
+
+- Date: 2026-10-29
+- Phase/Requirement: P10 legal metadata (`THIRD_PARTY_NOTICES.md`), with
+  B-LEGAL-007.
+- What is recorded: every model in `crates/narrivy-model-manager/seed/registry.json`
+  and `tools/reference-models/packs.json` has a stated licence, and
+  `THIRD_PARTY_NOTICES.md` now lists them. The `.deb` ships one model,
+  `whisper-tiny.en-Q8_0`, recorded as Apache-2.0.
+- Why agent cannot resolve: licence and redistribution review is an owner
+  decision; the agent only copies what the repository already states.
+- Owner action needed:
+  1. Removed from `THIRD_PARTY_NOTICES.md` because no current catalog,
+     registry or pack lists them and their licence was never verified:
+     `Qwen/Qwen3-8B` (was "Qwen License … verify redistribution before
+     bundling"), `nvidia/parakeet-tdt-1.1b` (was CC-BY-4.0) and the
+     `narrivy/whisper-large-v3-*` OpenVINO IR (was MIT upstream). If any of
+     them comes back, record its licence and redistribution terms in a model
+     manifest first.
+  2. The `.deb` ships `whisper-tiny.en-Q8_0` (Apache-2.0) but only Narrivy's
+     MIT `LICENSE` goes into `/usr/share/doc/narrivy/copyright`. Decide
+     whether the Apache-2.0 text (and any upstream NOTICE) must ship with the
+     model.
+  3. The bundled model has no `license.notice` text like the
+     `packs.json` entries have. Confirm the upstream attribution wording.
+- How to verify unblock: each point has an owner answer recorded in
+  `agent/DECISIONS.md`, and `THIRD_PARTY_NOTICES.md` matches it.

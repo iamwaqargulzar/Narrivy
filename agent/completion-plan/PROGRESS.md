@@ -1799,3 +1799,31 @@ hash drift waiting for the reviewed regeneration, the `'whisper'` literal in
   310 passed, 1 failed: `latency_histogram_p99_under_load_stays_under_50us`
   (p50 10 µs against a `< 10 µs` bound on a 4-core cloud VM, debug build;
   file untouched; not changed).
+
+## 2026-10-29: release-pipeline evidence hygiene (P-2, P-3, P-8)
+
+- P-2: the six old schema-v1 `agent/evidence/P10/p10-*.json` records (dirty
+  commit `14ffd69`, 2026-08-26) reused `VER-OPS-002`…`005`. They moved
+  unchanged to `agent/history/superseded-p10-evidence-2026-10-29/` with a
+  README. The P10 gate no longer reports them; it now says plainly that
+  `p10-deb-install` and `p10-upgrade-uninstall` have no evidence. Phase
+  report counts (147 → 141 records on disk) and the manifest paths are
+  updated. P0F, P2, P9 and P11 still have duplicate IDs (not in scope).
+- P-3: `controlled-sec-004-v1` re-pinned to `068087f2…`. The old `74214c49…`
+  file is not in this repository's history, so the whole current recorder
+  was reviewed instead; it fails closed. New `tests/governance/test_evidence_hygiene.py`
+  checks every runner pin (46) against its file, and one live record per ID
+  for P10.
+- P-8: `build_candidate_supply_chain.py` now fills SPDX licences from
+  `cargo metadata --offline --all-features` on an export of the exact commit
+  (must match `Cargo.lock` exactly, or it fails) and adds the shipped npm
+  packages from `package-lock.json`. At rc13 all 844 entries have a real
+  licence. `build_release_candidate.sh` runs `cargo fetch --locked` first.
+  `THIRD_PARTY_NOTICES.md` now says the `.deb` ships the
+  `whisper-tiny.en-Q8_0` model and the transcribe worker; model licence
+  questions are in `agent/BLOCKERS.md` B-LEGAL-016.
+- Checks: candidate supply-chain, supply-chain recorder, controlled recorder,
+  release-candidate and evidence hygiene tests pass; governance failures are
+  the same 7 as before; `generate_phase_report.py --check` passes for all
+  phases; doctor exits 0. `validate_pack` still fails only on the existing
+  manifest drift (regenerating it is a separate reviewed step).
