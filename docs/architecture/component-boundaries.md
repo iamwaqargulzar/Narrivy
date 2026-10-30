@@ -71,8 +71,8 @@ Existing directories under `adapters/` and `engines/`:
   descriptors; none of these operations claims package/release provenance
 - `adapters/platform-macos`, `adapters/platform-windows`, `adapters/platform-null` — one
   directory per OS; there is no `platform-linux-*` subfamily
-- `engines/asr-mock`, `engines/transcribe-cpp` — the only engine bindings
-  present; `engines/asr-*` names the family, not a fixed member list
+- `engines/asr-mock`, `engines/transcribe-cpp`, `engines/openvino`,
+  `engines/grammar-harper` — the engine crates present; `engines/asr-*` names the family, not a fixed member list
 
 **Not present in the tree.** `modules/audio-*`, `modules/compute-*`,
 `processors/*`, `context-providers/*`, `delivery/*` and `plugins/*` do not

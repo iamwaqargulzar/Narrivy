@@ -70,9 +70,9 @@ use super::ipc_policy::IpcCommandPolicy;
 use super::policy::capability_strings;
 use super::policy::{
     ActivationFacts, AdmittedPipeline, AsrEngineKind, CLEAN_PIPELINE_ID, CorrectionMode,
-    CorrectionStrategy, DEFAULT_PIPELINE_ID, DeliveryBackendKind, EngineConfig,
-    LINUX_MIC_INBOX_PIPELINE_ID, LINUX_MIC_ROUTED_INBOX_LANE_ID, LINUX_MIC_WTYPE_INBOX_PIPELINE_ID,
-    PipelineLane, RAW_PIPELINE_ID, ResidentArtifactBinding, ResidentCapabilitySnapshot,
+    CorrectionStrategy, DeliveryBackendKind, EngineConfig, LINUX_MIC_INBOX_PIPELINE_ID,
+    LINUX_MIC_ROUTED_INBOX_LANE_ID, LINUX_MIC_WTYPE_INBOX_PIPELINE_ID, PipelineLane,
+    RAW_PIPELINE_ID, ResidentArtifactBinding, ResidentCapabilitySnapshot,
     ResidentLifecycleCapability, StrictRecoveryLane, append_activation_capabilities,
     capability_strings_with_resident, default_pipeline_id, recovery_entry_detail,
     run_capability_check,
@@ -6217,7 +6217,7 @@ fn resolve_pipeline_selection(
         return Err((
             IpcErrorCode::BadRequest,
             format!(
-                "unknown pipeline {selected:?}; available: {DEFAULT_PIPELINE_ID}, {RAW_PIPELINE_ID}, {CLEAN_PIPELINE_ID}"
+                "unknown pipeline {selected:?}; available: {CLEAN_PIPELINE_ID}, {RAW_PIPELINE_ID}"
             ),
         ));
     };
@@ -6254,10 +6254,11 @@ fn advertised_pipelines(
             .collect();
     }
     let enabled = engine_config.audio_source != AudioSourceKind::PipeWire;
+    // The default (Clean) is listed first.
     vec![
         PipelineSummaryDto {
-            id: DEFAULT_PIPELINE_ID.to_owned(),
-            name: "Mock dictation pipeline".to_owned(),
+            id: CLEAN_PIPELINE_ID.to_owned(),
+            name: "Clean dictation".to_owned(),
             version: 1,
             enabled,
             model_id: None,
@@ -6266,14 +6267,6 @@ fn advertised_pipelines(
         PipelineSummaryDto {
             id: RAW_PIPELINE_ID.to_owned(),
             name: "Raw dictation".to_owned(),
-            version: 1,
-            enabled,
-            model_id: None,
-            compute: None,
-        },
-        PipelineSummaryDto {
-            id: CLEAN_PIPELINE_ID.to_owned(),
-            name: "Clean dictation".to_owned(),
             version: 1,
             enabled,
             model_id: None,
@@ -6459,8 +6452,7 @@ mod p7_modes_tests {
     use super::super::capture::SAMPLE_RATE_HZ;
     use super::super::policy::CorrectionStrategy;
     use super::super::policy::{
-        CLEAN_PIPELINE_ID, DEFAULT_PIPELINE_ID, RAW_PIPELINE_ID, collapse_only,
-        default_pipeline_id_from,
+        CLEAN_PIPELINE_ID, RAW_PIPELINE_ID, collapse_only, default_pipeline_id_from,
     };
     use super::*;
     use narrivy_asr_api::{AsrCapabilities, AsrError, AsrEvent, AsrStream, CancelToken};
@@ -7068,7 +7060,7 @@ mod p7_modes_tests {
         let journal: Arc<Journal> = Arc::new(UnixJournal::open(dir.path().join("journal"))?);
         let state = Arc::new(DaemonState::new());
         let (session_id, transaction_id) =
-            state.begin_session(&journal, &mock_admitted(DEFAULT_PIPELINE_ID))?;
+            state.begin_session(&journal, &mock_admitted(CLEAN_PIPELINE_ID))?;
 
         let unwind = std::panic::catch_unwind(std::panic::AssertUnwindSafe({
             let state = Arc::clone(&state);
@@ -7096,7 +7088,7 @@ mod p7_modes_tests {
         let journal = UnixJournal::open(dir.path().join("journal"))?;
         let state = DaemonState::new();
         let (session_id, transaction_id) =
-            state.begin_session(&journal, &mock_admitted(DEFAULT_PIPELINE_ID))?;
+            state.begin_session(&journal, &mock_admitted(CLEAN_PIPELINE_ID))?;
         let cancellation = CancelFlag::new();
         let mut variants = TranscriptVariants::default();
 
@@ -7138,7 +7130,7 @@ mod p7_modes_tests {
         let journal = UnixJournal::open(dir.path().join("journal"))?;
         let state = DaemonState::new();
         let (session_id, transaction_id) =
-            state.begin_session(&journal, &mock_admitted(DEFAULT_PIPELINE_ID))?;
+            state.begin_session(&journal, &mock_admitted(CLEAN_PIPELINE_ID))?;
         let mut variants = TranscriptVariants::default();
 
         let error = match state.run_session(
@@ -7197,7 +7189,7 @@ mod p7_modes_tests {
         let journal = UnixJournal::open(dir.path().join("journal"))?;
         let state = DaemonState::new();
         let (session_id, transaction_id) =
-            state.begin_session(&journal, &mock_admitted(DEFAULT_PIPELINE_ID))?;
+            state.begin_session(&journal, &mock_admitted(CLEAN_PIPELINE_ID))?;
         let mut variants = TranscriptVariants::default();
 
         let outcome = state.run_session(
@@ -7236,7 +7228,7 @@ mod p7_modes_tests {
         let journal = UnixJournal::open(dir.path().join("journal"))?;
         let state = DaemonState::new();
         let (session_id, transaction_id) =
-            state.begin_session(&journal, &mock_admitted(DEFAULT_PIPELINE_ID))?;
+            state.begin_session(&journal, &mock_admitted(CLEAN_PIPELINE_ID))?;
         while state.bus.try_next().is_some() {}
         assert!(journal.remove(transaction_id.as_str())?);
 
@@ -8125,7 +8117,7 @@ mod p7_modes_tests {
             LINUX_MIC_WTYPE_INBOX_PIPELINE_ID,
             LINUX_MIC_INBOX_PIPELINE_ID,
             LINUX_MIC_ROUTED_INBOX_LANE_ID,
-            DEFAULT_PIPELINE_ID,
+            "mock-dictation",
             "unknown-mode",
         ] {
             assert_rejected(
@@ -8157,7 +8149,7 @@ mod p7_modes_tests {
             LINUX_MIC_INBOX_PIPELINE_ID,
             LINUX_MIC_WTYPE_INBOX_PIPELINE_ID,
             LINUX_MIC_ROUTED_INBOX_LANE_ID,
-            DEFAULT_PIPELINE_ID,
+            "mock-dictation",
             "unknown-mode",
         ] {
             assert_rejected(
@@ -8189,7 +8181,7 @@ mod p7_modes_tests {
             LINUX_MIC_INBOX_PIPELINE_ID,
             LINUX_MIC_WTYPE_INBOX_PIPELINE_ID,
             LINUX_MIC_ROUTED_INBOX_LANE_ID,
-            DEFAULT_PIPELINE_ID,
+            "mock-dictation",
             "unknown-mode",
         ] {
             assert_rejected(
@@ -8198,13 +8190,14 @@ mod p7_modes_tests {
             );
         }
 
-        for pipeline in [DEFAULT_PIPELINE_ID, RAW_PIPELINE_ID, CLEAN_PIPELINE_ID] {
+        for pipeline in [RAW_PIPELINE_ID, CLEAN_PIPELINE_ID] {
             assert_eq!(
                 select_response(EngineConfig::new(), pipeline),
                 ResponsePayload::Accepted
             );
         }
         for pipeline in [
+            "mock-dictation",
             LINUX_MIC_INBOX_PIPELINE_ID,
             LINUX_MIC_WTYPE_INBOX_PIPELINE_ID,
             LINUX_MIC_ROUTED_INBOX_LANE_ID,
@@ -8266,7 +8259,7 @@ mod p7_modes_tests {
                 recognition: None,
             },
             Command::SelectPipeline {
-                pipeline_id: DEFAULT_PIPELINE_ID.to_owned(),
+                pipeline_id: CLEAN_PIPELINE_ID.to_owned(),
             },
         ] {
             assert!(matches!(
@@ -8379,9 +8372,10 @@ mod p7_modes_tests {
         assert!(routed_advertised.iter().all(|pipeline| !pipeline.enabled));
 
         let plain = advertised_pipelines(&EngineConfig::new(), true, None);
-        assert_eq!(plain[0].id, DEFAULT_PIPELINE_ID);
+        assert_eq!(plain[0].id, CLEAN_PIPELINE_ID);
         assert!(plain.iter().all(|pipeline| {
-            pipeline.id != LINUX_MIC_INBOX_PIPELINE_ID
+            pipeline.id != "mock-dictation"
+                && pipeline.id != LINUX_MIC_INBOX_PIPELINE_ID
                 && pipeline.id != LINUX_MIC_WTYPE_INBOX_PIPELINE_ID
                 && pipeline.id != LINUX_MIC_ROUTED_INBOX_LANE_ID
         }));
@@ -8523,10 +8517,7 @@ mod p7_modes_tests {
             CorrectionStrategy::resolve(Some(CLEAN_PIPELINE_ID)),
             Some(CorrectionStrategy::FullCorrect)
         );
-        assert_eq!(
-            CorrectionStrategy::resolve(Some(DEFAULT_PIPELINE_ID)),
-            Some(CorrectionStrategy::FullCorrect)
-        );
+        assert_eq!(CorrectionStrategy::resolve(Some("mock-dictation")), None);
         assert_eq!(
             CorrectionStrategy::resolve(None),
             Some(CorrectionStrategy::FullCorrect)
@@ -8565,7 +8556,7 @@ mod p7_modes_tests {
             Some(CorrectionStrategy::FullCorrect)
         );
         for not_a_mode in [
-            DEFAULT_PIPELINE_ID,
+            "mock-dictation",
             LINUX_MIC_INBOX_PIPELINE_ID,
             LINUX_MIC_WTYPE_INBOX_PIPELINE_ID,
             LINUX_MIC_ROUTED_INBOX_LANE_ID,
@@ -8595,7 +8586,7 @@ mod p7_modes_tests {
         assert_eq!(clean.correction(), CorrectionStrategy::FullCorrect);
 
         for not_selectable in [
-            DEFAULT_PIPELINE_ID,
+            "mock-dictation",
             LINUX_MIC_INBOX_PIPELINE_ID,
             LINUX_MIC_WTYPE_INBOX_PIPELINE_ID,
             "unknown-mode",
@@ -8625,9 +8616,9 @@ mod p7_modes_tests {
             default_pipeline_id_from(Some(CLEAN_PIPELINE_ID)),
             CLEAN_PIPELINE_ID
         );
-        assert_eq!(default_pipeline_id_from(Some("bogus")), DEFAULT_PIPELINE_ID);
-        assert_eq!(default_pipeline_id_from(Some("")), DEFAULT_PIPELINE_ID);
-        assert_eq!(default_pipeline_id_from(None), DEFAULT_PIPELINE_ID);
+        assert_eq!(default_pipeline_id_from(Some("bogus")), CLEAN_PIPELINE_ID);
+        assert_eq!(default_pipeline_id_from(Some("")), CLEAN_PIPELINE_ID);
+        assert_eq!(default_pipeline_id_from(None), CLEAN_PIPELINE_ID);
     }
 
     #[test]
@@ -8743,7 +8734,7 @@ mod p7_modes_tests {
         let mut calls = 0;
         let (_sid, admitted) = state.begin_session_with_entropy(
             &journal,
-            &mock_admitted(DEFAULT_PIPELINE_ID),
+            &mock_admitted(CLEAN_PIPELINE_ID),
             |bytes| {
                 *bytes = if calls == 0 { colliding } else { unique };
                 calls += 1;
@@ -8765,11 +8756,9 @@ mod p7_modes_tests {
         let state = DaemonState::new();
         assert!(
             state
-                .begin_session_with_entropy(
-                    &journal,
-                    &mock_admitted(DEFAULT_PIPELINE_ID),
-                    |_bytes| Err(CoreError::Worker("controlled entropy failure".to_owned())),
-                )
+                .begin_session_with_entropy(&journal, &mock_admitted(CLEAN_PIPELINE_ID), |_bytes| {
+                    Err(CoreError::Worker("controlled entropy failure".to_owned()))
+                },)
                 .is_err()
         );
         assert!(journal.entries()?.is_empty());
@@ -8782,14 +8771,10 @@ mod p7_modes_tests {
         journal.write_new(&existing)?;
         assert!(
             state
-                .begin_session_with_entropy(
-                    &journal,
-                    &mock_admitted(DEFAULT_PIPELINE_ID),
-                    |bytes| {
-                        *bytes = colliding;
-                        Ok(())
-                    },
-                )
+                .begin_session_with_entropy(&journal, &mock_admitted(CLEAN_PIPELINE_ID), |bytes| {
+                    *bytes = colliding;
+                    Ok(())
+                },)
                 .is_err()
         );
         assert_eq!(journal.entries()?, vec![existing]);

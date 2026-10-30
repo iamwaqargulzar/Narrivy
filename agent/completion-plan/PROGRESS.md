@@ -1569,3 +1569,69 @@ Owner requests, one at a time, each verified in the dev preview
   toggle then writes Urdu; Pipelines → Transcribe → Dictation language
   (choose/add/remove); Alt+B/Alt+C no longer fail. rc12 checks above still
   open.
+
+## 2026-10-30: doc sweep (P-7, P-10, T4.7), F-H16 guard, F-M6, F-M13
+
+Checked against the code at rc13 (`9d5a085`). `archive/` and
+`agent/history/` not touched.
+
+**Docs and agent files changed**
+- No Dictation page (gone since rc12): `product/ux/information-architecture.md`
+  and `experience-spec.md` list the real sidebar (Home, History, Pipelines,
+  Models, Store, Assistant, Meetings, Applications, Settings, Diagnostics,
+  About); Refine is the pipeline's stage (D38), not a page.
+  `screens/dictation.md` says where the controls are now and names the real
+  tests instead of five test IDs that don't exist.
+- Engines: `architecture/README.md`, `system-overview.md`,
+  `speech/engine-catalog.md`, `component-boundaries.md` and
+  `engines/README.md` said `asr-mock` is the daemon's default and that there is
+  no OpenVINO engine. Now: four engine crates (`asr-mock`, `transcribe-cpp`,
+  `openvino`, `grammar-harper`); the mock is only the no-environment code
+  default; the packaged unit and `dev-daemon.sh` select transcribe.cpp.
+- Default pipeline: `pipeline-catalog.md`, `modes-profiles.md`,
+  `phase-07-modes-profiles.md`, `screens/pipeline-editor.md` said Fast
+  Dictation; the default is `clean`, with `raw`. Other recipes are roadmap.
+- GTK shell: `phase-03-desktop-client.md`, `prompts/p3.md`,
+  `operations/reproducible-builder.md` and `agent/RESOLVED_VERSIONS.json` now
+  name Tauri 2 (2.12.5) per ADR-0075. Dated status notes on ADR-0028
+  (adapter removed), ADR-0066 and ADR-0067 (GTK shell gone).
+- `reproducible-builder.md` "How to cut a release": removed the nonexistent
+  `packaging/build-deb.sh` and `release_gate.py --dry-run`; it now uses
+  `scripts/build_release_candidate.sh`.
+- `audio-pipeline.md`: trailing silence is 1500 ms, not 560.
+  `audio-architecture.md`: 1.0 leaves other audio alone; duck/pause/mute are
+  roadmap (the adapter's journal types are unused).
+- `phase-09-hardening.md`: SEC-001/003/006 are R14. `phase-10-packaging.md`:
+  AppImage lines removed.
+- `agent/STATE.json`: the beta question is answered (D37, no beta); `main`
+  holds the public version at rc13; dropped the old local branch name.
+- `run_gate.py`: no live doc presents it as a usable gate (the plan README
+  already says not to use it).
+
+**Code and tests**
+- F-H16: `tests/governance/test_no_live_delivery_rungs_in_tests.py` fails if
+  Rust test code names a `System*Rung` or the live clipboard-paste parts
+  (`WaylandClipboardHandoff`, `WtypePasteChord`, `UinputPasteChord`), or if
+  code outside `adapters/platform-linux` builds one outside a `not(test)`
+  item. Checked by removing `not(test)` from `live_keyboard_rung`: the test
+  failed, then passed again with it restored.
+- F-M6: both `packaging/*/control` templates are now exactly what
+  `_control("1.0.0~rc13")` writes (adds `libvulkan1`, `curl`,
+  `mesa-vulkan-drivers`). New test `test_control_templates_match_the_builder`
+  ties them to the desktop app's version.
+- F-M13: `DEFAULT_PIPELINE_ID = "mock-dictation"` deleted. The non-strict
+  mock lane defaults to `clean`, lists `clean` and `raw` only, and rejects
+  `mock-dictation`. ADR-0070 has a dated note.
+
+**Left for T4.7:** `security/secrets.md` and PRIV-005 (needs a check of what
+the assistant stores), the `NAR-*` and observability design notes (already
+under `roadmap/`), the other `screens/*.md` test IDs, `spec/ui/design-tokens.json`,
+ADR-0061 and ADR-0072 notes, the archived P9 audits.
+
+**Checked:** `python3 -m pytest tests/governance tests/packaging`;
+`cargo test -p narrivyd --lib policy` (runs 0 tests: the policy tests are in
+the binary); `cargo test -p narrivyd --bin narrivyd` and the
+`p3_extension_commands` / `e2e_mock_dictation` tests pass except
+`capability_check_mic_never_promotes_helper_presence_to_signal`, which also
+fails on the base commit in a container without PipeWire;
+`cargo clippy -p narrivyd --all-targets -D warnings`.

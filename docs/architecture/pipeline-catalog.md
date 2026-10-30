@@ -1,5 +1,9 @@
 # Pipeline Catalog
 
+This table is the catalog design (`spec/catalogs/`), not what 1.0 runs.
+At rc13 the daemon runs two built-in modes: `clean` (the default) and
+`raw`. The other recipes are roadmap.
+
 | Pipeline | Status | Trigger | Privacy | Stages |
 |---|---|---|---|---|
 | Fast Dictation | linux-1.0-default | toggle or hold | local-only | audio.capture → audio.normalize → audio.denoise → speech.vad → speech.endpoint → speech.asr → text.punctuation → text.itn → text.semantic-guard → delivery.direct/delivery.clipboard/delivery.inbox |

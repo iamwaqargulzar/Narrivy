@@ -30,19 +30,24 @@ The normal installer stays lean. Advanced modules/runtimes/models are acquired o
 Catalog status versus implementation status differ and must not be conflated.
 `spec/catalogs/engines.json` and `modules.json` mark `asr-mock` `test-only`,
 which is a *product-capability* claim: no release requirement, package, or
-platform qualification derives from it. It is **not** a claim that the crate is
-absent from the product. `narrivy-asr-mock` is a non-optional `narrivyd`
-dependency (`services/narrivyd/Cargo.toml:47`) and the daemon's default
-composition: `EngineConfig::default()` selects `AsrEngineKind::Mock`,
-`AudioSourceKind::SineFixture`, `DeliveryBackendKind::NullSink`
-(`services/narrivyd/src/daemon/policy.rs:422-442`). `engines/` contains exactly
-two ASR bindings: `asr-mock`, and `transcribe-cpp` behind the
-`asr-transcribe-cpp` / `asr-transcribe-resident` features
-(`services/narrivyd/Cargo.toml:49,55-62`). There is **no OpenVINO
-inference engine in the tree**: OpenVINO appears only as absence detection
-(`crates/narrivy-compute/src/discovery.rs:188` `probe_openvino_install`, and
-the same suggestion in `crates/narrivy-model-manager/src/manager.rs:170`)
-returning an install hint when `libopenvino.so` is not present.
+platform qualification derives from it.
+
+`engines/` holds four crates (checked at rc13):
+
+- `asr-mock` — deterministic test engine. `narrivyd` always links it, and
+  `EngineConfig::new()` with no environment selects it (with a sine fixture
+  and a null sink). That is a test and development default only: the
+  packaged unit and `scripts/dev-daemon.sh` set `NARRIVY_RECOVERY_MODE`,
+  `NARRIVY_ASR_ENGINE=transcribe-cpp` and the resident runtime, so an
+  installed Narrivy never uses the mock engine.
+- `transcribe-cpp` — the GGUF ASR binding the installed daemon uses. It is
+  optional, behind the `asr-transcribe-cpp` / `asr-transcribe-resident`
+  features (`services/narrivyd/Cargo.toml`).
+- `openvino` — the OpenVINO add-on engine (D25, ADR-0078). The daemon never
+  loads OpenVINO; it starts `narrivy-openvino-worker`, which loads the
+  runtime pack the user installs from the Store. Device claims still need
+  qualification.
+- `grammar-harper` — the Harper grammar checker used by the text stages.
 
 Machine-readable catalogs live in `spec/catalogs/`; human indexes live beside the relevant architecture/ML docs.
 

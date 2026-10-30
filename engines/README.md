@@ -9,14 +9,16 @@ ASR lanes per owner decision 2026-08-22:
 
 There is no separate engine/runtime entity for any single model family beyond the transcribe.cpp GGUF lane; model weights are catalog content, not product entities.
 
-Planned bindings:
+Bindings in this tree (rc13):
 
-- `asr-mock/` — deterministic ASR engine (present). It is the **default** engine in a
-  default `narrivyd` build (`EngineConfig::default()` resolves to `AsrEngineKind::Mock`
-  with a sine fixture and a null sink), so it is not test-only in the sense of
-  being unreachable; the catalog status records that it is not a product-quality
-  recognition capability, not that nothing uses it.
-- `transcribe-cpp/` — transcribe.cpp GGUF ASR binding; lands with P2/P5 behind a `runtime` feature flag so default workspace builds stay toolchain-free.
-- `openvino-asr/` — planned native OpenVINO GenAI worker binding; device claims are qualification-derived.
+- `asr-mock/` — deterministic test engine. `EngineConfig::new()` with no
+  environment selects it (with a sine fixture and a null sink); the packaged
+  unit and `scripts/dev-daemon.sh` select transcribe.cpp instead, so an
+  installed Narrivy never uses it.
+- `transcribe-cpp/` — transcribe.cpp GGUF ASR binding, the installed engine,
+  behind the `asr-transcribe-cpp` / `asr-transcribe-resident` features.
+- `openvino/` — the OpenVINO add-on worker (`narrivy-openvino-worker`, D25,
+  ADR-0078); device claims are qualification-derived.
+- `grammar-harper/` — Harper grammar checker for the text stages.
 
 See `docs/architecture/README.md` and `spec/catalogs/`.

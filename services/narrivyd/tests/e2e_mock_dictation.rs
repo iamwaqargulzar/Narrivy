@@ -17,7 +17,7 @@ mod daemon_bin {
 use std::error::Error;
 use std::time::{Duration, Instant};
 
-use daemon_bin::{DEFAULT_PIPELINE_ID, DaemonState, build_handler, spawn_event_pump};
+use daemon_bin::{CLEAN_PIPELINE_ID, DaemonState, build_handler, spawn_event_pump};
 use narrivy_core::JournalEntryState;
 use narrivy_ipc::{Command, Event, IpcErrorCode, PROTOCOL_MINOR, ResponsePayload};
 use narrivy_ipc_unix::{IpcClient, UnixIpcServer};
@@ -224,7 +224,7 @@ fn e2e_mock_dictation_full_transaction_over_unix_socket() -> TestResult {
     assert_eq!(
         client.request(
             &Command::StartSession {
-                pipeline_id: Some(DEFAULT_PIPELINE_ID.to_owned()),
+                pipeline_id: Some(CLEAN_PIPELINE_ID.to_owned()),
                 activation: "test".to_owned(),
                 recognition: None,
             },

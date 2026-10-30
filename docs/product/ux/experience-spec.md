@@ -29,14 +29,20 @@ The desktop window must remain usable at the minimum supported size defined in t
 Linux 1.0 navigation:
 
 1. Home
-2. Dictation
-3. Models
-4. Applications
-5. History
-6. Settings
-7. Diagnostics
+2. History
+3. Pipelines
+4. Models
+5. Store
+6. Assistant
+7. Meetings
+8. Applications
+9. Settings
+10. Diagnostics
 
-Modes/profiles/dictionary are surfaced within the relevant Dictation/Applications/Settings workflows. Privacy is a first-class Settings section and processing-boundary state remains visible where relevant. Deferred Snippets/Integrations are not displayed as working top-level placeholders. Avoid a giant undifferentiated Settings page; use clear Settings sections and deep links.
+About sits in the sidebar footer. There is no Dictation page (removed in
+rc12); see `information-architecture.md`.
+
+Modes/profiles/dictionary are surfaced within the relevant Pipelines/Applications/Settings workflows. Privacy is a first-class Settings section and processing-boundary state remains visible where relevant. Deferred Snippets/Integrations are not displayed as working top-level placeholders. Avoid a giant undifferentiated Settings page; use clear Settings sections and deep links.
 
 ## State language
 

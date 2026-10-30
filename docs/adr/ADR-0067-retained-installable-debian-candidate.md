@@ -1,6 +1,8 @@
 # ADR-0067: Retained installable Debian candidate
 
 - Status: accepted for recovery; release qualification pending
+- Status note (2026-10-30): the package now carries the Tauri 2 desktop
+  app, not the GTK4 desktop named below (ADR-0075).
 - Date: 2026-09-11
 - Phase: P10/P11 recovery
 

@@ -38,7 +38,11 @@ clients. See ADR-0071.
 Maintain a short RAM-only pre-roll buffer to prevent clipped first phonemes.
 
 ## Audio policy
-Linux initially supports PipeWire-aware `leave`, `duck`, `pause`, `mute`, and later `smart`. Use event-driven PipeWire graph observation so newly created streams are handled.
+Linux 1.0 leaves other audio alone (`leave`). The Linux adapter has journal
+types for `duck` and `pause` (`adapters/platform-linux/src/capture.rs`), but
+the daemon does not use them. Ducking, pausing, muting and `smart` are
+roadmap. When built, use event-driven PipeWire graph observation so newly
+created streams are handled.
 
 ## Device lifecycle
 Support ranking, hotplug, fallback and explicit user pinning. Never silently switch to a clearly lower-trust input source if policy says microphone must be pinned.

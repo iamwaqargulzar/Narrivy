@@ -22,8 +22,8 @@
   "node": "v24.19.0",
   "npm": "12.0.2",
   "tauri_major": "2",
-  "desktop_safe_transitives": "plist 1.10.0 / quick-xml 0.41.0 / time 0.3.55; project Rust 1.97.1; removes RUSTSEC-2026-0194, RUSTSEC-2026-0195, and RUSTSEC-2026-0009; maintained-runtime migration still required for 17 GTK3/urlpattern findings",
-  "desktop_runtime_candidate": "Provisionally selected and additively integrated by ADR-0064: exact webkit6 0.6.1 + gtk4/gdk4 0.11.4 + glib 0.22.9, all MIT; desktop Rust MSRV 1.92. Host development/runtime metadata: GTK 4.14.5, WebKitGTK 6.0 2.52.6, JavaScriptCoreGTK 6.0 2.52.6. Content-free COSMIC smoke mounted React and completed the bounded native reply bridge. Tauri/GTK3 remains as a parity shell until overlay and portal-parent lifecycle parity, clean packaging, native qualification, and zero-advisory cargo-deny pass; no compatibility/release claim was made.",
+  "desktop_safe_transitives": "Superseded 2026-09-29 (ADR-0075): the GTK4 migration was dropped and Tauri 2 stays. See agent/BLOCKERS.md B-SUPPLY-010 for the current cargo-deny state (Tauri 2.12.5 at rc13).",
+  "desktop_runtime_candidate": "Tauri 2 (2.12.5 at rc13) on WebKitGTK 4.1 / GTK3 with gtk-layer-shell, on every OS (ADR-0075, D22). The GTK4/WebKitGTK 6 shell of ADR-0064 and adapters/desktop-parent-linux were removed in WP1 T1.4.",
   "openvino_strategy": "LOCKED 2026-09-21 per owner: OpenVINO/OpenVINO GenAI 2026.4 primary. Official 2026.4 Qwen3-ASR support is CPU/GPU; Qwen3-ASR on NPU remains candidate-only until exact model+runtime+driver+device qualification. OpenVINO NPU remains eligible for model families explicitly supported and qualified. Vulkan stays the complementary GPU path; proven transcribe.cpp CPU fallback is mandatory.",
   "host": "Pop!_OS 24.04 LTS / COSMIC Wayland / Linux 7.0.11-76070011-generic / x86_64",
   "notes": [

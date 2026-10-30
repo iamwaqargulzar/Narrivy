@@ -23,7 +23,8 @@ impossible to save.
 
 ## Three editing levels
 
-**Level 1 — Recipe swap (ships P3).** A recipe picker (Fast Dictation, Clean
+**Level 1 — Recipe swap (roadmap; at rc13 Pipelines offers only the Clean
+and Raw modes, the model and the language).** A recipe picker (Fast Dictation, Clean
 Mic, Smart Local, Cloud Polish, Custom) plus one row per stage: module
 dropdown (qualified modules only), on/off toggle for optional stages,
 hotkey binding. No graph is ever shown; language stays product-level

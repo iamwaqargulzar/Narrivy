@@ -1,6 +1,9 @@
 # ADR-0070: Canonical built-in mode identities for the strict installed composition
 
 - Status: accepted for recovery; release qualification pending
+- Status note (2026-10-30): the `mock-dictation` id is gone. The non-strict
+  mock composition now offers only `clean` (its default) and `raw`, and
+  rejects `mock-dictation` like any unknown id (F-M13).
 - Date: 2026-09-14
 - Phase: P11 recovery, release task 006 (real microphone Raw/Clean policy)
 
