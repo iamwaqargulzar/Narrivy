@@ -521,9 +521,15 @@ mod packaged {
             return Ok(());
         }
         let host = IsolatedHost::new()?;
-        let output = packaged_command(&host)?.output()?;
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        assert_eq!(output.status.code(), Some(1), "{stderr}");
+        // Bounded: a daemon that wrongly starts serving fails the test at the
+        // deadline instead of hanging it.
+        let mut daemon = DaemonProcess {
+            child: packaged_command(&host)?.spawn()?,
+            socket: host.runtime.join(narrivy_ipc_unix::SOCKET_SUBPATH),
+        };
+        let status = daemon.wait_for_exit(EXIT_DEADLINE)?;
+        let stderr = daemon.stderr_diagnostics();
+        assert_eq!(status.code(), Some(1), "{stderr}");
         assert!(
             stderr.contains("installed resident runtime failed verification"),
             "{stderr}"
