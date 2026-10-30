@@ -1827,3 +1827,23 @@ hash drift waiting for the reviewed regeneration, the `'whisper'` literal in
   the same 7 as before; `generate_phase_report.py --check` passes for all
   phases; doctor exits 0. `validate_pack` still fails only on the existing
   manifest drift (regenerating it is a separate reviewed step).
+
+## 2026-10-29: F-H13 pipeline import/export, F-M20 spec marked roadmap
+
+- F-H13 checked and true: the desktop wrote imported pipelines to
+  `$XDG_RUNTIME_DIR/narrivy/pipelines` (tmpfs). The service only seeds that
+  folder at startup (`main.rs`) and answers `ListPipelines` from
+  `advertised_pipelines`, so an import changed nothing. Import and Export
+  (Settings → Modes and words, and Pipelines) are now disabled with a Planned
+  label. The Tauri commands stay; nothing calls them. UX-011 stays blocked.
+- New test `ControlsAreWired.test.tsx`: every enabled control on Settings
+  (each section) and Pipelines (each stage) is used twice and must call the
+  service, or be on a short list of app-only controls with a reason (theme,
+  greeting, rename, order, links), or be disabled or read-only. Two service
+  states. It fails if Import is enabled again.
+- F-M20: `docs/product/ux/onboarding.md`, `screens/onboarding.md` and
+  `screens/models-hardware.md` now say what 1.0 builds (three-step wizard;
+  Models list with download, remove and bundled install) and mark the rest
+  as roadmap.
+- Checks: Vitest 55 files / 221 tests pass, `tsc --noEmit` clean,
+  `cargo check -p narrivy-desktop` clean, `check_docs.py` OK.
