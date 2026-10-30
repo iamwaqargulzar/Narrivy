@@ -10387,9 +10387,9 @@ mod p7_modes_tests {
         }
 
         /// One real composed routed session persists the exact admitted mode,
-        /// transaction and delivery-mode identity; a permissioned but
-        /// unverifiable dispatch stays an attempt and the final corrected text
-        /// is durably recovered byte-exact in the Inbox.
+        /// transaction and delivery-mode identity; a permissioned dispatch the
+        /// helper accepted but cannot verify ends as `SubmittedUnverified`,
+        /// journals the exact corrected text and leaves no Inbox copy (F-M4).
         #[test]
         fn strict_routed_session_reaches_approved_router_with_exact_admitted_identity()
         -> Result<(), Box<dyn std::error::Error>> {
@@ -10426,27 +10426,27 @@ mod p7_modes_tests {
             let expected = expected_mode_output(mode, input);
 
             assert_eq!(submissions.load(Ordering::SeqCst), 1);
-            let RecoveryTerminal::InboxRecovered(report) = terminal else {
+            // F-M4: an accepted but unverifiable submission is a finished
+            // delivery with no plaintext Inbox copy.
+            let RecoveryTerminal::SubmittedUnverified(report) = terminal else {
                 return Err(
-                    "an unverifiable dispatch must terminate as durable Inbox recovery".into(),
+                    "an accepted unverifiable dispatch must terminate as SubmittedUnverified"
+                        .into(),
                 );
             };
             assert_eq!(report.backend, "routed-then-inbox");
             assert_eq!(report.transaction_id, txid);
-            assert_eq!(report.outcome, DeliveryOutcome::InboxFallback);
+            assert_eq!(report.outcome, DeliveryOutcome::SubmittedUnverified);
             assert_eq!(
                 attempt_pairs(&report),
-                vec![
-                    ("portal-eis-text", DeliveryOutcome::SubmittedUnverified),
-                    ("inbox", DeliveryOutcome::InboxFallback),
-                ]
+                vec![("portal-eis-text", DeliveryOutcome::SubmittedUnverified)]
             );
 
             let entry = journal
                 .read(txid.as_str())?
                 .ok_or("missing routed journal entry")?;
             assert_eq!(entry.pipeline_id.as_deref(), Some(CLEAN_PIPELINE_ID));
-            assert_eq!(entry.state, JournalEntryState::InboxRecovered);
+            assert_eq!(entry.state, JournalEntryState::Delivered);
             let intent = entry
                 .delivery_intent
                 .as_ref()
@@ -10455,10 +10455,9 @@ mod p7_modes_tests {
             assert_eq!(intent.transaction_id, txid);
             assert_eq!(entry.variants.corrected.as_deref(), Some(expected.as_str()));
             assert_eq!(entry.variants.delivered.as_deref(), Some(expected.as_str()));
-            assert_eq!(
-                std::fs::read_to_string(inbox.join(format!("{}.txt", txid.as_str())))?,
-                expected,
-                "the durable Inbox artifact must hold the exact recoverable final text"
+            assert!(
+                !inbox.join(format!("{}.txt", txid.as_str())).exists(),
+                "a successful submission leaves no plaintext Inbox copy (F-M4)"
             );
             Ok(())
         }
@@ -10592,9 +10591,9 @@ mod p7_modes_tests {
         }
 
         /// Granting then revoking the attended permission changes only the
-        /// qualification fact: the already-dispatched transaction keeps its
-        /// durable recovery, and the revoked attempt falls back to Inbox
-        /// without a second dispatch.
+        /// qualification fact: the already-dispatched transaction stays a
+        /// finished unverified submission, and the revoked attempt falls back
+        /// to Inbox without a second dispatch.
         #[test]
         fn strict_routed_permission_revoke_produces_durable_inbox_fallback()
         -> Result<(), Box<dyn std::error::Error>> {
@@ -10629,7 +10628,7 @@ mod p7_modes_tests {
                 delivery_mode,
                 &granted_txid,
             )?;
-            assert!(matches!(granted, RecoveryTerminal::InboxRecovered(_)));
+            assert!(matches!(granted, RecoveryTerminal::SubmittedUnverified(_)));
             assert_eq!(submissions.load(Ordering::SeqCst), 1);
 
             // The user revokes the grant between sessions.
@@ -10732,14 +10731,11 @@ mod p7_modes_tests {
             assert_eq!(first.backend, "routed-then-inbox");
             assert_eq!(
                 attempt_pairs(&first),
-                vec![
-                    ("portal-eis-text", DeliveryOutcome::SubmittedUnverified),
-                    ("inbox", DeliveryOutcome::InboxFallback),
-                ]
+                vec![("portal-eis-text", DeliveryOutcome::SubmittedUnverified)]
             );
-            assert_eq!(
-                std::fs::read_to_string(inbox.join("tx-task009-routed-retry.txt"))?,
-                "durable text"
+            assert!(
+                !inbox.join("tx-task009-routed-retry.txt").exists(),
+                "a successful submission leaves no plaintext Inbox copy (F-M4)"
             );
             Ok(())
         }
