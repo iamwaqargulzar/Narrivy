@@ -1,7 +1,8 @@
 // Tips, opened from the top bar next to Search. Only real, working ways to
 // use Narrivy are listed; the toggle command appears only when the daemon
 // serves it.
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { usePopoverDismiss } from '../hooks/useDialogFocus';
 import { Icon } from '../ui/icons';
 import { t } from '../i18n';
 import { activationPresentation } from '../lib/activation';
@@ -11,23 +12,8 @@ export function TipsPopover() {
   const [open, setOpen] = useState(false);
   const { status } = useDaemonStatus();
   const activation = activationPresentation(status);
-  const root = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    const onPointer = (e: PointerEvent) => {
-      if (root.current && !root.current.contains(e.target as Node)) setOpen(false);
-    };
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('pointerdown', onPointer);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('pointerdown', onPointer);
-    };
-  }, [open]);
+  const close = useCallback(() => setOpen(false), []);
+  const root = usePopoverDismiss(open, close);
 
   return (
     <div className="tips-anchor" ref={root}>
@@ -65,13 +51,13 @@ export function TipsPopover() {
             </div>
             <div>
               <dt>
-                <kbd>Ctrl</kbd> + <kbd>K</kbd>
+                <kbd>{t('key.ctrl')}</kbd> + <kbd>K</kbd>
               </dt>
               <dd>{t('home.tip.search')}</dd>
             </div>
             <div>
               <dt>
-                <kbd>Esc</kbd>
+                <kbd>{t('key.esc')}</kbd>
               </dt>
               <dd>{t('home.tip.escape')}</dd>
             </div>

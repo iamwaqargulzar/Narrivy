@@ -3,11 +3,12 @@
 // dialog is open and only to build the combination; nothing else is kept.
 // The service decides whether a combination is allowed or already in use;
 // a combination in use is never replaced without the user saying so here.
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { t } from '../../i18n';
 import { bridge, type ShortcutBinding, type ShortcutSetResult } from '../../lib/bridge';
 import { MODIFIER_ORDER, comboParts, pressedKeys, type PressedKeys } from '../../lib/shortcutKeys';
 import { useErrorHandler } from '../../ui/primitives/Toast';
+import { keepTabInside, useDialogFocus } from '../../hooks/useDialogFocus';
 
 export interface CaptureTarget {
   pipelineId: string;
@@ -43,13 +44,17 @@ export function ShortcutCapture({ target, onClose, onSaved }: {
   // without pressing another key captures the modifiers alone.
   const peak = useRef<string[]>([]);
 
-  useEffect(() => {
-    dialogRef.current?.focus();
-  }, []);
+  useDialogFocus(dialogRef);
 
   const onKeyDown = (event: React.KeyboardEvent) => {
-    // Tab and the buttons keep working once a combination is on screen.
-    if (combo && (event.key === 'Tab' || event.key === 'Enter' || event.key === ' ')) return;
+    // Tab and the buttons keep working once a combination is on screen; Tab
+    // stays inside this dialog.
+    if (combo && event.key === 'Tab') {
+      keepTabInside(event, dialogRef.current);
+      event.stopPropagation();
+      return;
+    }
+    if (combo && (event.key === 'Enter' || event.key === ' ')) return;
     event.preventDefault();
     event.stopPropagation();
     const pressed = pressedKeys(event.nativeEvent);

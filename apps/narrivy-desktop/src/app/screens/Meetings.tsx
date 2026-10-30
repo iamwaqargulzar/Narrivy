@@ -126,7 +126,7 @@ function WorkControls({ meeting }: { meeting: Meeting }) {
         {t("assistant.watch.cancel")}
       </button>
       {error ? (
-        <span className="meeting-error">
+        <span className="meeting-error" role="alert">
           {t("meetings.error.other", { code: error })}
         </span>
       ) : null}
@@ -436,7 +436,7 @@ export function MeetingsScreen() {
                       {t("meetings.recordingNote")}
                     </span>
                   </div>
-                  <span className="meeting-clock">
+                  <span className="meeting-clock" role="timer" aria-live="off">
                     {clock(now - recording.started_unix_ms)}
                   </span>
                   <Button
@@ -1105,7 +1105,7 @@ function NotesPanel({
       <p className="source meeting-notes-hint">{t("meetings.notes.hint")}</p>
 
       {failure ? (
-        <p className="meeting-note meeting-error">
+        <p className="meeting-note meeting-error" role="alert">
           {t("meetings.notes.failed", { code: failure })}
         </p>
       ) : null}

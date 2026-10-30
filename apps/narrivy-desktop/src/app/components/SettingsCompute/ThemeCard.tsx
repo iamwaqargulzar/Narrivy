@@ -39,25 +39,25 @@ function GearIcon(props: React.SVGProps<SVGSVGElement>) {
 export function ThemeCard() {
   const { theme, setTheme, showGreeting, setShowGreeting } = useTheme();
   const options: Array<{ id: 'system' | 'light' | 'dark'; label: string; hint: string; Icon: typeof MonitorIcon }> = [
-    { id: 'system', label: 'System', hint: 'Follow system setting', Icon: MonitorIcon },
-    { id: 'light', label: 'Light', hint: 'Always use light theme', Icon: SunIcon },
-    { id: 'dark', label: 'Dark', hint: 'Always use dark theme', Icon: MoonIcon },
+    { id: 'system', label: t('settings.theme.system'), hint: t('settings.theme.systemHint'), Icon: MonitorIcon },
+    { id: 'light', label: t('settings.theme.light'), hint: t('settings.theme.lightHint'), Icon: SunIcon },
+    { id: 'dark', label: t('settings.theme.dark'), hint: t('settings.theme.darkHint'), Icon: MoonIcon },
   ];
   return (
     <section className="settings-card" aria-labelledby="theme-heading">
       <div className="settings-card-header" id="theme-heading">
         <GearIcon />
-        Theme
+        {t('settings.theme.title')}
       </div>
-      <p className="settings-card-desc">Choose application theme</p>
-      <div className="theme-row" role="group" aria-label="Theme">
+      <p className="settings-card-desc">{t('settings.theme.desc')}</p>
+      <div className="theme-row" role="group" aria-label={t('settings.theme.title')}>
         {options.map((opt) => (
           <button
             key={opt.id}
             type="button"
             className="theme-option"
             aria-pressed={theme === opt.id}
-            aria-label={`${opt.label} theme, ${opt.hint}`}
+            aria-label={t('settings.theme.optionAria', { label: opt.label, hint: opt.hint })}
             onClick={() => setTheme(opt.id)}
           >
             <opt.Icon className="theme-option-icon" />

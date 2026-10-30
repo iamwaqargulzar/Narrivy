@@ -356,7 +356,7 @@ export function LivePanel() {
             {t('assistant.live.screen')}
           </p>
           {live.screenError ? (
-            <p className="assistant-error">{t('meetings.screen.liveError', { code: live.screenError })}</p>
+            <p className="assistant-error" role="alert">{t('meetings.screen.liveError', { code: live.screenError })}</p>
           ) : shown.length ? (
             <ul className={`live-screens count-${shown.length}`} aria-label={t('meetings.screen.watching')}>
               {shown.map((source) => (
@@ -404,7 +404,7 @@ export function LivePanel() {
         </div>
       ) : null}
       {!live.screenOn && !hearing ? <p className="source">{t('assistant.live.allOff')}</p> : null}
-      {live.error ? <p className="assistant-error">{t('assistant.error.other', { code: live.error })}</p> : null}
+      {live.error ? <p className="assistant-error" role="alert">{t('assistant.error.other', { code: live.error })}</p> : null}
     </section>
   );
 }
@@ -502,7 +502,7 @@ function SavedPanel({
           {t('assistant.screen.close')}
         </button>
       </div>
-      {attachError ? <p className="assistant-error">{t('assistant.error.other', { code: attachError })}</p> : null}
+      {attachError ? <p className="assistant-error" role="alert">{t('assistant.error.other', { code: attachError })}</p> : null}
     </section>
   );
 }
@@ -578,7 +578,7 @@ export function SavedSessions() {
           );
         })}
       </ul>
-      {error ? <p className="assistant-error">{t('assistant.watch.error.other', { code: error })}</p> : null}
+      {error ? <p className="assistant-error" role="alert">{t('assistant.watch.error.other', { code: error })}</p> : null}
     </section>
   );
 }

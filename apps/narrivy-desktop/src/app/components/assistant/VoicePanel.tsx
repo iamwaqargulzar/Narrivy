@@ -2,7 +2,8 @@
 // hearing you, thinking or speaking; the words heard so far; where the last
 // turn's time went; and the controls (mute, stop, speed, push-to-talk,
 // interrupting, sounds, and the English and Urdu voices) in a popover.
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { usePopoverDismiss } from '../../../hooks/useDialogFocus';
 import { Icon } from '../../../ui/icons';
 import { hasMessage, t } from '../../../i18n';
 import { useAssistant } from '../../../state/AssistantContext';
@@ -13,22 +14,8 @@ export function VoicePanel() {
   const { state, partial, timing, error, prefs } = voice;
   const muted = state === 'muted';
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDown = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  const close = useCallback(() => setOpen(false), []);
+  const ref = usePopoverDismiss(open, close);
   const english = VOICES.find(([id]) => id === prefs.voice)?.[1] ?? VOICES[0][1];
   return (
     <section className="voice-panel" aria-label={t('assistant.voice.title')} data-state={state}>
@@ -43,7 +30,7 @@ export function VoicePanel() {
         {partial ? (
           <p className="voice-partial">{partial}</p>
         ) : error ? (
-          <p className="voice-sub assistant-error">
+          <p className="voice-sub assistant-error" role="alert">
             {hasMessage(`assistant.voice.error.${error}`)
               ? t(`assistant.voice.error.${error}`)
               : t('assistant.voice.error.other', { code: error })}
@@ -66,7 +53,7 @@ export function VoicePanel() {
           className={`voice-round${muted ? ' is-off' : ''}`}
           aria-pressed={muted}
           aria-label={muted ? t('assistant.voice.unmute') : t('assistant.voice.mute')}
-          title={`${muted ? t('assistant.voice.unmute') : t('assistant.voice.mute')} (Ctrl+M)`}
+          title={t('key.withShortcut', { label: muted ? t('assistant.voice.unmute') : t('assistant.voice.mute'), keys: 'Ctrl+M' })}
           onClick={() => voice.setPrefs({ muted: !muted })}
         >
           <Icon name="mic" />
@@ -85,7 +72,7 @@ export function VoicePanel() {
           type="button"
           className="voice-end"
           onClick={() => voice.setStandby(true)}
-          title={`${t('assistant.voice.offHint')} (Ctrl+Shift+V)`}
+          title={t('key.withShortcut', { label: t('assistant.voice.offHint'), keys: 'Ctrl+Shift+V' })}
         >
           <Icon name="close" />
           {t('assistant.voice.end')}
@@ -122,7 +109,7 @@ export function VoicePanel() {
                 max={175}
                 step={5}
                 value={prefs.speedPercent}
-                aria-valuetext={`${(prefs.speedPercent / 100).toFixed(2)}×`}
+                aria-valuetext={t('assistant.voice.speedValue', { speed: (prefs.speedPercent / 100).toFixed(2) })}
                 onChange={(event) => voice.setPrefs({ speedPercent: Number(event.target.value) })}
               />
               <span className="voice-value">{(prefs.speedPercent / 100).toFixed(2)}×</span>

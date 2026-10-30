@@ -173,7 +173,7 @@ export function AppShell() {
           <span className="brand-name">{t('app.name')}</span>
         </div>
         <div className="topbar-main">
-          <span className="topbar-item" aria-label="Processing mode: Local, private">
+          <span className="topbar-item" role="note" aria-label={t('shell.localPrivateAria')}>
             <Icon name="lock" />
             {t('shell.localPrivate')}
           </span>
