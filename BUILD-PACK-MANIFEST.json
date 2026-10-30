@@ -4,7 +4,7 @@
   "pack_version": "1.3",
   "generated_date": "2026-08-22",
   "manifest_excludes_self": true,
-  "file_count": 1262,
+  "file_count": 1263,
   "files": [
     {
       "path": ".cargo/config.toml",
@@ -4893,8 +4893,8 @@
     },
     {
       "path": "scripts/evidence_policy.py",
-      "bytes": 39999,
-      "sha256": "ea00ba848a764f1a5d59460d6e97194d225b4c415800ae32d8f5382cb70b51e4"
+      "bytes": 41253,
+      "sha256": "6e046da944f252f09c3fa6c5a8d4937e88abcd70650d8f3b157b1d1819e06109"
     },
     {
       "path": "scripts/generate_phase_report.py",
@@ -4913,8 +4913,8 @@
     },
     {
       "path": "scripts/phase_gate.py",
-      "bytes": 20382,
-      "sha256": "bd568ea73cef1572ec1e4e14de9161978b5903cc5a16717339e6d263e460b2d6"
+      "bytes": 23014,
+      "sha256": "40934a628a5a3821c92bf55315df5e4906794e212786e1d9da7e6ae799f42550"
     },
     {
       "path": "scripts/probe_installed_status.py",
@@ -5063,8 +5063,8 @@
     },
     {
       "path": "scripts/release_gate.py",
-      "bytes": 13580,
-      "sha256": "babb13cbf59afce464558d8a5debcfe8355af759c046e6a65e8744c67d10a776"
+      "bytes": 20642,
+      "sha256": "98b20f88329f349108caf66ec1b71fc99127eaca2a5c737f69cecae9e6eed35d"
     },
     {
       "path": "scripts/run_deepseek_task.py",
@@ -6003,8 +6003,8 @@
     },
     {
       "path": "tests/governance/test_evidence_measurements.py",
-      "bytes": 32613,
-      "sha256": "ea371539504c096bcb113b60899ff2ccc595a986851892d57a89f1bed5917320"
+      "bytes": 32602,
+      "sha256": "b6413a4e72a00a8c849913743210dbf89cf59b83d6b5e40e47949d8de67f192a"
     },
     {
       "path": "tests/governance/test_frontend_boundaries.py",
@@ -6023,8 +6023,8 @@
     },
     {
       "path": "tests/governance/test_recovery_validators.py",
-      "bytes": 39007,
-      "sha256": "59ac9741b6e6c37acfe365f79347dcac4f4f1e5dea99b7727d61a85b5f327050"
+      "bytes": 38996,
+      "sha256": "ca0a6a31459d41304ede4c8ca21a0ac02892ef84674a6452f47eaaf68830db76"
     },
     {
       "path": "tests/governance/test_run_deepseek_task.py",
@@ -6315,6 +6315,11 @@
       "path": "tools/reference-models/verify_published.py",
       "bytes": 2336,
       "sha256": "322fda7bfc356722e4e1f3859179708332b80134ac6cb745d774ca16f99e7bbf"
+    },
+    {
+      "path": "tests/governance/test_gate_trust.py",
+      "bytes": 13279,
+      "sha256": "6d5673ce2e67e9f994ed9e188ff468485431bea44788b76f620d6779d5cc11f3"
     }
   ]
 }
