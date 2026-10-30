@@ -1761,3 +1761,17 @@ hash drift waiting for the reviewed regeneration, the `'whisper'` literal in
   the strict lanes. Checked that the test fails without that change.
 - Headless only: no hardware or desktop behaviour claimed. Branch
   `cloud/inbox-durable`.
+
+## 2026-10-29: Clean mode punctuation (F-H9)
+
+- Clean mode added a space after `,.;:!?` before any letter or digit, so
+  `3.14`, `1,000`, `10:30` and `example.com` were broken. Now a space is added
+  only between two letters, and after `.` only between a lowercase and an
+  uppercase letter (`end.Next`). Words with `/`, `@` or `\` are left alone.
+  A space before a leading dot (`.txt`) is kept.
+- Capitalisation now works on whole words: a dot inside a word never starts
+  a sentence, and dotted abbreviations (`e.g.`, `U.S.`) do not either.
+- Table test `punctuation_inside_tokens_is_kept` in
+  `services/narrivyd/src/correct.rs`. `cargo test -p narrivyd` passes except
+  `capability_check_mic_never_promotes_helper_presence_to_signal`, which fails
+  the same way without this change (depends on the local `pw-record`).
