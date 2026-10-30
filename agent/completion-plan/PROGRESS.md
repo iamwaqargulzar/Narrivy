@@ -1775,3 +1775,27 @@ hash drift waiting for the reviewed regeneration, the `'whisper'` literal in
   `services/narrivyd/src/correct.rs`. `cargo test -p narrivyd` passes except
   `capability_check_mic_never_promotes_helper_presence_to_signal`, which fails
   the same way without this change (depends on the local `pw-record`).
+
+## 2026-10-29: CI leftovers (F-H10, F-H14, F-H1)
+
+- F-H10: the CI `python-tests` job now runs the whole `python3 -m pytest
+  tests`. Deselected, with reasons in `ci.yml`, and kept in two
+  non-blocking steps: three tests that need a real `.deb` in
+  `artifacts/releases/`; the manifest test in `test_recovery_validators.py`
+  (`BUILD-PACK-MANIFEST.json` has drifted, about 500 entries; needs an
+  owner-reviewed rebuild); `LiveFrontendGuardTests` (the guard rejects the
+  hard-coded bundled model id in `Models.tsx`; the daemon should report which
+  model is bundled). `test_desktop_tauri.py` listed four real commands as
+  missing (`pick_file`, `pick_recording`, `daemon_set_dictation_language(s)`);
+  added. Still red elsewhere: `scripts/verify_frontend_boundaries.py` in the
+  `rust-quality` job (same `Models.tsx` cause). SEC-004 evidence hashes
+  `ci.yml` and is now stale for it.
+- F-H14: deleted the unused `hooks/usePerfMarks.ts`.
+- F-H1: new test `two_second_consumer_stall_loses_no_audio_and_stays_within_the_queue_bound`
+  (real-time recorder, consumer stalls 2 s): every sample arrives once, in
+  order, and the producer never reports backpressure. No code change needed.
+- Verified: pytest (304 passed, 9 deselected), vitest 217, `tsc`, cargo fmt,
+  clippy `-D warnings` on the crate, `cargo test -p narrivy-platform-linux`
+  310 passed, 1 failed: `latency_histogram_p99_under_load_stays_under_50us`
+  (p50 10 µs against a `< 10 µs` bound on a 4-core cloud VM, debug build;
+  file untouched; not changed).
