@@ -21,11 +21,17 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 
+use crate::bounded_command::{output_within, status_within};
+
 /// The echo-cancelled microphone's PipeWire node name.
 pub const SOURCE: &str = "narrivy.aec.source";
 
 /// How long the module may take to offer its source.
 const START_BOUND: Duration = Duration::from_secs(4);
+
+/// How long one `pactl` query may take. `pactl` waits on the PipeWire
+/// server, and a wedged server would otherwise hold the caller forever.
+const PACTL_BOUND: Duration = Duration::from_secs(3);
 
 /// How much background noise the canceller removes as well.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -114,7 +120,8 @@ impl EchoCancel {
             if !running.is_running() {
                 return Err("echo_cancel_failed");
             }
-            if source_offered() {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if source_offered(remaining.min(PACTL_BOUND)) {
                 return Ok(running);
             }
             std::thread::sleep(Duration::from_millis(100));
@@ -166,13 +173,13 @@ struct Device {
 
 /// PipeWire's `sources` or `sinks`, as PulseAudio reports them.
 fn devices(kind: &str) -> Vec<Device> {
-    Command::new("pactl")
-        .args(["--format=json", "list", kind])
-        .stderr(Stdio::null())
-        .output()
-        .ok()
-        .and_then(|out| serde_json::from_slice(&out.stdout).ok())
-        .unwrap_or_default()
+    output_within(
+        Command::new("pactl").args(["--format=json", "list", kind]),
+        PACTL_BOUND,
+    )
+    .ok()
+    .and_then(|out| serde_json::from_slice(&out.stdout).ok())
+    .unwrap_or_default()
 }
 
 fn named(device: Device) -> (String, String) {
@@ -211,16 +218,16 @@ pub fn speakers() -> Vec<(String, String)> {
         .collect()
 }
 
-fn source_offered() -> bool {
-    Command::new("pactl")
-        .args(["list", "short", "sources"])
-        .stderr(Stdio::null())
-        .output()
-        .is_ok_and(|out| {
-            String::from_utf8_lossy(&out.stdout)
-                .lines()
-                .any(|line| line.split('\t').nth(1) == Some(SOURCE))
-        })
+fn source_offered(bound: Duration) -> bool {
+    output_within(
+        Command::new("pactl").args(["list", "short", "sources"]),
+        bound,
+    )
+    .is_ok_and(|out| {
+        String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .any(|line| line.split('\t').nth(1) == Some(SOURCE))
+    })
 }
 
 /// End `pipewire -c <config>` processes of this user left by an earlier
@@ -246,7 +253,14 @@ fn stop_leftovers(config: &Path) {
             && args.get(1) == Some(&b"-c".as_slice())
             && args.get(2) == Some(&wanted);
         if is_ours && pid != std::process::id() {
-            let _ = Command::new("kill").arg(pid.to_string()).status();
+            let _ = status_within(
+                Command::new("kill")
+                    .arg(pid.to_string())
+                    .stdin(Stdio::null())
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null()),
+                PACTL_BOUND,
+            );
         }
     }
 }

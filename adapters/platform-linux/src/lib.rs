@@ -2,6 +2,8 @@
 //!
 //! Unsafe policy: see crate-level docs. Each FFI call is wrapped, minimal,
 //! and carries a SAFETY comment; no other unsafe exists in this crate.
+/// Short helpers (`pactl`, `pw-dump`, ...) run with a deadline.
+pub mod bounded_command;
 pub mod delivery;
 /// Desktop-managed keyboard shortcuts (the desktop's own custom-shortcut store).
 pub mod desktop_shortcuts;

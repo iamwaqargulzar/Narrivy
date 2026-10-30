@@ -2885,7 +2885,9 @@ mod p3_extension_tests {
     fn capability_check_mic_never_promotes_helper_presence_to_signal() {
         let result = run_capability_check("mic");
         assert!(!result.available);
-        if result.detail.contains("trusted pw-record helper") {
+        // "trusted pw-record helper missing" also contains the helper phrase;
+        // only an available helper reports a path.
+        if result.detail.starts_with("trusted pw-record helper at ") {
             assert!(
                 result
                     .detail
