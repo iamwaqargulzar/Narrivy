@@ -1569,3 +1569,48 @@ Owner requests, one at a time, each verified in the dev preview
   toggle then writes Urdu; Pipelines → Transcribe → Dictation language
   (choose/add/remove); Alt+B/Alt+C no longer fail. rc12 checks above still
   open.
+
+## 2026-10-30: gates no longer trust self-declared fields (WP6 T6.0, P-5)
+
+Branch `cloud/gate-trust`. Changed `scripts/release_gate.py`,
+`scripts/phase_gate.py` and `scripts/evidence_policy.py`; recorders untouched.
+- Release gate: cleanliness comes from `git status` (only evidence, phase
+  reports, release evidence, SBOM, the traceability CSV and the pack manifest
+  may differ); the three `qualification.json` booleans are derived from the
+  requirements the gate itself accepted (CPU fallback: TEST-010, PORT-006;
+  accessibility: ACC-*, TEST-007; privacy/security: PRIV-*, SEC-*); the P11
+  JSON report is mandatory; `summary.md` must contain the full commit; lane
+  environment fields and performance p50/p95 must equal the evidence; the
+  package hash must be one the gate re-hashed; NaN/Infinity rejected. The CLI
+  is now in `main()`.
+- Phase gate: no Markdown report fallback; native evidence counts only after
+  a full `verify_evidence(native_required=True)`; blocker status read from
+  the `- Status:` line or header tag, phases from `Phase/Requirement` (P1 no
+  longer matches P11; unknown statuses are open; a header-tag "not blocking"
+  is the only waiver); "passed" regression prerequisites are re-verified;
+  commands get a timeout (`NARRIVY_GATE_COMMAND_TIMEOUT`, default 3600 s)
+  and their process group is killed.
+- `evidence_policy.py`: strict JSON loader; `assess_evidence` checks that
+  `started_at`/`ended_at` parse, carry a time zone and are in order.
+- 34 negative tests in `tests/governance/test_gate_trust.py`. Two older tests
+  that sliced `release_gate.py` at its CLI now slice at `def main()`.
+  `pytest tests`: 8 failed / 340 passed; the same 8 fail on `main` (Tauri
+  command list, frontend guard, legacy builder, deb candidate).
+- Failure counts (error lines, all still exit 1):
+  - release gate: 833 → 831. No new lines; the 2 removed were the stale
+    pack-manifest entry for this file, refreshed here. The new checks sit
+    behind the missing `qualification.json`, `release-artifacts.json` and
+    `summary.md`, so they add nothing yet.
+  - phase gates: P0 32→33, P0F 6→7, P1 146→146, P2 88→89, P3 125→125,
+    P4 58→103, P5 216→262, P6 146→244, P7 76→207, P8 66→209, P9 310→460,
+    P10 189→438, P11 67→345. The growth is: re-verified regression
+    prerequisites (stale commits and hashes, the same causes the earlier
+    phases already report), "no passing native evidence" where the old raw
+    field check counted unverified records (P0F, P2, P4–P6, P9–P11), and open
+    blockers now found: B-AUTH-006 (P5), B-PROCESS-014 and B-PACKAGE-015
+    (P10, P11), B-RECOVERY-001 (P11), B-LEGAL-007 (P0, P10, P11).
+  - B-LEGAL-007 names P0 because its field reads "P0 → P10 pre-RC → P11".
+    If the owner means only P10/P11, edit that field; the gate is right to
+    read it as written.
+- Not done here (rest of T6.0): `validate_pack.py` items 3 and the "smaller
+  hardening" list in item 5.
