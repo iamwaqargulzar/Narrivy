@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import platform
 import shlex
 import subprocess
@@ -13,6 +12,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import jsonschema
+
+import recorder_safety
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = "agent/evidence/INDEX.json"
@@ -55,21 +56,40 @@ def main() -> int:
     index_path = ROOT / INDEX; index = json.loads(index_path.read_text())
     outputs = {req: ROOT / f"agent/evidence/P4/{meta[0]}.json" for req, meta in RECORDS.items()}
     for req, path in outputs.items():
-        rel = path.relative_to(ROOT).as_posix()
-        if any(item.get("path") == rel for item in index["qualified_evidence"]):
-            print(f"record_native_audio_policy_evidence: already qualified: {req}", file=sys.stderr); return 1
-        if path.exists() and json.loads(path.read_text()).get("schema_version") != 1:
-            print(f"record_native_audio_policy_evidence: unsafe output: {req}", file=sys.stderr); return 1
+        if not recorder_safety.replaceable(path, index, ROOT):
+            print(f"record_native_audio_policy_evidence: output is not replaceable: {req}", file=sys.stderr); return 1
+    try:
+        lane = recorder_safety.native_lane()
+    except recorder_safety.RecorderSafetyError as error:
+        print(f"record_native_audio_policy_evidence: {error}", file=sys.stderr); return 1
+    # The legacy harness writes its own result to the evidence path. Keep the
+    # original bytes, read the harness result, then put the originals back so
+    # the final write is one guarded transaction (and a failed run changes nothing).
+    originals = {req: (path.read_bytes() if path.exists() else None) for req, path in outputs.items()}
+    legacy_results: dict[str, dict] = {}
     started = datetime.now(timezone.utc)
-    for args in PROBES:
-        result = subprocess.run(["python3", LEGACY, *args], cwd=ROOT, capture_output=True, text=True, timeout=180)
-        if result.returncode:
-            print((result.stdout + result.stderr)[-3000:], file=sys.stderr); return 1
+    try:
+        for args in PROBES:
+            try:
+                result = recorder_safety.run_bounded(["python3", LEGACY, *args], cwd=ROOT, capture_output=True, text=True, timeout=180)
+            except subprocess.TimeoutExpired:
+                print(f"record_native_audio_policy_evidence: probe timed out: {shlex.join(args)}", file=sys.stderr); return 1
+            if result.returncode:
+                print((result.stdout + result.stderr)[-3000:], file=sys.stderr); return 1
+        for req, path in outputs.items():
+            legacy_results[req] = json.loads(path.read_text())
+    finally:
+        for req, path in outputs.items():
+            if originals[req] is None:
+                path.unlink(missing_ok=True)
+            else:
+                path.write_bytes(originals[req])
     ended = datetime.now(timezone.utc)
     runner_hash = sha(ROOT / LEGACY); recorder_hash = sha(Path(__file__))
     schema = json.loads((ROOT / "spec/schemas/evidence.schema.json").read_text())
+    payloads: list[tuple[Path, bytes]] = []
     for req, (verification, procedure, executable_rel, assertions) in RECORDS.items():
-        legacy = json.loads(outputs[req].read_text())
+        legacy = legacy_results[req]
         if legacy.get("result") != "pass" or legacy.get("pass") is not True:
             print(f"record_native_audio_policy_evidence: legacy probe did not pass: {req}", file=sys.stderr); return 1
         executable = ROOT / executable_rel
@@ -77,7 +97,7 @@ def main() -> int:
             "schema_version": 2, "verification_id": verification, "requirement_ids": [req], "phase": "P4",
             "scenario_id": procedure, "git_commit": head, "git_dirty": False, "build_id": f"native-audio-{head[:7]}",
             "package_sha256": None,
-            "environment": {"id":"cosmic-wayland-native-pipewire","native_or_vm":"native","os":"Linux","os_version":platform.release(),"kernel":platform.release(),"desktop":os.environ.get("XDG_CURRENT_DESKTOP","unknown"),"session":os.environ.get("XDG_SESSION_TYPE","unknown"),"cpu":platform.machine(),"gpu":None,"npu":None,"device_details":"native PipeWire/WirePlumber session","microphone":"native PipeWire sources","input_backend":"PipeWire","display_scale":None,"qualification_lane":"cosmic-wayland-native-audio-policy","lane_available":True},
+            "environment": {"id":"cosmic-wayland-native-pipewire","native_or_vm":"native","os":lane["os"],"os_version":lane["os_version"],"kernel":platform.release(),"desktop":lane["desktop"],"session":lane["session"],"cpu":platform.machine(),"gpu":None,"npu":None,"device_details":"native PipeWire/WirePlumber session","microphone":"native PipeWire sources","input_backend":"PipeWire","display_scale":None,"qualification_lane":"cosmic-wayland-native-audio-policy","lane_available":True},
             "command": shlex.join(EXPECTED_ARGV), "scenario_version":"1", "scenario_hash":recorder_hash,
             "started_at":started.isoformat(), "ended_at":ended.isoformat(), "exit_code":0, "result":"pass", "pass":True,
             "metrics":{"native_probe":legacy.get("metrics",{}),"legacy_scenario":legacy.get("scenario_id")},
@@ -88,11 +108,13 @@ def main() -> int:
             "evidence_type":"native-platform", "execution":{"lane_available":True,"child_failures_ignored":False,"environment_class":"native-platform","substitutions":[]},
         }
         jsonschema.validate(instance=evidence, schema=schema)
-        outputs[req].write_text(json.dumps(evidence,indent=2,sort_keys=True)+"\n")
-        rel=outputs[req].relative_to(ROOT).as_posix(); payload=outputs[req].read_bytes()
-        index["qualified_evidence"].append({"path":rel,"sha256":hashlib.sha256(payload).hexdigest(),"disposition":"qualified"})
-    index["qualified_evidence"].sort(key=lambda item:item["path"])
-    index_path.write_text(json.dumps(index,indent=2,sort_keys=True)+"\n")
+        payloads.append((outputs[req], (json.dumps(evidence,indent=2,sort_keys=True)+"\n").encode()))
+    index_schema = json.loads((ROOT / "spec/schemas/evidence-index.schema.json").read_text())
+    try:
+        recorder_safety.commit_records(ROOT, index_path, index, payloads,
+            validate_index=lambda value: jsonschema.validate(instance=value, schema=index_schema))
+    except (OSError, recorder_safety.RecorderSafetyError, jsonschema.ValidationError) as error:
+        print(f"record_native_audio_policy_evidence: {error}", file=sys.stderr); return 1
     print(json.dumps({"records":len(RECORDS),"result":"pass"},sort_keys=True)); return 0
 
 

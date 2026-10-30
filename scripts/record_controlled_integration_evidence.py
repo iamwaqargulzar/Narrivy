@@ -16,6 +16,7 @@ from pathlib import Path
 
 import jsonschema
 
+import recorder_safety
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = "agent/evidence/INDEX.json"
@@ -37,9 +38,9 @@ SUITES = {
         "--", "--test-threads=1",
     ],
     "daemon": ["cargo", "test", "-p", "narrivyd", "--locked"],
-    # The verbose reporter is required, not cosmetic: the proof scan resolves each
-    # claim by finding its named test in this run's output, and vitest's default
-    # reporter prints file names and counts only.
+    # The JSON reporter is required, not cosmetic: each proof is resolved from
+    # the structured per-test status (a skipped test is not a pass). The
+    # recorder appends --outputFile=<temporary> at run time.
     "desktop-tests": [
         "npm",
         "test",
@@ -47,7 +48,7 @@ SUITES = {
         "apps/narrivy-desktop",
         "--",
         "--run",
-        "--reporter=verbose",
+        "--reporter=json",
     ],
     "desktop-build": ["npm", "run", "build", "--prefix", "apps/narrivy-desktop"],
     "governance": ["python3", "-m", "unittest", "discover", "-s", "tests/governance", "-v"],
@@ -143,6 +144,8 @@ PROOF_TESTS: dict[str, tuple[str, ...]] = {
 # cargo deny reports one line per check; a supply-chain claim may only be
 # measured when the corresponding check was actually reported and did not fail.
 SUPPLY_CHAIN_CHECKS = ("advisories", "bans", "licenses", "sources")
+CARGO_SUITES = ("core", "pipeline", "policy", "history", "diagnostics", "model-cache", "platform-linux", "daemon")
+SUITE_TIMEOUT_SECONDS = 1800.0
 SUPPLY_CHAIN_FAILURE = re.compile(r"fail|error|denied|violat", re.IGNORECASE)
 
 
@@ -165,18 +168,32 @@ def measured(assertion: str, binding: dict[str, object]) -> dict[str, object]:
     return {"id": assertion, "result": "pass", "measurement": binding}
 
 
-def proof_metrics(outputs: list[str]) -> dict[str, object]:
-    """Resolve, for every declared claim, the named tests that actually passed."""
+def structured_results(outputs: dict[str, str], vitest_report: dict[str, object]) -> dict[str, str]:
+    """Per-test status from libtest result lines, unittest -v and Vitest JSON."""
+    results: dict[str, str] = {}
+    for suite in CARGO_SUITES:
+        for name, status in recorder_safety.cargo_test_results(outputs.get(suite, "")).items():
+            results[f"{suite}::{name}"] = status
+    for name, status in recorder_safety.unittest_results(outputs.get("governance", "")).items():
+        results[f"governance::{name}"] = status
+    for name, status in recorder_safety.vitest_results(vitest_report).items():
+        results[f"desktop-tests::{name}"] = status
+    return results
+
+
+def proof_metrics(results: dict[str, str]) -> dict[str, object]:
+    """Resolve, for every declared claim, the named tests that actually passed.
+
+    A test counts only with its own structured ``ok``/``passed`` result; a name
+    merely appearing in the output, or a skipped/ignored test, does not.
+    """
     proofs: dict[str, object] = {}
     for key, names in PROOF_TESTS.items():
-        observed = [name for name in names if any(name in output for output in outputs)]
-        if len(observed) != len(names):
-            missing = sorted(set(names) - set(observed))
-            raise RuntimeError(
-                f"no measured evidence for proof {key!r}: these named tests did not pass in "
-                f"this run: {missing}"
-            )
-        proofs[key] = {"expected": len(names), "executed": len(observed), "tests": observed}
+        try:
+            observed = recorder_safety.require_tests_passed(results, names)
+        except recorder_safety.RecorderSafetyError as error:
+            raise RuntimeError(f"no measured evidence for proof {key!r}: {error}") from None
+        proofs[key] = {"expected": len(names), "executed": len(observed), "tests": list(observed)}
     return proofs
 
 
@@ -459,15 +476,28 @@ def main() -> int:
     started = datetime.now(timezone.utc)
     metrics: dict[str, object] = {}
     outputs: dict[str, str] = {}
+    vitest_report: dict[str, object] = {}
     try:
-        for name, command in SUITES.items():
-            result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
-            metrics[name] = {"command": shlex.join(command), "exit_code": result.returncode,
-                             "stdout_lines": len(result.stdout.splitlines()), "stderr_lines": len(result.stderr.splitlines())}
-            outputs[name] = result.stdout + result.stderr
-            if result.returncode:
-                return fail(f"suite {name} failed\n" + "\n".join(outputs[name].splitlines()[-20:]))
-        proofs = proof_metrics(list(outputs.values()))
+        with tempfile.TemporaryDirectory(prefix="narrivy-controlled-") as temporary:
+            report_path = Path(temporary) / "vitest.json"
+            for name, command in SUITES.items():
+                argv = [*command, f"--outputFile={report_path}"] if name == "desktop-tests" else command
+                try:
+                    result = recorder_safety.run_bounded(
+                        argv, cwd=ROOT, capture_output=True, text=True, timeout=SUITE_TIMEOUT_SECONDS
+                    )
+                except subprocess.TimeoutExpired:
+                    return fail(f"suite {name} exceeded {SUITE_TIMEOUT_SECONDS:.0f} s")
+                metrics[name] = {"command": shlex.join(command), "exit_code": result.returncode,
+                                 "stdout_lines": len(result.stdout.splitlines()), "stderr_lines": len(result.stderr.splitlines())}
+                outputs[name] = result.stdout + result.stderr
+                if result.returncode:
+                    return fail(f"suite {name} failed\n" + "\n".join(outputs[name].splitlines()[-20:]))
+            try:
+                vitest_report = json.loads(report_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                return fail("desktop-tests wrote no Vitest JSON report")
+        proofs = proof_metrics(structured_results(outputs, vitest_report))
         supply_chain = supply_chain_metrics(outputs["supply-chain"])
         gates = {
             "architecture_failures": int(metrics["source-boundary"]["exit_code"] != 0)

@@ -8,7 +8,6 @@ import os
 import platform
 import re
 import shlex
-import signal
 import subprocess
 import sys
 import tempfile
@@ -20,6 +19,7 @@ from pathlib import Path
 import jsonschema
 
 import qualify_candidate_known_phrase as package
+import recorder_safety
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -219,61 +219,67 @@ def fail(message: str) -> int:
     return 1
 
 
-def atomic_json(path: Path, value: object) -> bytes:
-    payload = (json.dumps(value, indent=2, sort_keys=True) + "\n").encode()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
-    try:
-        with os.fdopen(descriptor, "wb") as stream:
-            stream.write(payload); stream.flush(); os.fsync(stream.fileno())
-        os.chmod(temporary, 0o644); os.replace(temporary, path)
-    finally:
-        Path(temporary).unlink(missing_ok=True)
-    return payload
-
-
 def replaceable(path: Path, index: dict[str, object]) -> bool:
-    relative = path.relative_to(ROOT).as_posix()
-    if any(item.get("path") == relative for item in index["qualified_evidence"]):
-        return False
-    if not path.exists():
-        return True
-    try:
-        return json.loads(path.read_text()).get("schema_version") == 1
-    except (OSError, json.JSONDecodeError):
-        return False
+    return recorder_safety.replaceable(path, index, ROOT)
+
+
+FRONTEND_CONTRACT_FILES = (
+    "A11yLandmarks.test.tsx",
+    "A11yHardening.test.tsx",
+    "MicroInteractions.test.tsx",
+)
+
+
+def frontend_contract_results(report: dict[str, object]) -> dict[str, object]:
+    """Per contract file: True only if it ran tests and every one passed.
+
+    Uses Vitest's JSON reporter, not the file name appearing in the output: a
+    skipped, pending or failed test (or a file with no tests) is a failure.
+    """
+    files: dict[str, object] = {}
+    counts: dict[str, int] = {}
+    entries = report.get("testResults")
+    if not isinstance(entries, list):
+        raise RuntimeError("Vitest JSON report has no testResults")
+    for name in FRONTEND_CONTRACT_FILES:
+        statuses = [
+            str(assertion.get("status"))
+            for entry in entries
+            if isinstance(entry, dict) and Path(str(entry.get("name", ""))).name == name
+            for assertion in entry.get("assertionResults", []) or []
+            if isinstance(assertion, dict)
+        ]
+        if not statuses or any(status != "passed" for status in statuses):
+            raise RuntimeError(
+                f"frontend accessibility contract {name} did not pass every test "
+                f"({len(statuses)} results; skipped or failed tests count as failures)"
+            )
+        files[name] = True
+        counts[name] = len(statuses)
+    return {"contract_files": files, "passed_tests": counts}
 
 
 def run_frontend_contracts() -> dict[str, object]:
-    command = [
-        "npm", "test", "--prefix", "apps/narrivy-desktop", "--", "--run",
-        "src/__tests__/A11yLandmarks.test.tsx",
-        "src/__tests__/A11yHardening.test.tsx",
-        "src/__tests__/MicroInteractions.test.tsx",
-    ]
-    result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, timeout=90)
-    combined = result.stdout + result.stderr
-    if result.returncode:
-        excerpt = "\n".join(combined.splitlines()[-20:])
-        raise RuntimeError(f"frontend accessibility contracts failed: {excerpt}")
-    # A contract claim is only measured if its own test file actually ran here.
-    files: dict[str, object] = {}
-    for name in (
-        "A11yLandmarks.test.tsx",
-        "A11yHardening.test.tsx",
-        "MicroInteractions.test.tsx",
-    ):
-        observed = name in combined
-        files[name] = observed
-        if not observed:
-            raise RuntimeError(
-                f"frontend accessibility contract {name} did not run; refusing to record a claim "
-                "with no measured execution"
-            )
+    with tempfile.TemporaryDirectory(prefix="narrivy-a11y-vitest-") as temporary:
+        report_path = Path(temporary) / "vitest.json"
+        command = [
+            "npm", "test", "--prefix", "apps/narrivy-desktop", "--", "--run",
+            "--reporter=json", f"--outputFile={report_path}",
+            *(f"src/__tests__/{name}" for name in FRONTEND_CONTRACT_FILES),
+        ]
+        result = recorder_safety.run_bounded(command, cwd=ROOT, capture_output=True, text=True, timeout=90)
+        if result.returncode:
+            excerpt = "\n".join((result.stdout + result.stderr).splitlines()[-20:])
+            raise RuntimeError(f"frontend accessibility contracts failed: {excerpt}")
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            raise RuntimeError("frontend accessibility contracts wrote no Vitest JSON report") from None
+    measured = frontend_contract_results(report)
     return {
-        "command": shlex.join(command), "exit_code": 0,
+        "command": shlex.join([*command[:7], "--outputFile=<temporary>", *command[8:]]), "exit_code": 0,
         "stdout_lines": len(result.stdout.splitlines()), "stderr_lines": len(result.stderr.splitlines()),
-        "contract_files": files,
+        **measured,
     }
 
 
@@ -302,16 +308,13 @@ def wait_for(path: Path, process: subprocess.Popen[bytes], timeout: float) -> No
 
 
 def terminate(process: subprocess.Popen[bytes] | None) -> None:
-    if process is None or process.poll() is not None:
+    if process is None:
         return
-    process.send_signal(signal.SIGTERM)
-    try:
-        process.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        process.kill(); process.wait(timeout=2)
+    # The desktop runs in its own session; stop its whole process group.
+    recorder_safety.kill_group(process, grace=5.0)
 
 
-def inspect_atspi(mode: str) -> dict[str, object]:
+def inspect_atspi(mode: str, pid: int) -> dict[str, object]:
     import gi
 
     gi.require_version("Atspi", "2.0")
@@ -333,15 +336,20 @@ def inspect_atspi(mode: str) -> dict[str, object]:
                 yield from descendants(child)
 
     def application() -> object:
+        # Select the recorder's own desktop process by PID. A Narrivy window the
+        # user has open has the same name and must never be driven or closed.
         desktop = Atspi.get_desktop(0)
+        matches = []
         for i in range(desktop.get_child_count()):
             candidate = desktop.get_child_at_index(i)
             try:
-                if candidate.get_name() == "narrivy-desktop":
-                    return candidate
+                if candidate.get_name() == "narrivy-desktop" and candidate.get_process_id() == pid:
+                    matches.append(candidate)
             except Exception:
                 continue
-        raise RuntimeError("Narrivy is not exposed through AT-SPI")
+        if len(matches) != 1:
+            raise RuntimeError("the recorder's Narrivy process is not exposed through AT-SPI")
+        return matches[0]
 
     def snapshot() -> list[tuple[str, str]]:
         values: list[tuple[str, str]] = []
@@ -567,7 +575,7 @@ def native_run(members: dict[str, bytes], mode: str) -> tuple[dict[str, object],
                 raise RuntimeError("desktop attempted an external resource request")
             if marker.get("zoom_level") != 2.0:
                 raise RuntimeError("desktop did not apply the reviewed 200% accessibility zoom")
-            semantics = inspect_atspi(mode)
+            semantics = inspect_atspi(mode, process.pid)
             try:
                 process.wait(timeout=5)
             except subprocess.TimeoutExpired:
@@ -587,16 +595,6 @@ def native_run(members: dict[str, bytes], mode: str) -> tuple[dict[str, object],
             "daemon_socket_created": daemon_socket_created,
         }
 
-
-def os_release() -> tuple[str, str]:
-    values: dict[str, str] = {}
-    try:
-        for line in Path("/etc/os-release").read_text().splitlines():
-            if "=" in line:
-                key, value = line.split("=", 1); values[key] = value.strip().strip('"')
-    except OSError:
-        pass
-    return values.get("NAME", "Linux"), values.get("PRETTY_NAME", platform.release())
 
 
 def hands_free_defaults() -> dict[str, object]:
@@ -672,10 +670,7 @@ def main() -> int:
         if not desktop_identity_verified:
             raise RuntimeError("packaged desktop identity does not match build-info")
         members[DESKTOP_MEMBER] = desktop_member
-        desktop = os.environ.get("XDG_CURRENT_DESKTOP", "")
-        session = os.environ.get("XDG_SESSION_TYPE", "")
-        if "cosmic" not in desktop.lower() or session.lower() != "wayland":
-            raise RuntimeError("the reviewed native lane requires COSMIC on Wayland")
+        lane = recorder_safety.native_lane()
         started = datetime.now(timezone.utc)
         frontend = run_frontend_contracts()
         hands_free = hands_free_defaults()
@@ -699,7 +694,7 @@ def main() -> int:
         ended = datetime.now(timezone.utc)
     except (OSError, RuntimeError, subprocess.TimeoutExpired, package.InputError, json.JSONDecodeError, re.error) as error:
         return fail(str(error))
-    os_name, os_version = os_release(); script_rel = "scripts/record_native_accessibility_evidence.py"
+    script_rel = "scripts/record_native_accessibility_evidence.py"
     metrics = {
         "frontend_contracts": frontend,
         "theme": {"reduced_motion": theme},
@@ -710,6 +705,7 @@ def main() -> int:
         "native_marker": marker,
         "atspi": semantics,
         "hands_free_defaults": hands_free,
+        "native_lane": lane,
         "package": {"desktop_identity_verified": desktop_identity_verified},
         "keyboard_lane": {
             "available": keyboard_skip_reason is None,
@@ -731,8 +727,9 @@ def main() -> int:
             "schema_version": 3, "verification_id": record["verification"], "requirement_ids": [requirement],
             "phase": record["phase"], "scenario_id": record["procedure"], "git_commit": head, "git_dirty": False,
             "build_id": identity.version, "package_sha256": artifact_hash,
-            "environment": {"id": "cosmic-wayland-native-atspi", "native_or_vm": "native", "os": os_name,
-                "os_version": os_version, "kernel": platform.release(), "desktop": desktop, "session": session,
+            "environment": {"id": "cosmic-wayland-native-atspi", "native_or_vm": "native", "os": lane["os"],
+                "os_version": lane["os_version"], "kernel": platform.release(), "desktop": lane["desktop"],
+                "session": lane["session"],
                 "cpu": platform.machine(), "gpu": None, "npu": None, "device_details": "GTK4/WebKitGTK 6 with AT-SPI",
                 "microphone": None,
                 "input_backend": "AT-SPI actions over native Wayland" if requirement not in KEYBOARD_REQUIREMENTS else "AT-SPI plus wtype over native Wayland",
@@ -760,15 +757,14 @@ def main() -> int:
         }
         jsonschema.validate(instance=evidence, schema=schema)
         payload = (json.dumps(evidence, indent=2, sort_keys=True) + "\n").encode(); payloads.append((outputs[requirement], relative, payload))
-    targets = {relative for _path, relative, _payload in payloads}
-    index["qualified_evidence"] = [item for item in index["qualified_evidence"] if item.get("path") not in targets]
-    for _path, relative, payload in payloads:
-        index["qualified_evidence"].append({"path": relative, "sha256": hashlib.sha256(payload).hexdigest(), "disposition": "qualified"})
-    index["qualified_evidence"].sort(key=lambda item: item["path"])
-    jsonschema.validate(instance=index, schema=json.loads((ROOT / "spec/schemas/evidence-index.schema.json").read_text()))
-    for path, _relative, payload in payloads:
-        atomic_json(path, json.loads(payload))
-    atomic_json(index_path, index)
+    index_schema = json.loads((ROOT / "spec/schemas/evidence-index.schema.json").read_text())
+    try:
+        recorder_safety.commit_records(
+            ROOT, index_path, index, [(path, payload) for path, _relative, payload in payloads],
+            validate_index=lambda value: jsonschema.validate(instance=value, schema=index_schema),
+        )
+    except (OSError, recorder_safety.RecorderSafetyError, jsonschema.ValidationError) as error:
+        return fail(str(error))
     print(json.dumps({
         "artifact_sha256": artifact_hash,
         "records": len(payloads),

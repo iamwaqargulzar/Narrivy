@@ -16,6 +16,8 @@ from pathlib import Path
 
 import jsonschema
 
+import recorder_safety
+
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = "agent/evidence/INDEX.json"
@@ -39,11 +41,15 @@ SUITES = {
         "python3",
         "-m",
         "unittest",
+        "-v",
         "tests.governance.test_desktop_tauri",
     ],
     "dependency-boundary": ["python3", "scripts/verify_dependency_boundaries.py"],
     "traceability": ["python3", "scripts/verify_traceability.py"],
 }
+CARGO_SUITES = ("core", "pipeline", "ipc", "policy", "daemon-e2e")
+UNITTEST_SUITES = ("desktop-boundary",)
+SUITE_TIMEOUT_SECONDS = 1800.0
 
 # Every semantic claim is bound to named tests that must appear as passing in
 # this run's own output, so the claim is measured rather than asserted. A named
@@ -92,18 +98,31 @@ def measured(assertion: str, binding: dict[str, object]) -> dict[str, object]:
     return {"id": assertion, "result": "pass", "measurement": binding}
 
 
-def proof_metrics(outputs: list[str]) -> dict[str, object]:
-    """Resolve, for every declared claim, the named tests that actually passed."""
+def structured_results(outputs: dict[str, str]) -> dict[str, str]:
+    """Per-test status from libtest result lines and unittest -v."""
+    results: dict[str, str] = {}
+    for suite in CARGO_SUITES:
+        for name, status in recorder_safety.cargo_test_results(outputs.get(suite, "")).items():
+            results[f"{suite}::{name}"] = status
+    for suite in UNITTEST_SUITES:
+        for name, status in recorder_safety.unittest_results(outputs.get(suite, "")).items():
+            results[f"{suite}::{name}"] = status
+    return results
+
+
+def proof_metrics(results: dict[str, str]) -> dict[str, object]:
+    """Resolve, for every declared claim, the named tests that actually passed.
+
+    A test counts only with its own structured ``ok`` result; a name merely
+    appearing in the output, or a skipped/ignored test, does not.
+    """
     proofs: dict[str, object] = {}
     for key, names in PROOF_TESTS.items():
-        observed = [name for name in names if any(name in output for output in outputs)]
-        if len(observed) != len(names):
-            missing = sorted(set(names) - set(observed))
-            raise RuntimeError(
-                f"no measured evidence for proof {key!r}: these named tests did not pass in "
-                f"this run: {missing}"
-            )
-        proofs[key] = {"expected": len(names), "executed": len(observed), "tests": observed}
+        try:
+            observed = recorder_safety.require_tests_passed(results, names)
+        except recorder_safety.RecorderSafetyError as error:
+            raise RuntimeError(f"no measured evidence for proof {key!r}: {error}") from None
+        proofs[key] = {"expected": len(names), "executed": len(observed), "tests": list(observed)}
     return proofs
 
 
@@ -309,10 +328,15 @@ def main() -> int:
 
     started = datetime.now(timezone.utc)
     suite_metrics: dict[str, object] = {}
-    outputs: list[str] = []
+    outputs: dict[str, str] = {}
     try:
         for name, command in SUITES.items():
-            result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
+            try:
+                result = recorder_safety.run_bounded(
+                    command, cwd=ROOT, capture_output=True, text=True, timeout=SUITE_TIMEOUT_SECONDS
+                )
+            except subprocess.TimeoutExpired:
+                return fail(f"suite {name} exceeded {SUITE_TIMEOUT_SECONDS:.0f} s")
             suite_metrics[name] = {
                 "command": shlex.join(command),
                 "exit_code": result.returncode,
@@ -320,10 +344,10 @@ def main() -> int:
                 "stderr_lines": len(result.stderr.splitlines()),
             }
             combined = result.stdout + result.stderr
-            outputs.append(combined)
+            outputs[name] = combined
             if result.returncode != 0:
                 return fail(f"suite {name} failed\n" + "\n".join(combined.splitlines()[-20:]))
-        proofs = proof_metrics(outputs)
+        proofs = proof_metrics(structured_results(outputs))
     except RuntimeError as error:
         return fail(str(error))
     if git("status", "--porcelain"):

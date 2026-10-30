@@ -36,6 +36,8 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Mapping, Protocol, Sequence
 
+import recorder_safety
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 GIT = Path("/usr/bin/git")
 PACTL = Path("/usr/bin/pactl")
@@ -188,6 +190,8 @@ class Operations(Protocol):
     def environ(self) -> Mapping[str, str]: ...
 
     def containerized(self) -> bool: ...
+
+    def native_lane(self) -> Mapping[str, object]: ...
 
     def helper_ready(self, path: Path) -> bool: ...
 
@@ -348,16 +352,19 @@ class HostProcess:
         )
 
     def output(self) -> bytes:
+        # A missing or unreadable log is a failure, never an empty (clean) log.
         try:
             observed = self._log_path.lstat()
         except OSError:
-            return b""
+            raise StepFailure("log_hygiene", "daemon log is missing") from None
+        if not stat.S_ISREG(observed.st_mode):
+            raise StepFailure("log_hygiene", "daemon log is not a regular file")
         if observed.st_size > MAX_LOG_BYTES:
             raise StepFailure("log_hygiene", "daemon log exceeded the scan bound")
         try:
             return self._log_path.read_bytes()
         except OSError:
-            return b""
+            raise StepFailure("log_hygiene", "daemon log is unreadable") from None
 
 
 class HostOperations:
@@ -366,6 +373,9 @@ class HostOperations:
 
     def containerized(self) -> bool:
         return Path("/.dockerenv").exists() or Path("/run/.containerenv").exists()
+
+    def native_lane(self) -> Mapping[str, object]:
+        return recorder_safety.native_lane(environ=self.environ())
 
     def helper_ready(self, path: Path) -> bool:
         return os.path.isfile(path) and os.access(path, os.X_OK)
@@ -771,18 +781,15 @@ def _desktop_lane(environ: Mapping[str, str]) -> str:
 
 
 def _require_native_cosmic(operations: Operations) -> tuple[str, str]:
+    """The shared native-lane proof; environment strings alone never suffice."""
+    try:
+        operations.native_lane()
+    except recorder_safety.RecorderSafetyError as error:
+        raise InputError(f"session is not the reviewed native lane: {error}") from None
     environ = operations.environ()
-    session = str(environ.get("XDG_SESSION_TYPE", "")).strip().casefold()
-    desktop = _desktop_lane(environ)
-    display = str(environ.get("WAYLAND_DISPLAY", "")).strip()
-    if (
-        session != "wayland"
-        or desktop != "COSMIC"
-        or not display
-        or operations.containerized()
-    ):
+    if operations.containerized() or _desktop_lane(environ) != "COSMIC":
         raise InputError("session is not native COSMIC Wayland")
-    return desktop, "wayland"
+    return _desktop_lane(environ), "wayland"
 
 
 def _require_physical_source(operations: Operations, timeout: float) -> None:
@@ -1088,7 +1095,13 @@ def _wait_for_socket(
         operations.sleep(min(POLL_SECONDS, max(0.0, deadline - operations.monotonic())))
 
 
-def _scan_logs(blobs: Sequence[bytes]) -> tuple[int, int]:
+def _scan_logs(
+    blobs: Sequence[bytes], transcripts: Sequence[str] = (), canaries: Sequence[str] = ()
+) -> tuple[int, int]:
+    """Count fixture-fragment, transcript n-gram and canary hits in the logs.
+
+    ``transcripts`` are the actual committed transcripts, held in memory only.
+    """
     combined = bytearray()
     for blob in blobs:
         room = MAX_LOG_BYTES - len(combined)
@@ -1102,6 +1115,14 @@ def _scan_logs(blobs: Sequence[bytes]) -> tuple[int, int]:
     except Exception as error:
         raise StepFailure("log_hygiene", "log scan failed") from error
     hits = text.casefold().count(EXPECTED_FRAGMENT)
+    if transcripts or canaries:
+        try:
+            scan = recorder_safety.scan_log_privacy(
+                [bytes(combined)], transcripts=transcripts, canaries=canaries
+            )
+        except recorder_safety.RecorderSafetyError as error:
+            raise StepFailure("log_hygiene", str(error)) from None
+        hits += int(scan["transcript_ngram_hits"]) + int(scan["canary_hits"])
     return len(text), hits
 
 
@@ -1129,6 +1150,12 @@ def _list_inbox(inbox_dir: Path) -> list[Path]:
 
 
 def _read_transcript(path: Path) -> tuple[str, int]:
+    digest, size, _text = _read_transcript_text(path)
+    return digest, size
+
+
+def _read_transcript_text(path: Path) -> tuple[str, int, str]:
+    """Like ``_read_transcript`` but also returns the text, for in-memory log scans."""
     try:
         observed = path.lstat()
     except OSError as error:
@@ -1149,8 +1176,7 @@ def _read_transcript(path: Path) -> tuple[str, int]:
     digest = _digest_of(payload)
     size = len(payload)
     del payload
-    del text
-    return digest, size
+    return digest, size, text
 
 
 def qualify(
@@ -1376,7 +1402,7 @@ def qualify(
         passed("inbox")
 
         state["current"] = "fragment"
-        transcript_sha256, transcript_bytes = _read_transcript(artifacts[0])
+        transcript_sha256, transcript_bytes, transcript_text = _read_transcript_text(artifacts[0])
         passed("fragment")
 
         state["current"] = "log_hygiene"
@@ -1385,7 +1411,8 @@ def qualify(
         if daemon.poll() != 0:
             raise StepFailure("shutdown", "daemon exited unsuccessfully")
         log_blobs.append(daemon.output())
-        scanned, hits = _scan_logs(log_blobs)
+        scanned, hits = _scan_logs(log_blobs, transcripts=(transcript_text,))
+        del transcript_text
         if hits != 0:
             raise StepFailure("log_hygiene", "ordinary logs contained the fixture fragment")
         if daemon.poll() not in (None, 0):

@@ -25,12 +25,23 @@ def ok(stdout: bytes = b"") -> CommandResult:
 
 
 class Lifecycle:
-    def __init__(self, *, fail_upgrade: bool = False) -> None:
+    def __init__(self, *, fail_upgrade: bool = False, status_fails_on: str | None = None) -> None:
         self.version = ""
         self.registered = False
         self.fail_upgrade = fail_upgrade
+        self.status_fails_on = status_fails_on
+        self.status_versions: list[str] = []
 
     def __call__(self, argv: tuple[str, ...]) -> CommandResult:
+        if argv[0] == "/usr/bin/narrivy-cli" and argv[-1] == "status":
+            self.status_versions.append(self.version)
+            if self.version == self.status_fails_on:
+                return CommandResult(1, b"", b"")
+            return ok(b"narrivy-cli status: no active session\n")
+        if argv[:2] == ("cat", upgrade.lifecycle.PID_FILE):
+            return ok(b"4242\n")
+        if argv[:2] == ("cat", upgrade.lifecycle.EXIT_FILE):
+            return ok(b"0\n")
         if argv[0] == "sha256sum":
             target = argv[1]
             if target == upgrade.PREVIOUS_IN_CONTAINER:
@@ -129,6 +140,24 @@ class UpgradeQualificationTests(unittest.TestCase):
         self.assertEqual(names[-1], "container_remove")
         self.assertEqual(runner.removed, [(CONTAINER, upgrade._run_digest(PREVIOUS_SHA, CURRENT_SHA))])
         self.assertEqual(set(runner.copies), {upgrade.PREVIOUS_IN_CONTAINER, upgrade.CURRENT_IN_CONTAINER})
+
+    def test_daemon_status_is_checked_after_install_upgrade_rollback_and_reupgrade(self) -> None:
+        # P-4: the upgrade procedure must start the daemon and get a status answer.
+        lifecycle = Lifecycle()
+        outcome, _runner = self.run_flow(lifecycle)
+        self.assertEqual(outcome["result"], "passed")
+        self.assertEqual(outcome["daemon_checks"], {step: True for step in upgrade.DAEMON_CHECK_STEPS})
+        self.assertEqual(lifecycle.status_versions, ["0.1.0~rc1", "0.1.0~rc2", "0.1.0~rc1", "0.1.0~rc2"])
+        names = [step["step"] for step in outcome["steps"]]
+        self.assertLess(names.index("confirm_upgrade"), names.index("daemon_status_upgrade"))
+
+    def test_daemon_status_failure_fails_the_run(self) -> None:
+        lifecycle = Lifecycle(status_fails_on="0.1.0~rc1")
+        outcome, runner = self.run_flow(lifecycle)
+        self.assertEqual(outcome["result"], "failed")
+        self.assertEqual(outcome["failed_step"], "daemon_status_previous")
+        self.assertFalse(outcome["daemon_checks"]["daemon_status_previous"])
+        self.assertEqual(len(runner.removed), 1)
 
     def test_mid_upgrade_failure_is_truthful_and_container_is_removed(self) -> None:
         outcome, runner = self.run_flow(Lifecycle(fail_upgrade=True))

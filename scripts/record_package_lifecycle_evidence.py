@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import platform
 import shlex
 import sys
@@ -16,6 +15,7 @@ import jsonschema
 
 import qualify_candidate as lifecycle
 import qualify_candidate_known_phrase as package_identity
+import recorder_safety
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = "artifacts/releases/narrivy-linux-amd64.deb"
@@ -24,7 +24,7 @@ INDEX = "agent/evidence/INDEX.json"
 LIFECYCLE_RUNNER = "scripts/qualify_candidate.py"
 LIFECYCLE_SHA256 = "215b9edb1e2a97e77a8d2519c8103f429d8e78e11c07d1c2e47675d37383affb"
 IDENTITY_RUNNER = "scripts/qualify_candidate_known_phrase.py"
-IDENTITY_SHA256 = "6c3d9ad93dea7681bad7bb6726c69608444140dc80eda16299b8ec1709c408be"
+IDENTITY_SHA256 = "881e3f12bd04a5f3ee01b86dac3ff7daa82e0191a2a5922cbb8e4e35752ea30b"
 MODEL_HELPER = "scripts/qualify_installed_model.py"
 MODEL_HELPER_SHA256 = "9de831caa27e875c68c3f5a43811c9b714b4356741d3a7f77dbec0f874b32fdf"
 STATUS_HELPER = "scripts/probe_installed_status.py"
@@ -59,23 +59,6 @@ def fail(message: str) -> int:
     return 1
 
 
-def atomic_json(path: Path, value: object) -> None:
-    payload = (json.dumps(value, indent=2, sort_keys=True) + "\n").encode()
-    temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
-    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
-    try:
-        with os.fdopen(descriptor, "wb") as stream:
-            stream.write(payload)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    finally:
-        try:
-            temporary.unlink()
-        except FileNotFoundError:
-            pass
-
-
 def main() -> int:
     if sys.argv != EXPECTED_ARGV[1:]:
         return fail("argv does not match the reviewed procedure")
@@ -87,8 +70,10 @@ def main() -> int:
         MODEL_HELPER: MODEL_HELPER_SHA256,
         STATUS_HELPER: STATUS_HELPER_SHA256,
     }
-    if evidence_path.exists():
-        return fail("evidence output already exists")
+    index_path = ROOT / INDEX
+    index = json.loads(index_path.read_text())
+    if not recorder_safety.replaceable(evidence_path, index, ROOT):
+        return fail("evidence output is current, unindexed v2, or does not match its INDEX hash")
     for relative, expected in pinned.items():
         if sha256(ROOT / relative) != expected:
             return fail(f"reviewed helper hash mismatch: {relative}")
@@ -217,24 +202,15 @@ def main() -> int:
         instance=evidence,
         schema=json.loads((ROOT / "spec/schemas/evidence.schema.json").read_text()),
     )
-    index_path = ROOT / INDEX
-    index = json.loads(index_path.read_text())
-    if any(item.get("path") == EVIDENCE for item in index["qualified_evidence"]):
-        return fail("evidence index already contains the output path")
     payload = (json.dumps(evidence, indent=2, sort_keys=True) + "\n").encode()
-    index["qualified_evidence"].append(
-        {
-            "path": EVIDENCE,
-            "sha256": hashlib.sha256(payload).hexdigest(),
-            "disposition": "qualified",
-        }
-    )
-    jsonschema.validate(
-        instance=index,
-        schema=json.loads((ROOT / "spec/schemas/evidence-index.schema.json").read_text()),
-    )
-    atomic_json(evidence_path, evidence)
-    atomic_json(index_path, index)
+    index_schema = json.loads((ROOT / "spec/schemas/evidence-index.schema.json").read_text())
+    try:
+        recorder_safety.commit_records(
+            ROOT, index_path, index, [(evidence_path, payload)],
+            validate_index=lambda value: jsonschema.validate(instance=value, schema=index_schema),
+        )
+    except (OSError, recorder_safety.RecorderSafetyError, jsonschema.ValidationError) as error:
+        return fail(str(error))
     print(
         json.dumps(
             {

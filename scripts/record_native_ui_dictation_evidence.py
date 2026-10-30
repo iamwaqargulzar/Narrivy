@@ -7,7 +7,6 @@ import json
 import os
 import platform
 import shlex
-import signal
 import subprocess
 import sys
 import tempfile
@@ -20,6 +19,7 @@ import jsonschema
 
 import qualify_candidate_known_phrase as package
 import record_native_accessibility_evidence as accessibility
+import recorder_safety
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -310,20 +310,10 @@ def fail(message: str) -> int:
 
 
 def terminate_group(process: subprocess.Popen[bytes] | None) -> None:
-    if process is None or process.poll() is not None:
+    """Stop a process group; also reap members left after the leader exited."""
+    if process is None:
         return
-    try:
-        os.killpg(process.pid, signal.SIGTERM)
-    except ProcessLookupError:
-        return
-    try:
-        process.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-        process.wait(timeout=3)
+    recorder_safety.kill_group(process, grace=5.0)
 
 
 def wait_for_path(path: Path, process: subprocess.Popen[bytes], timeout: float) -> None:
@@ -648,32 +638,11 @@ def inspect_and_operate_ui(
         for item in timing_line.split(",")
         for key, value in [item.split("=", 1)]
     }
-    required_timing_stages = {
-        "capture_start",
-        "capture_ready",
-        "capture_ended",
-        "first_audio_accepted",
-        "raw_final_accepted",
-        "terminal_journal_committed",
-    }
-    if not required_timing_stages.issubset(stage_timings_us):
-        raise RuntimeError("completed session timing snapshot omitted a required stage")
-    capture_ready_ms = (
-        stage_timings_us["capture_ready"] - stage_timings_us["capture_start"]
-    ) / 1000.0
-    stage_latency_ms = {
-        "hotkey_to_visible_feedback": visible_listening_feedback_ms,
-        "capture_ready_to_first_audio": (
-            stage_timings_us["first_audio_accepted"] - stage_timings_us["capture_ready"]
-        ) / 1000.0,
-        "release_to_raw": (
-            stage_timings_us["raw_final_accepted"] - stage_timings_us["capture_ended"]
-        ) / 1000.0,
-        "release_to_committed": (
-            stage_timings_us["terminal_journal_committed"]
-            - stage_timings_us["capture_ended"]
-        ) / 1000.0,
-    }
+    capture_ready_ms, stage_latency_ms = stage_latencies(
+        stage_timings_us, visible_listening_feedback_ms
+    )
+    if not (0.0 <= toggle_ack_ms < float("inf")):
+        raise RuntimeError("installed toggle acknowledgement latency is negative or not finite")
     failure_listening_seen, _, failure_listening_ms = start_and_wait_listening()
     terminate_group(desktop_process)
     if desktop_process.poll() is None:
@@ -726,6 +695,80 @@ def inspect_and_operate_ui(
     }
 
 
+STAGE_ORDER = (
+    "capture_start",
+    "capture_ready",
+    "first_audio_accepted",
+    "capture_ended",
+    "raw_final_accepted",
+    "terminal_journal_committed",
+)
+
+
+def stage_latencies(
+    stage_timings_us: dict[str, int], visible_listening_feedback_ms: float
+) -> tuple[float, dict[str, float]]:
+    """Derive stage latencies; reject missing, non-monotonic or negative values.
+
+    The daemon's stage timestamps must be non-decreasing in session order, so
+    every derived delta is >= 0. A negative latency is a broken clock or a
+    reordered stage, never a fast result.
+    """
+    if not set(STAGE_ORDER).issubset(stage_timings_us):
+        raise RuntimeError("completed session timing snapshot omitted a required stage")
+    ordered = [stage_timings_us[stage] for stage in STAGE_ORDER]
+    if any(value < 0 for value in ordered):
+        raise RuntimeError("completed session timing snapshot has a negative timestamp")
+    for (earlier, before), (later, after) in zip(
+        zip(STAGE_ORDER, ordered), zip(STAGE_ORDER[1:], ordered[1:])
+    ):
+        if after < before:
+            raise RuntimeError(f"session stage timestamps are not monotonic: {later} < {earlier}")
+    if not (0.0 <= visible_listening_feedback_ms < float("inf")):
+        raise RuntimeError("visible listening feedback latency is negative or not finite")
+    capture_ready_ms = (
+        stage_timings_us["capture_ready"] - stage_timings_us["capture_start"]
+    ) / 1000.0
+    return capture_ready_ms, {
+        "hotkey_to_visible_feedback": visible_listening_feedback_ms,
+        "capture_ready_to_first_audio": (
+            stage_timings_us["first_audio_accepted"] - stage_timings_us["capture_ready"]
+        ) / 1000.0,
+        "release_to_raw": (
+            stage_timings_us["raw_final_accepted"] - stage_timings_us["capture_ended"]
+        ) / 1000.0,
+        "release_to_committed": (
+            stage_timings_us["terminal_journal_committed"]
+            - stage_timings_us["capture_ended"]
+        ) / 1000.0,
+    }
+
+
+def skipped_requirements_for(observations: dict[str, object]) -> dict[str, str]:
+    """Performance requirements this run did not meet, each on its own metric.
+
+    PERF-002 is hotkey acknowledgement (the installed toggle's ack), PERF-004
+    is visible listening feedback, PERF-003 is warm capture readiness.
+    """
+    skipped: dict[str, str] = {}
+    if observations["warm_capture_ready_ms"] >= CAPTURE_READY_TARGET_MS:
+        skipped["PERF-003"] = (
+            f"warm capture-ready {observations['warm_capture_ready_ms']:.3f} ms "
+            f"did not meet <{CAPTURE_READY_TARGET_MS:.0f} ms"
+        )
+    if observations["installed_toggle_ack_ms"] >= HOTKEY_ACK_TARGET_MS:
+        skipped["PERF-002"] = (
+            f"hotkey acknowledgement {observations['installed_toggle_ack_ms']:.3f} ms "
+            f"did not meet <{HOTKEY_ACK_TARGET_MS:.0f} ms"
+        )
+    if observations["visible_listening_feedback_ms"] >= VISIBLE_FEEDBACK_TARGET_MS:
+        skipped["PERF-004"] = (
+            f"visible listening feedback {observations['visible_listening_feedback_ms']:.3f} ms "
+            f"did not meet <{VISIBLE_FEEDBACK_TARGET_MS:.0f} ms"
+        )
+    return skipped
+
+
 def native_run(
     identity: package.EmbeddedIdentity,
     members: dict[str, bytes],
@@ -759,208 +802,219 @@ def native_run(
             identity=identity,
             pipewire=pipewire,
         )
-        daemon_log = holder / "daemon.log"
-        daemon_fd = os.open(daemon_log, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        first_daemon_clean = False
-        restart_log = holder / "restart.log"
-        replay_log = holder / "replay.log"
+        # One outer owner for every daemon and desktop process this run starts:
+        # whatever raises, no process outlives the recorder.
         try:
-            daemon = subprocess.Popen(
-                [written[package.DAEMON_MEMBER]],
-                cwd=holder,
-                env=daemon_env,
-                stdin=subprocess.DEVNULL,
-                stdout=daemon_fd,
-                stderr=daemon_fd,
-                start_new_session=True,
-                close_fds=True,
-            )
-        finally:
-            os.close(daemon_fd)
-        wait_for_path(socket_path, daemon, 12)
+            daemon_log = holder / "daemon.log"
+            daemon_fd = os.open(daemon_log, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            first_daemon_clean = False
+            restart_log = holder / "restart.log"
+            replay_log = holder / "replay.log"
+            try:
+                daemon = subprocess.Popen(
+                    [written[package.DAEMON_MEMBER]],
+                    cwd=holder,
+                    env=daemon_env,
+                    stdin=subprocess.DEVNULL,
+                    stdout=daemon_fd,
+                    stderr=daemon_fd,
+                    start_new_session=True,
+                    close_fds=True,
+                )
+            finally:
+                os.close(daemon_fd)
+            wait_for_path(socket_path, daemon, 12)
 
-        ready = holder / "ready.json"
-        desktop_log = holder / "desktop.log"
-        bus = accessibility.atspi_bus_address()
-        os.environ["AT_SPI_BUS_ADDRESS"] = bus
-        desktop_env = dict(os.environ)
-        desktop_env.update(
-            {
-                "HOME": str(holder / "home"),
-                "XDG_RUNTIME_DIR": os.environ["XDG_RUNTIME_DIR"],
-                "XDG_STATE_HOME": str(holder / "state"),
-                "XDG_CACHE_HOME": str(holder / "cache"),
-                "XDG_CONFIG_HOME": str(holder / "config"),
-                "XDG_DATA_HOME": str(holder / "data"),
-                "NARRIVY_RUNTIME_DIR": str(holder / "runtime"),
-                "NARRIVY_SOCKET": str(socket_path),
-                "NARRIVY_READY_FILE": str(ready),
-                "NO_AT_BRIDGE": "0",
-                "GTK_A11Y": "atspi",
-                "GDK_BACKEND": "wayland",
-                "AT_SPI_BUS_ADDRESS": bus,
-            }
-        )
-        desktop_fd = os.open(desktop_log, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        try:
-            desktop = subprocess.Popen(
-                [desktop_bin],
-                cwd=holder,
-                env=desktop_env,
-                stdin=subprocess.DEVNULL,
-                stdout=desktop_fd,
-                stderr=desktop_fd,
-                start_new_session=True,
-                close_fds=True,
+            ready = holder / "ready.json"
+            desktop_log = holder / "desktop.log"
+            bus = accessibility.atspi_bus_address()
+            os.environ["AT_SPI_BUS_ADDRESS"] = bus
+            desktop_env = dict(os.environ)
+            desktop_env.update(
+                {
+                    "HOME": str(holder / "home"),
+                    "XDG_RUNTIME_DIR": os.environ["XDG_RUNTIME_DIR"],
+                    "XDG_STATE_HOME": str(holder / "state"),
+                    "XDG_CACHE_HOME": str(holder / "cache"),
+                    "XDG_CONFIG_HOME": str(holder / "config"),
+                    "XDG_DATA_HOME": str(holder / "data"),
+                    "NARRIVY_RUNTIME_DIR": str(holder / "runtime"),
+                    "NARRIVY_SOCKET": str(socket_path),
+                    "NARRIVY_READY_FILE": str(ready),
+                    "NO_AT_BRIDGE": "0",
+                    "GTK_A11Y": "atspi",
+                    "GDK_BACKEND": "wayland",
+                    "AT_SPI_BUS_ADDRESS": bus,
+                }
             )
-        finally:
-            os.close(desktop_fd)
+            desktop_fd = os.open(desktop_log, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            try:
+                desktop = subprocess.Popen(
+                    [desktop_bin],
+                    cwd=holder,
+                    env=desktop_env,
+                    stdin=subprocess.DEVNULL,
+                    stdout=desktop_fd,
+                    stderr=desktop_fd,
+                    start_new_session=True,
+                    close_fds=True,
+                )
+            finally:
+                os.close(desktop_fd)
 
-        try:
-            wait_for_path(ready, desktop, 12)
-            marker = json.loads(ready.read_text())
-            if marker.get("gdk_display_type") != "GdkWaylandDisplay":
-                raise RuntimeError("desktop did not use native Wayland")
-            document = marker.get("document", {})
-            if document.get("root") is not True or document.get("bridgeReply") != "ok" or document.get("errors"):
-                raise RuntimeError("desktop document or native bridge was not healthy")
-            if marker.get("resources", {}).get("external_count") != 0:
-                raise RuntimeError("desktop attempted an external resource request")
-            observations = inspect_and_operate_ui(
-                fixture=fixture,
-                cli=written[package.CLI_MEMBER],
-                socket_path=socket_path,
-                daemon_env=daemon_env,
-                playback_env={"PATH": "/usr/bin:/bin", "LC_ALL": "C", **pipewire},
-                inbox_dir=holder / "runtime/inbox",
-                desktop_process=desktop,
+            try:
+                wait_for_path(ready, desktop, 12)
+                marker = json.loads(ready.read_text())
+                if marker.get("gdk_display_type") != "GdkWaylandDisplay":
+                    raise RuntimeError("desktop did not use native Wayland")
+                document = marker.get("document", {})
+                if document.get("root") is not True or document.get("bridgeReply") != "ok" or document.get("errors"):
+                    raise RuntimeError("desktop document or native bridge was not healthy")
+                if marker.get("resources", {}).get("external_count") != 0:
+                    raise RuntimeError("desktop attempted an external resource request")
+                observations = inspect_and_operate_ui(
+                    fixture=fixture,
+                    cli=written[package.CLI_MEMBER],
+                    socket_path=socket_path,
+                    daemon_env=daemon_env,
+                    playback_env={"PATH": "/usr/bin:/bin", "LC_ALL": "C", **pipewire},
+                    inbox_dir=holder / "runtime/inbox",
+                    desktop_process=desktop,
+                )
+                inbox = package._list_inbox(holder / "runtime/inbox")
+                if len(inbox) != 2:
+                    raise RuntimeError("expected two committed Inbox results after one cancelled session")
+                transcript_results = [package._read_transcript_text(path) for path in inbox]
+                transcript_sha256, transcript_bytes, _text = transcript_results[0]
+            finally:
+                terminate_group(desktop)
+                terminate_group(daemon)
+
+            first_daemon_clean = daemon is not None and daemon.returncode == 0
+            if not first_daemon_clean:
+                raise RuntimeError("first daemon did not shut down cleanly")
+
+            recovery_source = inbox[0]
+            recovery_txid = recovery_source.stem
+            journal_path = holder / "state/narrivy/journal" / f"{recovery_txid}.json"
+            journal_record = json.loads(journal_path.read_text())
+            if journal_record.get("state") not in ("inbox_recovered", "delivered"):
+                raise RuntimeError("actual session journal was not terminal before injection")
+            variants = journal_record.get("variants")
+            if not isinstance(variants, dict) or not isinstance(variants.get("corrected"), str):
+                raise RuntimeError("actual session journal lacked corrected recovery text")
+            expected_recovery_hash = hashlib.sha256(variants["corrected"].encode()).hexdigest()
+            if digest(recovery_source) != expected_recovery_hash:
+                raise RuntimeError("actual Inbox and journal transaction did not agree")
+
+            # Recreate the durable boundary left by a crash after correction was
+            # committed but before delivery became terminal. The record and text
+            # come from the exact packaged session above; only terminal fields are
+            # rolled back while the daemon is stopped.
+            journal_record["state"] = "committed"
+            variants["delivered"] = None
+            variants["attempts"] = []
+            journal_record["delivery_report"] = None
+            journal_record["failure_code"] = None
+            journal_record["updated_unix_ms"] = int(time.time() * 1000)
+            atomic_private_json(journal_path, journal_record)
+            recovery_source.unlink()
+
+            restart_fd = os.open(restart_log, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            try:
+                daemon = subprocess.Popen(
+                    [written[package.DAEMON_MEMBER]],
+                    cwd=holder,
+                    env=daemon_env,
+                    stdin=subprocess.DEVNULL,
+                    stdout=restart_fd,
+                    stderr=restart_fd,
+                    start_new_session=True,
+                    close_fds=True,
+                )
+            finally:
+                os.close(restart_fd)
+            try:
+                wait_for_path(socket_path, daemon, 12)
+                wait_for_path(recovery_source, daemon, 5)
+                if digest(recovery_source) != expected_recovery_hash:
+                    raise RuntimeError("startup recovery changed committed text")
+                recovered_record = json.loads(journal_path.read_text())
+                if recovered_record.get("state") != "inbox_recovered":
+                    raise RuntimeError("startup recovery did not terminalize the journal")
+                recovered_variants = recovered_record.get("variants", {})
+                if recovered_variants.get("delivered") != recovered_variants.get("corrected"):
+                    raise RuntimeError("startup recovery journal variants diverged")
+                if recovered_record.get("delivery_report", {}).get("backend") != "inbox":
+                    raise RuntimeError("startup recovery did not record its Inbox backend")
+            finally:
+                terminate_group(daemon)
+
+            recovery_daemon_clean = daemon is not None and daemon.returncode == 0
+            if not recovery_daemon_clean:
+                raise RuntimeError("startup recovery daemon did not shut down cleanly")
+            replay_fd = os.open(replay_log, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            try:
+                daemon = subprocess.Popen(
+                    [written[package.DAEMON_MEMBER]],
+                    cwd=holder,
+                    env=daemon_env,
+                    stdin=subprocess.DEVNULL,
+                    stdout=replay_fd,
+                    stderr=replay_fd,
+                    start_new_session=True,
+                    close_fds=True,
+                )
+            finally:
+                os.close(replay_fd)
+            try:
+                wait_for_path(socket_path, daemon, 12)
+                if digest(recovery_source) != expected_recovery_hash:
+                    raise RuntimeError("terminal startup recovery changed on replay")
+                if len(package._list_inbox(holder / "runtime/inbox")) != 2:
+                    raise RuntimeError("terminal startup recovery was replayed twice")
+            finally:
+                terminate_group(daemon)
+
+            logs = [
+                daemon_log.read_bytes(),
+                desktop_log.read_bytes(),
+                restart_log.read_bytes(),
+                replay_log.read_bytes(),
+            ]
+            # The actual transcripts stay in memory only; logs are scanned for their
+            # n-grams. A missing log raises (read_bytes), never scans as clean.
+            scanned, fragment_hits = package._scan_logs(
+                logs, transcripts=[text for _digest, _size, text in transcript_results]
             )
-            inbox = package._list_inbox(holder / "runtime/inbox")
-            if len(inbox) != 2:
-                raise RuntimeError("expected two committed Inbox results after one cancelled session")
-            transcript_results = [package._read_transcript(path) for path in inbox]
-            transcript_sha256, transcript_bytes = transcript_results[0]
+            transcript_results = [(sha, size) for sha, size, _text in transcript_results]
+            if fragment_hits:
+                raise RuntimeError("ordinary logs contained transcript content")
+            observations.update(
+                {
+                    "inbox_files": 2,
+                    "all_committed_transcripts_matched": len(transcript_results) == 2,
+                    "known_phrase_matched": True,
+                    "transcript_sha256": transcript_sha256,
+                    "transcript_utf8_bytes": transcript_bytes,
+                    "log_bytes_scanned": scanned,
+                    "log_fragment_hits": fragment_hits,
+                    "daemon_clean_shutdown": daemon is not None and daemon.returncode == 0,
+                    "initial_daemon_clean_shutdown": first_daemon_clean,
+                    "recovery_daemon_clean_shutdown": recovery_daemon_clean,
+                    "desktop_owned_cleanup": desktop is not None and desktop.returncode is not None,
+                    "startup_recovery_transaction": recovery_txid,
+                    "startup_recovery_inbox_sha256": expected_recovery_hash,
+                    "startup_recovery_terminal_state": "inbox_recovered",
+                    "startup_recovery_replay_inbox_files": 2,
+                }
+            )
+            if not observations["daemon_clean_shutdown"]:
+                raise RuntimeError("daemon did not shut down cleanly")
+            return marker, observations
         finally:
             terminate_group(desktop)
             terminate_group(daemon)
-
-        first_daemon_clean = daemon is not None and daemon.returncode == 0
-        if not first_daemon_clean:
-            raise RuntimeError("first daemon did not shut down cleanly")
-
-        recovery_source = inbox[0]
-        recovery_txid = recovery_source.stem
-        journal_path = holder / "state/narrivy/journal" / f"{recovery_txid}.json"
-        journal_record = json.loads(journal_path.read_text())
-        if journal_record.get("state") not in ("inbox_recovered", "delivered"):
-            raise RuntimeError("actual session journal was not terminal before injection")
-        variants = journal_record.get("variants")
-        if not isinstance(variants, dict) or not isinstance(variants.get("corrected"), str):
-            raise RuntimeError("actual session journal lacked corrected recovery text")
-        expected_recovery_hash = hashlib.sha256(variants["corrected"].encode()).hexdigest()
-        if digest(recovery_source) != expected_recovery_hash:
-            raise RuntimeError("actual Inbox and journal transaction did not agree")
-
-        # Recreate the durable boundary left by a crash after correction was
-        # committed but before delivery became terminal. The record and text
-        # come from the exact packaged session above; only terminal fields are
-        # rolled back while the daemon is stopped.
-        journal_record["state"] = "committed"
-        variants["delivered"] = None
-        variants["attempts"] = []
-        journal_record["delivery_report"] = None
-        journal_record["failure_code"] = None
-        journal_record["updated_unix_ms"] = int(time.time() * 1000)
-        atomic_private_json(journal_path, journal_record)
-        recovery_source.unlink()
-
-        restart_fd = os.open(restart_log, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        try:
-            daemon = subprocess.Popen(
-                [written[package.DAEMON_MEMBER]],
-                cwd=holder,
-                env=daemon_env,
-                stdin=subprocess.DEVNULL,
-                stdout=restart_fd,
-                stderr=restart_fd,
-                start_new_session=True,
-                close_fds=True,
-            )
-        finally:
-            os.close(restart_fd)
-        try:
-            wait_for_path(socket_path, daemon, 12)
-            wait_for_path(recovery_source, daemon, 5)
-            if digest(recovery_source) != expected_recovery_hash:
-                raise RuntimeError("startup recovery changed committed text")
-            recovered_record = json.loads(journal_path.read_text())
-            if recovered_record.get("state") != "inbox_recovered":
-                raise RuntimeError("startup recovery did not terminalize the journal")
-            recovered_variants = recovered_record.get("variants", {})
-            if recovered_variants.get("delivered") != recovered_variants.get("corrected"):
-                raise RuntimeError("startup recovery journal variants diverged")
-            if recovered_record.get("delivery_report", {}).get("backend") != "inbox":
-                raise RuntimeError("startup recovery did not record its Inbox backend")
-        finally:
-            terminate_group(daemon)
-
-        recovery_daemon_clean = daemon is not None and daemon.returncode == 0
-        if not recovery_daemon_clean:
-            raise RuntimeError("startup recovery daemon did not shut down cleanly")
-        replay_fd = os.open(replay_log, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        try:
-            daemon = subprocess.Popen(
-                [written[package.DAEMON_MEMBER]],
-                cwd=holder,
-                env=daemon_env,
-                stdin=subprocess.DEVNULL,
-                stdout=replay_fd,
-                stderr=replay_fd,
-                start_new_session=True,
-                close_fds=True,
-            )
-        finally:
-            os.close(replay_fd)
-        try:
-            wait_for_path(socket_path, daemon, 12)
-            if digest(recovery_source) != expected_recovery_hash:
-                raise RuntimeError("terminal startup recovery changed on replay")
-            if len(package._list_inbox(holder / "runtime/inbox")) != 2:
-                raise RuntimeError("terminal startup recovery was replayed twice")
-        finally:
-            terminate_group(daemon)
-
-        logs = [
-            daemon_log.read_bytes(),
-            desktop_log.read_bytes(),
-            restart_log.read_bytes(),
-            replay_log.read_bytes(),
-        ]
-        scanned, fragment_hits = package._scan_logs(logs)
-        if fragment_hits:
-            raise RuntimeError("ordinary logs contained transcript content")
-        observations.update(
-            {
-                "inbox_files": 2,
-                "all_committed_transcripts_matched": len(transcript_results) == 2,
-                "known_phrase_matched": True,
-                "transcript_sha256": transcript_sha256,
-                "transcript_utf8_bytes": transcript_bytes,
-                "log_bytes_scanned": scanned,
-                "log_fragment_hits": fragment_hits,
-                "daemon_clean_shutdown": daemon is not None and daemon.returncode == 0,
-                "initial_daemon_clean_shutdown": first_daemon_clean,
-                "recovery_daemon_clean_shutdown": recovery_daemon_clean,
-                "desktop_owned_cleanup": desktop is not None and desktop.returncode is not None,
-                "startup_recovery_transaction": recovery_txid,
-                "startup_recovery_inbox_sha256": expected_recovery_hash,
-                "startup_recovery_terminal_state": "inbox_recovered",
-                "startup_recovery_replay_inbox_files": 2,
-            }
-        )
-        if not observations["daemon_clean_shutdown"]:
-            raise RuntimeError("daemon did not shut down cleanly")
-        return marker, observations
 
 
 def main() -> int:
@@ -972,8 +1026,8 @@ def main() -> int:
         requirement: ROOT / f"agent/evidence/{record['phase']}/{record['verification']}.json"
         for requirement, record in RECORDS.items()
     }
-    if not all(accessibility.replaceable(path, index) for path in outputs.values()):
-        return fail("an evidence output is already qualified or is not historical schema-v1 material")
+    if not all(recorder_safety.replaceable(path, index, ROOT) for path in outputs.values()):
+        return fail("an evidence output is current, unindexed v2, or does not match its INDEX hash")
 
     operations = package.HostOperations()
     try:
@@ -1000,6 +1054,7 @@ def main() -> int:
         if digest(fixture) != EXPECTED_FIXTURE_SHA256:
             raise RuntimeError("fixture hash mismatch")
         desktop_name, session = package._require_native_cosmic(operations)
+        lane = operations.native_lane()
         pipewire = package._pipewire_env(operations.environ())
         package._require_physical_source(operations, 5.0)
         started = datetime.now(timezone.utc)
@@ -1017,30 +1072,15 @@ def main() -> int:
     ) as error:
         return fail(str(error))
 
-    os_name, os_version = accessibility.os_release()
     script_rel = "scripts/record_native_ui_dictation_evidence.py"
     metrics = {
         "overlay_contracts": overlay_contracts,
         "failure_injection_contracts": failure_injection_contracts,
         "native_marker": marker,
         "native_ui": observations,
+        "native_lane": lane,
     }
-    skipped_requirements: dict[str, str] = {}
-    if observations["warm_capture_ready_ms"] >= CAPTURE_READY_TARGET_MS:
-        skipped_requirements["PERF-003"] = (
-            f"warm capture-ready {observations['warm_capture_ready_ms']:.3f} ms "
-            f"did not meet <{CAPTURE_READY_TARGET_MS:.0f} ms"
-        )
-    if observations["visible_listening_feedback_ms"] >= HOTKEY_ACK_TARGET_MS:
-        skipped_requirements["PERF-002"] = (
-            f"hotkey feedback {observations['visible_listening_feedback_ms']:.3f} ms "
-            f"did not meet <{HOTKEY_ACK_TARGET_MS:.0f} ms"
-        )
-    if observations["visible_listening_feedback_ms"] >= VISIBLE_FEEDBACK_TARGET_MS:
-        skipped_requirements["PERF-004"] = (
-            f"visible listening feedback {observations['visible_listening_feedback_ms']:.3f} ms "
-            f"did not meet <{VISIBLE_FEEDBACK_TARGET_MS:.0f} ms"
-        )
+    skipped_requirements = skipped_requirements_for(observations)
     metrics["skipped_requirements"] = skipped_requirements
     schema = json.loads((ROOT / "spec/schemas/evidence.schema.json").read_text())
     payloads: list[tuple[Path, str, bytes]] = []
@@ -1061,8 +1101,8 @@ def main() -> int:
             "environment": {
                 "id": "cosmic-wayland-native-ui-dictation",
                 "native_or_vm": "native",
-                "os": os_name,
-                "os_version": os_version,
+                "os": lane["os"],
+                "os_version": lane["os_version"],
                 "kernel": platform.release(),
                 "desktop": desktop_name,
                 "session": session,
@@ -1126,26 +1166,17 @@ def main() -> int:
         payload = (json.dumps(evidence, indent=2, sort_keys=True) + "\n").encode()
         payloads.append((outputs[requirement], relative, payload))
 
-    targets = {relative for _path, relative, _payload in payloads}
-    index["qualified_evidence"] = [
-        item for item in index["qualified_evidence"] if item.get("path") not in targets
-    ]
-    for _path, relative, payload in payloads:
-        index["qualified_evidence"].append(
-            {
-                "path": relative,
-                "sha256": hashlib.sha256(payload).hexdigest(),
-                "disposition": "qualified",
-            }
+    index_schema = json.loads((ROOT / "spec/schemas/evidence-index.schema.json").read_text())
+    try:
+        recorder_safety.commit_records(
+            ROOT,
+            index_path,
+            index,
+            [(path, payload) for path, _relative, payload in payloads],
+            validate_index=lambda value: jsonschema.validate(instance=value, schema=index_schema),
         )
-    index["qualified_evidence"].sort(key=lambda item: item["path"])
-    jsonschema.validate(
-        instance=index,
-        schema=json.loads((ROOT / "spec/schemas/evidence-index.schema.json").read_text()),
-    )
-    for path, _relative, payload in payloads:
-        accessibility.atomic_json(path, json.loads(payload))
-    accessibility.atomic_json(index_path, index)
+    except (OSError, recorder_safety.RecorderSafetyError, jsonschema.ValidationError) as error:
+        return fail(str(error))
     print(
         json.dumps(
             {

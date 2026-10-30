@@ -88,11 +88,17 @@ SENTINEL_DIGESTS = {
     for area, payload in SENTINEL_PAYLOADS.items()
 }
 SENTINEL_WRITE = 'printf "%s\\n" "$1" > "$2"'
-DIRECTORY_SCRIPT = (
-    "set -eu\n"
-    f"mkdir -p {CONTAINER_ROOT}\n"
-    f"chmod 700 {CONTAINER_ROOT}\n"
+# Creates CONTAINER_ROOT plus the daemon's runtime/state/cache/data/home dirs.
+DIRECTORY_SCRIPT = lifecycle.DIRECTORY_SCRIPT
+# The daemon must start and answer `narrivy-cli status` after every install,
+# not only have its files present.
+DAEMON_CHECK_STEPS = (
+    "daemon_status_previous",
+    "daemon_status_upgrade",
+    "daemon_status_rollback",
+    "daemon_status_reupgrade",
 )
+DAEMON_POLL_SECONDS = 0.25
 
 
 def _sanitize_detail(value: object, limit: int = 200) -> str:
@@ -260,6 +266,7 @@ def _base_result(
             "preserved_after_remove": False,
             "preserved_after_purge": False,
         },
+        "daemon_checks": {step: False for step in DAEMON_CHECK_STEPS},
         "steps": [],
         "unqualified": True,
         "requirement_evidence": False,
@@ -276,6 +283,7 @@ def qualify(
     image: str = DEFAULT_IMAGE,
     limits: Limits = DEFAULT_LIMITS,
     clock: Callable[[], float] = time.monotonic,
+    sleep: Callable[[float], None] = time.sleep,
 ) -> dict[str, Any]:
     """Run the bounded upgrade/rollback qualification and return its result."""
 
@@ -418,6 +426,51 @@ def qualify(
         result["sentinels"][preserved_key] = True
         passed(step)
 
+    def daemon_status_check(step: str) -> None:
+        """Start the installed daemon, require `narrivy-cli status`, stop it cleanly."""
+        run_ok(
+            step,
+            ["/bin/sh", "-c", lifecycle.DAEMON_START_SCRIPT],
+            limits.command,
+            lifecycle.DAEMON_ENV,
+            detached=True,
+        )
+        local_deadline = clock() + remaining(step, limits.startup)
+        while True:
+            if clock() >= local_deadline:
+                raise StepFailure(step, "daemon socket did not appear within the bound")
+            if run_exec(step, ["test", "-S", lifecycle.SOCKET_PATH], limits.command).returncode == 0:
+                break
+            if run_exec(step, ["test", "-f", lifecycle.EXIT_FILE], limits.command).returncode == 0:
+                raise StepFailure(step, "daemon exited before serving")
+            sleep(min(DAEMON_POLL_SECONDS, max(0.0, local_deadline - clock())))
+        status = run_exec(
+            step,
+            ["/usr/bin/narrivy-cli", "--socket", lifecycle.SOCKET_PATH, "status"],
+            limits.command,
+            lifecycle.DAEMON_ENV,
+        )
+        if status.returncode != 0:
+            raise StepFailure(step, f"narrivy_cli_status_exit={status.returncode}")
+        pid = run_ok(step, ["cat", lifecycle.PID_FILE], limits.command).stdout.decode(
+            "ascii", "replace"
+        ).strip()
+        if not lifecycle.PID_RE.fullmatch(pid):
+            raise StepFailure(step, "daemon pid was unavailable")
+        run_ok(step, ["/bin/sh", "-c", 'kill -TERM "$1"', "kill", pid], limits.command)
+        stop_deadline = clock() + remaining(step, limits.shutdown)
+        while run_exec(step, ["test", "-f", lifecycle.EXIT_FILE], limits.command).returncode != 0:
+            if clock() >= stop_deadline:
+                raise StepFailure(step, "daemon did not exit within the bound")
+            sleep(min(DAEMON_POLL_SECONDS, max(0.0, stop_deadline - clock())))
+        code = run_ok(step, ["cat", lifecycle.EXIT_FILE], limits.command).stdout.decode(
+            "ascii", "replace"
+        ).strip()
+        if code != "0":
+            raise StepFailure(step, f"daemon_exit_status={code}")
+        result["daemon_checks"][step] = True
+        passed(step)
+
     def install_package(step: str, package_path: str, *extra: str) -> None:
         run_ok(
             step,
@@ -534,6 +587,7 @@ def qualify(
         passed("create_test_user")
 
         install_package("apt_install_previous", PREVIOUS_IN_CONTAINER)
+        daemon_status_check("daemon_status_previous")
 
         run_ok(
             "create_sentinels",
@@ -562,6 +616,7 @@ def qualify(
 
         install_package("apt_upgrade_current", CURRENT_IN_CONTAINER)
         confirm_installed("confirm_upgrade", current_version, "preserved_after_upgrade")
+        daemon_status_check("daemon_status_upgrade")
 
         install_package(
             "apt_rollback_previous", PREVIOUS_IN_CONTAINER, "--allow-downgrades"
@@ -569,11 +624,13 @@ def qualify(
         confirm_installed(
             "confirm_rollback", previous_version, "preserved_after_rollback"
         )
+        daemon_status_check("daemon_status_rollback")
 
         install_package("apt_reupgrade_current", CURRENT_IN_CONTAINER)
         confirm_installed(
             "confirm_reupgrade", current_version, "preserved_after_reupgrade"
         )
+        daemon_status_check("daemon_status_reupgrade")
 
         run_ok(
             "apt_remove",
