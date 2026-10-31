@@ -167,7 +167,7 @@ fn start_and_wait_for_delivering(socket: &Path) -> TestResult<String> {
     }
     let started = client.request(
         &IpcCommand::StartSession {
-            pipeline_id: Some("mock-dictation".to_owned()),
+            pipeline_id: Some("clean".to_owned()),
             activation: "test".to_owned(),
             recognition: None,
         },
