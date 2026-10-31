@@ -36,6 +36,7 @@ import os
 import re
 import shlex
 from collections.abc import Mapping
+from datetime import datetime
 from pathlib import Path
 
 EVIDENCE_TYPES = {
@@ -380,6 +381,40 @@ def _reviewed_assertion_id(entry: object) -> str | None:
 
 
 
+def _reject_json_constant(token: str) -> object:
+    raise ValueError(f"non-finite JSON number {token} is not valid evidence")
+
+
+def loads_strict(text: str) -> object:
+    """Parse JSON, rejecting NaN and Infinity (Python's json accepts them)."""
+    return json.loads(text, parse_constant=_reject_json_constant)
+
+
+def load_json_strict(path: Path) -> object:
+    return loads_strict(path.read_text())
+
+
+def parse_timestamp(value: object) -> datetime:
+    """Parse an RFC 3339 timestamp; a naive or malformed value is an error."""
+    if not isinstance(value, str):
+        raise ValueError(f"timestamp is not a string: {value!r}")
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        raise ValueError(f"timestamp has no time zone: {value!r}")
+    return parsed
+
+
+def timestamp_errors(data: Mapping[str, object]) -> list[str]:
+    try:
+        started = parse_timestamp(data.get("started_at"))
+        ended = parse_timestamp(data.get("ended_at"))
+    except ValueError as exc:
+        return [f"evidence timestamp is invalid: {exc}"]
+    if ended < started:
+        return ["evidence ended_at precedes started_at"]
+    return []
+
+
 def _safe_relative_path(value: object) -> str | None:
     if not isinstance(value, str) or not value:
         return None
@@ -478,6 +513,7 @@ def assess_evidence(
             errors.append("execution substitutions declaration is missing")
     if not isinstance(data.get("artifact_hashes"), Mapping):
         errors.append("artifact_hashes is missing or invalid")
+    errors.extend(timestamp_errors(data))
     return errors
 
 

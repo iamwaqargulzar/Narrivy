@@ -317,7 +317,7 @@ def run_marker(root: Path, evidence_path: Path, requirement_id: str) -> subproce
 
 def release_validation_api() -> tuple[dict[str, object], object]:
     source = (ROOT / "scripts/release_gate.py").read_text()
-    preamble, separator, _ = source.partition("\nap = argparse.ArgumentParser()")
+    preamble, separator, _ = source.partition("\ndef main() -> None:")
     if not separator:
         raise AssertionError("release_gate.py no longer exposes validation before its CLI entry point")
     namespace: dict[str, object] = {

@@ -15,6 +15,7 @@ import json
 import os
 import re
 import shlex
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -22,10 +23,19 @@ from pathlib import Path
 from evidence_policy import (
     RELEASED_EVIDENCE_SCHEMA_VERSIONS,
     assess_evidence,
+    load_json_strict,
+    timestamp_errors,
     validate_requirement_evidence,
 )
 
 ROOT = Path(os.environ.get("NARRIVY_ROOT", Path(__file__).resolve().parents[1])).resolve()
+# Every gate command gets a bounded run time; the whole process group is
+# killed when it expires so a hung child cannot outlive the gate.
+COMMAND_TIMEOUT_SECONDS = int(os.environ.get("NARRIVY_GATE_COMMAND_TIMEOUT", "3600"))
+# A blocker is open unless its status starts with one of these words and
+# names nothing still open.
+CLOSED_BLOCKER_STATUSES = ("RESOLVED", "REMOVED", "SUPERSEDED", "POST-RELEASE", "OWNER-ACCEPTED")
+OPEN_BLOCKER_WORDS = re.compile(r"\b(?:OPEN|PENDING|BLOCKED|IN PROGRESS)\b")
 
 
 def load_json(path: Path):
@@ -67,6 +77,13 @@ def parse_dt(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
+def rel(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def evidence_files(phase: str) -> list[Path]:
     base = ROOT / "agent" / "evidence" / phase
     return sorted(base.rglob("*.json")) if base.is_dir() else []
@@ -75,9 +92,9 @@ def evidence_files(phase: str) -> list[Path]:
 def read_evidence(path: Path) -> tuple[dict | None, list[str]]:
     errors: list[str] = []
     try:
-        data = load_json(path)
+        data = load_json_strict(path)
     except Exception as exc:
-        return None, [f"evidence {path.relative_to(ROOT)} invalid JSON: {exc}"]
+        return None, [f"evidence {rel(path)} invalid JSON: {exc}"]
     try:
         import jsonschema
 
@@ -86,7 +103,7 @@ def read_evidence(path: Path) -> tuple[dict | None, list[str]]:
     except ImportError:
         errors.append("jsonschema unavailable while validating evidence")
     except Exception as exc:
-        errors.append(f"evidence {path.relative_to(ROOT)} schema fail: {exc}")
+        errors.append(f"evidence {rel(path)} schema fail: {exc}")
     return data, errors
 
 
@@ -106,7 +123,7 @@ def verify_evidence(
         return [f"evidence missing: {path}"]
 
     if path.suffix == ".md":
-        return [f"historical Markdown evidence is quarantined and cannot qualify: {path.relative_to(ROOT)}"]
+        return [f"historical Markdown evidence is quarantined and cannot qualify: {rel(path)}"]
 
     data, schema_errors = read_evidence(path)
     errors.extend(schema_errors)
@@ -114,15 +131,22 @@ def verify_evidence(
         return errors
 
     if data.get("phase") != phase:
-        errors.append(f"{path.relative_to(ROOT)} phase {data.get('phase')} != {phase}")
+        errors.append(f"{rel(path)} phase {data.get('phase')} != {phase}")
     if verification_id and data.get("verification_id") != verification_id:
         errors.append(
-            f"{path.relative_to(ROOT)} verification_id {data.get('verification_id')} != {verification_id}"
+            f"{rel(path)} verification_id {data.get('verification_id')} != {verification_id}"
         )
     if requirement_id and requirement_id not in data.get("requirement_ids", []):
-        errors.append(f"{path.relative_to(ROOT)} does not bind requirement {requirement_id}")
+        errors.append(f"{rel(path)} does not bind requirement {requirement_id}")
     if scenario_id and data.get("scenario_id") != scenario_id:
-        errors.append(f"{path.relative_to(ROOT)} scenario_id {data.get('scenario_id')} != {scenario_id}")
+        errors.append(f"{rel(path)} scenario_id {data.get('scenario_id')} != {scenario_id}")
+    if scenario_id:
+        # The gate hashes the scenario spec itself; the record's claim is only compared.
+        expected_hash, err = scenario_hash(scenario_id)
+        if err:
+            errors.append(f"{rel(path)} {err}")
+        elif data.get("scenario_hash") != expected_hash:
+            errors.append(f"{rel(path)} scenario_hash does not match spec/scenarios/{scenario_id}.json")
 
     if data.get("schema_version") in RELEASED_EVIDENCE_SCHEMA_VERSIONS:
         if verification_layer is None:
@@ -136,7 +160,7 @@ def verify_evidence(
             ]
             layers = {row["verification_layer"] for row in bound_rows}
             if len(layers) != 1:
-                errors.append(f"{path.relative_to(ROOT)} cannot resolve one verification profile from traceability")
+                errors.append(f"{rel(path)} cannot resolve one verification profile from traceability")
             else:
                 verification_layer = layers.pop()
         if verification_layer is not None:
@@ -148,38 +172,46 @@ def verify_evidence(
                 verification_layer=verification_layer,
                 current_commit=commit,
             ):
-                errors.append(f"{path.relative_to(ROOT)} {trust_error}")
+                errors.append(f"{rel(path)} {trust_error}")
     else:
+        # assess_evidence also checks the timestamps for released schemas.
         for trust_error in assess_evidence(data, current_commit=commit):
-            errors.append(f"{path.relative_to(ROOT)} {trust_error}")
-    if native_required and data.get("environment", {}).get("native_or_vm") != "native":
-        errors.append(f"{path.relative_to(ROOT)} requires native evidence")
-
-    try:
-        if parse_dt(data["ended_at"]) < parse_dt(data["started_at"]):
-            errors.append(f"{path.relative_to(ROOT)} ended_at precedes started_at")
-    except Exception as exc:
-        errors.append(f"{path.relative_to(ROOT)} timestamp parse failed: {exc}")
+            errors.append(f"{rel(path)} {trust_error}")
+        if data.get("schema_version") not in RELEASED_EVIDENCE_SCHEMA_VERSIONS:
+            for ts_error in timestamp_errors(data):
+                errors.append(f"{rel(path)} {ts_error}")
+    environment = data.get("environment")
+    if native_required and (not isinstance(environment, dict) or environment.get("native_or_vm") != "native"):
+        errors.append(f"{rel(path)} requires native evidence")
 
     # Evidence may bind generated artifacts. If it lists a repository path, hash it now.
-    for rel, expected in (data.get("artifact_hashes") or {}).items():
-        fp = inside_repo(rel)
+    artifact_hashes = data.get("artifact_hashes")
+    for bound, expected in (artifact_hashes.items() if isinstance(artifact_hashes, dict) else ()):
+        fp = inside_repo(bound)
         if fp is None or not fp.is_file():
-            errors.append(f"{path.relative_to(ROOT)} artifact_hash path missing/unsafe: {rel}")
+            errors.append(f"{rel(path)} artifact_hash path missing/unsafe: {bound}")
             continue
         got = sha256(fp)
         if got != expected:
-            errors.append(f"{path.relative_to(ROOT)} artifact hash mismatch: {rel}")
+            errors.append(f"{rel(path)} artifact hash mismatch: {bound}")
 
     return errors
+
+
+def verified_native(path: Path, **kwargs) -> bool:
+    """Count evidence as native only when it fully verifies with native_required."""
+    kwargs["native_required"] = True
+    return not verify_evidence(path, **kwargs)
 
 
 def find_evidence(phase: str, *, verification_id: str | None = None, scenario_id: str | None = None):
     matches: list[Path] = []
     for path in evidence_files(phase):
         try:
-            data = load_json(path)
+            data = load_json_strict(path)
         except Exception:
+            continue
+        if not isinstance(data, dict):
             continue
         if verification_id and data.get("verification_id") != verification_id:
             continue
@@ -196,30 +228,88 @@ def scenario_hash(scenario_id: str) -> tuple[str | None, str | None]:
     return sha256(path), None
 
 
-def blocker_errors(phase: str) -> list[str]:
-    path = ROOT / "agent/BLOCKERS.md"
-    if not path.is_file():
-        return []
-    text = path.read_text(errors="replace")
+def blocker_status(section: str) -> str:
+    """Return a blocker's status: its "- Status:" line, else its header tag."""
+    match = re.search(r"^- Status:\s*(.+)$", section, re.M)
+    if match:
+        return match.group(1).replace("*", "").strip().upper()
+    header = section.splitlines()[0]
+    tag = re.search(r"\[([^\]]*)\]", header)
+    return tag.group(1).strip().upper() if tag else ""
+
+
+def blocker_phases(section: str) -> set[str]:
+    """Phases named in the blocker's Phase/Requirement field (P1 never matches P11)."""
+    match = re.search(r"^- Phase/Requirement:\s*(.+(?:\n(?!- |## ).+)*)", section, re.M)
+    if not match:
+        return set()
+    return set(re.findall(r"(?<![A-Za-z0-9])(P\d+F?)(?![A-Za-z0-9])", match.group(1)))
+
+
+def blocker_is_open(section: str) -> bool:
+    status = blocker_status(section)
+    header_tag = re.search(r"\[([^\]]*)\]", section.splitlines()[0])
+    # An owner waiver must be written in the header tag itself.
+    if header_tag and re.search(r"\bnot blocking\b|\bnon-blocking\b", header_tag.group(1), re.I):
+        return False
+    closed = status.startswith(CLOSED_BLOCKER_STATUSES) and not OPEN_BLOCKER_WORDS.search(status)
+    return not closed
+
+
+def blocker_errors(phase: str, text: str | None = None) -> list[str]:
+    if text is None:
+        path = ROOT / "agent/BLOCKERS.md"
+        if not path.is_file():
+            return []
+        text = path.read_text(errors="replace")
     errors: list[str] = []
     for section in re.split(r"(?=^## B-)", text, flags=re.M):
-        if not section.startswith("## B-") or phase not in section:
+        if not section.startswith("## B-"):
             continue
-        header = section.splitlines()[0]
-        pending = any(tag in header.upper() for tag in ("[PENDING", "[OPEN", "[BLOCKED"))
-        explicitly_nonblocking = bool(re.search(r"not blocking|non-blocking|deferred", section, re.I))
-        explicitly_blocking = bool(re.search(r"blocking now|blocks?\s+" + re.escape(phase), section, re.I))
-        if pending and explicitly_blocking and not explicitly_nonblocking:
-            errors.append(f"unresolved blocking item for {phase}: {header}")
+        if phase in blocker_phases(section) and blocker_is_open(section):
+            errors.append(f"unresolved blocking item for {phase}: {section.splitlines()[0]}")
     return errors
 
 
-def run_command(raw: str) -> int:
+def run_command(raw: str, timeout: int | None = None) -> int:
     argv = shlex.split(raw)
     if not argv:
         return 0
     print(f"+ {raw}", flush=True)
-    return subprocess.run(argv, cwd=ROOT).returncode
+    proc = subprocess.Popen(argv, cwd=ROOT, start_new_session=True)
+    try:
+        return proc.wait(timeout=timeout if timeout is not None else COMMAND_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        print(f"FAIL: command timed out: {raw}", flush=True)
+        return 124
+    finally:
+        # Clean up the command's whole process group, including stragglers.
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        proc.wait()
+
+
+def phase_report_errors(phase: str, commit: str) -> list[str]:
+    """The JSON phase report is mandatory; there is no Markdown fallback."""
+    json_report = ROOT / "agent/phase-reports" / f"{phase}.json"
+    if not json_report.is_file():
+        return [f"missing JSON phase report {rel(json_report)}"]
+    try:
+        import jsonschema
+
+        data = load_json_strict(json_report)
+        jsonschema.validate(instance=data, schema=load_json(ROOT / "spec/schemas/phase-report.schema.json"))
+        if data.get("status") != "passed" or data.get("gate_exit_code") != 0:
+            return ["phase report status/gate_exit_code is not passing"]
+        if parse_dt(data["ended_at"]) < parse_dt(data["started_at"]):
+            return ["phase report ended_at precedes started_at"]
+        if commit == "unknown" or data.get("git_end_commit") != commit:
+            return ["phase report git_end_commit does not match current commit"]
+    except Exception as exc:
+        return [f"phase report validation failed: {exc}"]
+    return []
 
 
 def main() -> None:
@@ -334,26 +424,22 @@ def main() -> None:
             if not matches:
                 errors.append(f"{cid}: no evidence for {vid}")
             for fp in matches:
-                errors.extend(
-                    verify_evidence(
-                        fp,
-                        phase=phase,
-                        commit=commit,
-                        verification_id=vid,
-                        native_required=bool(check.get("native_required")),
-                    )
+                check_errors = verify_evidence(
+                    fp,
+                    phase=phase,
+                    commit=commit,
+                    verification_id=vid,
+                    native_required=bool(check.get("native_required")),
                 )
-                try:
-                    if load_json(fp).get("environment", {}).get("native_or_vm") == "native":
-                        native_seen = True
-                except Exception:
-                    pass
+                errors.extend(check_errors)
+                if not check_errors and verified_native(fp, phase=phase, commit=commit, verification_id=vid):
+                    native_seen = True
         elif kind == "scenario":
             sid = check.get("scenario_id")
             if not sid:
                 errors.append(f"{cid}: scenario check lacks scenario_id")
                 continue
-            expected_hash, err = scenario_hash(sid)
+            _, err = scenario_hash(sid)
             if err:
                 errors.append(f"{cid}: {err}")
                 continue
@@ -362,23 +448,17 @@ def main() -> None:
                 errors.append(f"{cid}: no evidence for scenario {sid}")
                 continue
             for fp in matches:
-                errors.extend(
-                    verify_evidence(
-                        fp,
-                        phase=phase,
-                        commit=commit,
-                        scenario_id=sid,
-                        native_required=bool(check.get("native_required")),
-                    )
+                # verify_evidence compares scenario_hash with the hash of the spec.
+                check_errors = verify_evidence(
+                    fp,
+                    phase=phase,
+                    commit=commit,
+                    scenario_id=sid,
+                    native_required=bool(check.get("native_required")),
                 )
-                try:
-                    data = load_json(fp)
-                    if data.get("scenario_hash") != expected_hash:
-                        errors.append(f"{fp.relative_to(ROOT)} scenario_hash does not match spec/scenarios/{sid}.json")
-                    if data.get("environment", {}).get("native_or_vm") == "native":
-                        native_seen = True
-                except Exception:
-                    pass
+                errors.extend(check_errors)
+                if not check_errors and verified_native(fp, phase=phase, commit=commit, scenario_id=sid):
+                    native_seen = True
         elif kind == "schema":
             files = evidence_files(phase)
             if not files:
@@ -409,12 +489,9 @@ def main() -> None:
     if owner.get("native_required"):
         if not native_seen:
             for fp in evidence_files(phase):
-                try:
-                    if load_json(fp).get("result") == "pass" and load_json(fp).get("environment", {}).get("native_or_vm") == "native":
-                        native_seen = True
-                        break
-                except Exception:
-                    continue
+                if verified_native(fp, phase=phase, commit=commit):
+                    native_seen = True
+                    break
         if not native_seen:
             errors.append("owner gate requires native evidence but no passing native evidence was found")
 
@@ -434,6 +511,17 @@ def main() -> None:
             fp = inside_repo(row.get("evidence", ""))
             if fp is None or not fp.is_file():
                 errors.append(f"regression prerequisite {prior}/{row['requirement_id']} evidence missing")
+                continue
+            # A "passed" status is a claim; re-verify the evidence behind it.
+            for err in verify_evidence(
+                fp,
+                phase=prior,
+                commit=commit,
+                verification_id=row["verification_id"],
+                verification_layer=row["verification_layer"],
+                requirement_id=row["requirement_id"],
+            ):
+                errors.append(f"regression prerequisite {prior}/{row['requirement_id']}: {err}")
 
     if errors:
         print(f"{phase} gate FAILED before commands")
@@ -450,30 +538,11 @@ def main() -> None:
         if rc:
             raise SystemExit(f"FAIL: command exited {rc}: {raw}")
 
-    # Phase report must be semantically passed.
-    json_report = ROOT / "agent/phase-reports" / f"{phase}.json"
-    md_report = ROOT / "agent/phase-reports" / f"{phase}.md"
-    if json_report.is_file():
-        try:
-            import jsonschema
-
-            data = load_json(json_report)
-            jsonschema.validate(instance=data, schema=load_json(ROOT / "spec/schemas/phase-report.schema.json"))
-            if data.get("status") != "passed" or data.get("gate_exit_code") != 0:
-                raise ValueError("phase report status/gate_exit_code is not passing")
-            if parse_dt(data["ended_at"]) < parse_dt(data["started_at"]):
-                raise ValueError("phase report ended_at precedes started_at")
-            if commit != "unknown" and data.get("git_end_commit") != commit:
-                raise ValueError("phase report git_end_commit does not match current commit")
-            print(f"phase report {json_report.relative_to(ROOT)} validates")
-        except Exception as exc:
-            raise SystemExit(f"FAIL: phase report validation failed: {exc}")
-    else:
-        if not md_report.is_file():
-            raise SystemExit(f"FAIL: missing phase report {md_report.relative_to(ROOT)}")
-        text = md_report.read_text(errors="replace")
-        if phase != "P0" and not re.search(r"(?:\*\*)?Status:(?:\*\*)?\s*passed", text, re.I):
-            raise SystemExit(f"FAIL: {md_report.relative_to(ROOT)} does not report Status: passed")
+    # Phase report must be semantically passed; the JSON report is mandatory.
+    report_errors = phase_report_errors(phase, commit)
+    if report_errors:
+        raise SystemExit("FAIL: " + "; ".join(report_errors))
+    print(f"phase report agent/phase-reports/{phase}.json validates")
 
     # Working application must have an explicit smoke command once the phase is implemented.
     if reg_entry.get("working_app_required") or owner.get("working_app_required"):
