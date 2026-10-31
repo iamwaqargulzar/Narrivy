@@ -320,6 +320,12 @@ const LIVE_FINISH_BOUND: Duration = Duration::from_secs(120);
 /// How long a worker asked to quit (SIGTERM) may take before it is killed.
 const QUIT_BOUND: Duration = Duration::from_secs(3);
 
+/// How long one `pactl` query may take.
+const PACTL_BOUND: Duration = Duration::from_secs(3);
+
+/// How long remembering a voice may take before its helper is killed.
+const REMEMBER_BOUND: Duration = Duration::from_secs(5 * 60);
+
 #[derive(Default)]
 struct Inner {
     recording: Option<Recording>,
@@ -421,7 +427,13 @@ pub(crate) fn model_path(name: &str) -> Option<PathBuf> {
 }
 
 fn pactl(what: &str) -> Option<String> {
-    let out = Command::new("pactl").arg(what).output().ok()?;
+    // `pactl` waits on the PipeWire server; a wedged server must not hold the
+    // request that asked for the default devices.
+    let out = narrivy_platform_linux::bounded_command::output_within(
+        Command::new("pactl").arg(what),
+        PACTL_BOUND,
+    )
+    .ok()?;
     let name = String::from_utf8(out.stdout).ok()?.trim().to_owned();
     (out.status.success() && !name.is_empty()).then_some(name)
 }
@@ -2485,7 +2497,12 @@ fn remember_voice(dir: &Path, speaker: &str, name: &str) {
         let _ = std::thread::Builder::new()
             .name("narrivy-remember-voice".into())
             .spawn(move || {
-                let _ = child.wait();
+                // Not joined by anyone: the bound is what ends this thread.
+                let _ = narrivy_platform_linux::bounded_command::wait_until(
+                    &mut child,
+                    Instant::now() + REMEMBER_BOUND,
+                    REMEMBER_BOUND,
+                );
             });
     }
 }

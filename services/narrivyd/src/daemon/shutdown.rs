@@ -34,8 +34,8 @@ pub use narrivy_types::ShutdownBudget;
 /// consumed. On a timeout the handle stays owned by the caller (still `Some`),
 /// so unfinished work is reported as a failure and never silently detached or
 /// mistaken for reaped state.
-pub fn join_thread_bounded(
-    handle: &mut Option<JoinHandle<()>>,
+pub fn join_thread_bounded<T>(
+    handle: &mut Option<JoinHandle<T>>,
     deadline: Instant,
 ) -> Result<(), &'static str> {
     loop {
@@ -43,6 +43,7 @@ pub fn join_thread_bounded(
             return match handle.take() {
                 Some(handle) => handle
                     .join()
+                    .map(drop)
                     .map_err(|_| "owned daemon thread terminated unexpectedly"),
                 None => Ok(()),
             };

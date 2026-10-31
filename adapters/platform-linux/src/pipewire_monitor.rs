@@ -76,6 +76,8 @@ const STARTUP_CLEANUP_TIMEOUT: Duration = Duration::from_secs(2);
 /// pw-dump binary used once at start() to resolve node names to object
 /// serials. Runs BEFORE the capture thread exists — never on the hot path.
 const PW_DUMP: &str = "pw-dump";
+/// How long one `pw-dump` snapshot may take.
+const PW_DUMP_BOUND: Duration = Duration::from_secs(5);
 
 // ---------------------------------------------------------------------------
 // Config / errors / stats
@@ -210,9 +212,9 @@ fn resolve_target_serial(target: &str) -> Result<String, LiveCaptureError> {
     if target.parse::<u64>().is_ok() || (target.starts_with('@') && target.ends_with('@')) {
         return Ok(target.to_string());
     }
-    let output = Command::new(PW_DUMP)
-        .stdin(Stdio::null())
-        .output()
+    // `pw-dump` waits on the PipeWire server; a wedged server must not hold
+    // capture start forever.
+    let output = crate::bounded_command::output_within(&mut Command::new(PW_DUMP), PW_DUMP_BOUND)
         .map_err(|e| LiveCaptureError::Spawn(format!("{PW_DUMP}: {e}")))?;
     if !output.status.success() {
         return Err(LiveCaptureError::Spawn(format!(

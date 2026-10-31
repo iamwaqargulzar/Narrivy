@@ -570,3 +570,71 @@ mod packaged {
         Ok(())
     }
 }
+
+/// F-H7: compute discovery runs before `serve`, but after the socket is bound.
+/// A client that connects while discovery is slow is not refused: its connect
+/// succeeds at once and its handshake is answered as soon as discovery ends.
+#[test]
+fn slow_compute_discovery_still_accepts_a_client() -> TestResult {
+    use std::os::unix::fs::PermissionsExt;
+
+    const DISCOVERY_DELAY_SECONDS: u64 = 3;
+
+    let host = IsolatedHost::new()?;
+    let began = host.root.path().join("discovery-began");
+    let ended = host.root.path().join("discovery-ended");
+    let sidecar = host.root.path().join("slow-sidecar");
+    std::fs::write(
+        &sidecar,
+        format!(
+            "#!/bin/sh\n: > '{}'\n/bin/sleep {DISCOVERY_DELAY_SECONDS}\n: > '{}'\n",
+            began.display(),
+            ended.display()
+        ),
+    )?;
+    std::fs::set_permissions(&sidecar, std::fs::Permissions::from_mode(0o700))?;
+    let sidecar_env = sidecar.display().to_string();
+    let mut daemon =
+        DaemonProcess::start_with_env(&host, &[("NARRIVY_COMPUTE_SIDECAR", &sidecar_env)])?;
+
+    let deadline = Instant::now() + READY_DEADLINE;
+    while !began.exists() {
+        if let Some(status) = daemon.child.try_wait()? {
+            return Err(format!(
+                "daemon exited before discovery: {status}; {}",
+                daemon.stderr_diagnostics()
+            )
+            .into());
+        }
+        if Instant::now() >= deadline {
+            return Err("discovery never ran the sidecar".into());
+        }
+        std::thread::sleep(READY_POLL);
+    }
+    // Discovery is under way; the endpoint is already bound.
+    require_socket_present(&host.socket)?;
+    if ended.exists() {
+        return Err("discovery ended before the client connected; the test proves nothing".into());
+    }
+
+    let connecting = Instant::now();
+    let mut client = IpcClient::connect_as(&host.socket, "slow-discovery-test")?;
+    match client.request(&IpcCommand::GetStatus, Duration::from_secs(2))? {
+        ResponsePayload::Status(_) => {}
+        _ => return Err("daemon returned an unexpected status payload".into()),
+    }
+    // Answered only once discovery finished, and well inside the handshake.
+    if !ended.exists() {
+        return Err("daemon served before discovery finished".into());
+    }
+    if connecting.elapsed() >= Duration::from_secs(DISCOVERY_DELAY_SECONDS + 2) {
+        return Err(format!("handshake took {:?}", connecting.elapsed()).into());
+    }
+    drop(client);
+
+    deliver_signal(daemon.pid(), "TERM")?;
+    let status = daemon.wait_for_exit(EXIT_DEADLINE)?;
+    assert_success(status)?;
+    assert_socket_removed(&host.socket)?;
+    Ok(())
+}

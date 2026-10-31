@@ -27,6 +27,8 @@ const PAGE_BYTES: &str = "4000000";
 const SEARCH_RESULTS: usize = 8;
 const FILE_TEXT: usize = 7000;
 const COMMAND_BOUND: Duration = Duration::from_secs(120);
+/// How long sharing the screen once may take, the portal's dialog included.
+const SCREEN_BOUND: Duration = Duration::from_secs(120);
 const OUTPUT_TEXT: usize = 6000;
 const LIST_ENTRIES: usize = 200;
 
@@ -1248,30 +1250,46 @@ fn run_command(command: &str, base: &Path) -> Outcome {
     let Ok(mut child) = child else {
         return failure("The command could not start.");
     };
-    let stdout = child.stdout.take();
-    let stderr = child.stderr.take();
-    let read = |pipe: Option<std::process::ChildStdout>| {
-        std::thread::spawn(move || {
-            let mut out = Vec::new();
-            if let Some(mut pipe) = pipe {
-                let _ = (&mut pipe).take(1_000_000).read_to_end(&mut out);
-            }
-            out
-        })
+    // Each pipe is read on its own thread and handed back through a channel:
+    // a background job the command left running keeps the pipe open, and
+    // the reply must not wait for it.
+    let read = |pipe: Option<Box<dyn Read + Send>>, cap: u64| {
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let _ = std::thread::Builder::new()
+            .name("narrivy-command-pipe".into())
+            .spawn(move || {
+                let mut out = Vec::new();
+                if let Some(pipe) = pipe {
+                    let _ = pipe.take(cap).read_to_end(&mut out);
+                }
+                let _ = sender.send(out);
+            });
+        receiver
     };
-    let out_reader = read(stdout);
-    let err_reader = std::thread::spawn(move || {
-        let mut out = Vec::new();
-        if let Some(mut pipe) = stderr {
-            let _ = (&mut pipe).take(200_000).read_to_end(&mut out);
-        }
-        out
-    });
+    let out_reader = read(
+        child
+            .stdout
+            .take()
+            .map(|p| Box::new(p) as Box<dyn Read + Send>),
+        1_000_000,
+    );
+    let err_reader = read(
+        child
+            .stderr
+            .take()
+            .map(|p| Box::new(p) as Box<dyn Read + Send>),
+        200_000,
+    );
     let started = Instant::now();
     let code = loop {
         match child.try_wait() {
             Ok(Some(status)) => break status.code(),
             Ok(None) if started.elapsed() > COMMAND_BOUND => {
+                // The command and everything it started in its group.
+                let _ = std::process::Command::new("kill")
+                    .args(kill_group_args(child.id()))
+                    .stderr(Stdio::null())
+                    .status();
                 let _ = child.kill();
                 let _ = child.wait();
                 break None;
@@ -1280,8 +1298,9 @@ fn run_command(command: &str, base: &Path) -> Outcome {
             Err(_) => break None,
         }
     };
-    let out = out_reader.join().unwrap_or_default();
-    let err = err_reader.join().unwrap_or_default();
+    let drain = Duration::from_secs(2);
+    let out = out_reader.recv_timeout(drain).unwrap_or_default();
+    let err = err_reader.recv_timeout(drain).unwrap_or_default();
     let mut text = String::from_utf8_lossy(&out).into_owned();
     let err = String::from_utf8_lossy(&err);
     if !err.trim().is_empty() {
@@ -1340,14 +1359,18 @@ fn look_at_screen(scratch: &Path) -> Outcome {
     };
     let folder = scratch.join("screen");
     let _ = std::fs::remove_dir_all(&folder);
-    let status = std::process::Command::new(python)
-        .arg(script)
-        .arg(&folder)
-        .arg("--once")
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status();
+    // The helper waits for the user to pick a screen in the portal's dialog;
+    // one left unanswered must not hold the assistant's turn forever.
+    let status = narrivy_platform_linux::bounded_command::status_within(
+        std::process::Command::new(python)
+            .arg(script)
+            .arg(&folder)
+            .arg("--once")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null()),
+        SCREEN_BOUND,
+    );
     let picture = folder.join("frame-0001.png");
     if !status.is_ok_and(|s| s.success()) || !picture.is_file() {
         return failure("The screen was not shared.");

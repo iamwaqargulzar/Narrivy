@@ -108,6 +108,9 @@ fn file(cue: Cue) -> Option<PathBuf> {
     Some(path)
 }
 
+/// How long one cue may play. Cues last well under a second.
+const PLAY_BOUND: std::time::Duration = std::time::Duration::from_secs(5);
+
 /// Play a cue when the sounds are on. Never waits.
 pub fn play(cue: Cue) {
     if !enabled() {
@@ -117,12 +120,16 @@ pub fn play(cue: Cue) {
         .name("narrivy-sound".into())
         .spawn(move || {
             if let Some(path) = file(cue) {
-                let _ = Command::new("pw-play")
-                    .arg(path)
-                    .stdin(Stdio::null())
-                    .stdout(Stdio::null())
-                    .stderr(Stdio::null())
-                    .status();
+                // Not joined by anyone: the bound is what ends this thread
+                // when PipeWire does not answer.
+                let _ = narrivy_platform_linux::bounded_command::status_within(
+                    Command::new("pw-play")
+                        .arg(path)
+                        .stdin(Stdio::null())
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null()),
+                    PLAY_BOUND,
+                );
             }
         });
 }

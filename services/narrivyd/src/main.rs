@@ -203,7 +203,11 @@ impl TerminationSignalListener {
             }
             Err(error) => {
                 cancel.store(true, Ordering::Release);
-                let _ = join.join();
+                // The thread sees `cancel` within one poll once its bridge
+                // runs; one stuck before that is not waited for past the
+                // bound. Startup fails either way and the process exits.
+                let mut join = Some(join);
+                let _ = join_thread_bounded(&mut join, Instant::now() + Duration::from_secs(2));
                 Err(format!("signal listener startup timed out: {error}"))
             }
         }
@@ -769,6 +773,19 @@ fn main() -> std::process::ExitCode {
     // token depend on when a client happened to ask. A failed plan is not a
     // startup failure: it means no accelerator may be selected, which the
     // capability list already states truthfully.
+    //
+    // Discovery stays before `serve` (F-H7). The protocol has no daemon-wide
+    // `starting` state: `StatusDto` carries no readiness field and the
+    // capability list has only `compute.device=resolved` and
+    // `compute.device=unavailable:no_qualified_plan`. Serving first would make
+    // the first status either claim no plan that may still resolve, or need a
+    // new wire token every client must learn. Clients are not shut out
+    // meanwhile: the socket is bound and listening above, so `connect`
+    // succeeds and the handshake is answered once `serve` starts. Each probe
+    // is bounded by `narrivy_compute::discovery::PROBE_TIMEOUT` (10 s); a
+    // probe that runs to that bound can outlast one client's 5 s handshake,
+    // which that client then reports as a timeout.
+    // `slow_compute_discovery_still_accepts_a_client` pins this.
     let compute_plan = Arc::new(daemon::compute::build_plan(
         &state_dir,
         std::env::var_os("NARRIVY_COMPUTE_SIDECAR")

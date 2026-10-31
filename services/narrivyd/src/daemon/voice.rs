@@ -39,6 +39,10 @@ const REQUEST_BOUND: Duration = Duration::from_secs(5);
 pub const TRAINING_SECONDS: u16 = 20;
 const RATE: u32 = 16_000;
 
+/// How much longer than asked a training recording may take (start-up and
+/// draining) before the recorder is killed.
+const RECORD_SLACK: Duration = Duration::from_secs(10);
+
 /// Phrases Whisper writes for silence or noise. Kept only when there was
 /// clearly more speech than such a phrase takes to say.
 const INVENTED: [&str; 9] = [
@@ -423,13 +427,32 @@ fn record(seconds: u16) -> Result<Vec<f32>, String> {
         .stderr(Stdio::null())
         .spawn()
         .map_err(|_| "voice_recorder_missing".to_owned())?;
-    let mut raw = Vec::new();
     let started = Instant::now();
+    // `pw-record -n` ends after `frames`; one that waits on a missing source
+    // or a wedged server is killed past the bound instead of holding the
+    // request forever. The reader hands back what it read once the pipe
+    // closes, which killing the recorder does.
+    let (sender, received) = mpsc::channel();
     if let Some(mut stdout) = child.stdout.take() {
-        let _ = stdout.read_to_end(&mut raw);
+        let _ = std::thread::Builder::new()
+            .name("narrivy-voice-record".into())
+            .spawn(move || {
+                let mut raw = Vec::new();
+                let _ = stdout.read_to_end(&mut raw);
+                let _ = sender.send(raw);
+            });
     }
+    let bound = Duration::from_secs(u64::from(seconds)) + RECORD_SLACK;
+    let finished =
+        narrivy_platform_linux::bounded_command::wait_until(&mut child, started + bound, bound);
     let _ = child.kill();
     let _ = child.wait();
+    if finished.is_err() {
+        return Err("voice_recorder_failed".to_owned());
+    }
+    let raw = received
+        .recv_timeout(RECORD_SLACK)
+        .map_err(|_| "voice_recorder_failed".to_owned())?;
     if started.elapsed() < Duration::from_secs(u64::from(seconds) / 2) {
         return Err("voice_recorder_failed".to_owned());
     }

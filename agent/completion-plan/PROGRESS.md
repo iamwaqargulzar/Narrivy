@@ -2067,3 +2067,27 @@ fails on the base commit in a container without PipeWire;
   there: `capability_check_mic_never_promotes_helper_presence_to_signal`;
   timing: `latency_histogram_p99_under_load_stays_under_50us`).
   `scripts/fuzz-untrusted-input.sh 5000` passes.
+
+
+## 2026-10-30: robustness audit (`cloud/robustness`)
+
+- **F-H7 leftover:** compute discovery stays before `serve`. The protocol has
+  no daemon `starting` state, so serving first would report "no compute plan"
+  too early. The socket is bound first, so a client connects during discovery
+  and is answered when it ends. Reason documented in `main.rs`; new test
+  `slow_compute_discovery_still_accepts_a_client` (real binary, 3 s sidecar).
+- **Audit** of `narrivyd`, `engines/` and `platform-linux`: no production
+  `unwrap`/`expect`; capture threads do not block. Fixed unbounded waits:
+  `pactl`, `pw-dump`, `pw-play`, `pw-record` (voice training), the assistant
+  command readers and screen helper, the remember-voice thread and the
+  signal-listener start join. New `platform-linux::bounded_command`
+  (`output_within`, `status_within`, `wait_until`, typed error, 5 tests).
+  Kept items, with reasons, and one open item (a meeting recording is not
+  stopped by daemon shutdown) are in
+  `docs/maintainers/robustness-audit-2026-10.md`.
+- Also fixed the mic capability test, which failed on hosts without
+  `pw-record`.
+- Checked: fmt, `cargo clippy --workspace --all-targets -D warnings` and the
+  same for `narrivyd` with `asr-transcribe-resident`, `cargo test --workspace`
+  (2224 passed) and `cargo test -p narrivyd --features
+  asr-transcribe-resident` (1387 passed), `check_docs`.
