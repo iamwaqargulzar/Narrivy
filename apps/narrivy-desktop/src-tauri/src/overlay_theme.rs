@@ -56,7 +56,7 @@ impl Appearance {
             (Scheme::Dark, Accent::Gold) => ("#d6b46a", "#e7c985"),
             (Scheme::Light, Accent::Mono) => ("#111111", "#000000"),
             (Scheme::Light, Accent::Blue) => ("#2459e0", "#1b47bd"),
-            (Scheme::Light, Accent::Gold) => ("#9a7428", "#7f5f1f"),
+            (Scheme::Light, Accent::Gold) => ("#866523", "#6e5219"),
         };
         match self.scheme {
             Scheme::Dark => Palette {
@@ -84,7 +84,7 @@ impl Appearance {
                 muted: "#6b6b6b",
                 accent,
                 accent_strong,
-                live: "#e0463a",
+                live: "#cc2d20",
                 err: "#c2392f",
             },
         }
