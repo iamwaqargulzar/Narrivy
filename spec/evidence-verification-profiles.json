@@ -1369,7 +1369,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_hardening_evidence.py",
-        "sha256": "28e8ff33379f5fd41dbf255f40d9641542f4ab5bbb279fe709ecc529241c12f4",
+        "sha256": "acc1d343ce94312d510d99affc7fdb563a4e99ea7472d2e82673662a01abcc27",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1439,7 +1439,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_hardening_evidence.py",
-        "sha256": "28e8ff33379f5fd41dbf255f40d9641542f4ab5bbb279fe709ecc529241c12f4",
+        "sha256": "acc1d343ce94312d510d99affc7fdb563a4e99ea7472d2e82673662a01abcc27",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1494,7 +1494,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_hardening_evidence.py",
-        "sha256": "28e8ff33379f5fd41dbf255f40d9641542f4ab5bbb279fe709ecc529241c12f4",
+        "sha256": "acc1d343ce94312d510d99affc7fdb563a4e99ea7472d2e82673662a01abcc27",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1783,7 +1783,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
+        "sha256": "b5c4bb9b9d26dc916f570f5b568861df6c415f12ca91bfd4cd68cc33ceb755c4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1811,7 +1811,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
+        "sha256": "b5c4bb9b9d26dc916f570f5b568861df6c415f12ca91bfd4cd68cc33ceb755c4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2085,7 +2085,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
+        "sha256": "b5c4bb9b9d26dc916f570f5b568861df6c415f12ca91bfd4cd68cc33ceb755c4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2109,7 +2109,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
+        "sha256": "b5c4bb9b9d26dc916f570f5b568861df6c415f12ca91bfd4cd68cc33ceb755c4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2133,7 +2133,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
+        "sha256": "b5c4bb9b9d26dc916f570f5b568861df6c415f12ca91bfd4cd68cc33ceb755c4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2158,7 +2158,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
+        "sha256": "b5c4bb9b9d26dc916f570f5b568861df6c415f12ca91bfd4cd68cc33ceb755c4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2542,7 +2542,7 @@
       ],
       "runner": {
         "path": "scripts/record_controlled_integration_evidence.py",
-        "sha256": "068087f29048a38d6c2094cb89bc24f9db689f21c0d9b419e1bacd45794877eb",
+        "sha256": "b30d11d26d203363f95410089043e7a8831b5545bf476cbe211d2098393179de",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2591,7 +2591,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
+        "sha256": "b5c4bb9b9d26dc916f570f5b568861df6c415f12ca91bfd4cd68cc33ceb755c4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2615,7 +2615,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
+        "sha256": "b5c4bb9b9d26dc916f570f5b568861df6c415f12ca91bfd4cd68cc33ceb755c4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2640,7 +2640,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
+        "sha256": "b5c4bb9b9d26dc916f570f5b568861df6c415f12ca91bfd4cd68cc33ceb755c4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2663,7 +2663,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
+        "sha256": "b5c4bb9b9d26dc916f570f5b568861df6c415f12ca91bfd4cd68cc33ceb755c4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2686,7 +2686,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
+        "sha256": "b5c4bb9b9d26dc916f570f5b568861df6c415f12ca91bfd4cd68cc33ceb755c4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2710,7 +2710,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
+        "sha256": "b5c4bb9b9d26dc916f570f5b568861df6c415f12ca91bfd4cd68cc33ceb755c4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2854,7 +2854,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
+        "sha256": "b5c4bb9b9d26dc916f570f5b568861df6c415f12ca91bfd4cd68cc33ceb755c4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -3130,7 +3130,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
+        "sha256": "b5c4bb9b9d26dc916f570f5b568861df6c415f12ca91bfd4cd68cc33ceb755c4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -3210,7 +3210,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
+        "sha256": "b5c4bb9b9d26dc916f570f5b568861df6c415f12ca91bfd4cd68cc33ceb755c4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
