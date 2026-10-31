@@ -14,7 +14,8 @@ Sidebar destinations:
   Copy/Edit/Paste again, the privacy note, tips, and runtime metrics. Metrics
   appear only when the daemon reports them.
 - History
-- Pipelines — advertised pipelines and versioned import/export. Each
+- Pipelines — advertised pipelines. Versioned import/export is planned,
+  not in 1.0: the buttons are shown disabled with a Planned label (F-H13). Each
   pipeline's Transcribe stage is where the model is chosen (from the
   downloaded ones) and where its options live. The Refine stage holds the
   deterministic rules and the clean-up model choice (D38; there is no
@@ -32,10 +33,10 @@ Sidebar destinations:
   under top tabs; each row says whether it works now, is read from the
   service, is scheduled (with its completion-plan task) or is proposed.
 - Diagnostics
-- About
+- About (sidebar footer), with the version and update state beside it
 
 There is no Dictation page (removed in rc12). Start, Stop and Cancel are on
 Home; the mode and the dictation language are on Pipelines (Transcribe
-stage) and in the tray. (sidebar footer), with the version and update state beside it
+stage) and in the tray.
 
 Use a command/search palette to jump to settings, modes, actions and diagnostics without making every capability permanent navigation chrome.
