@@ -49,7 +49,7 @@ class SupplyChainEvidenceTests(unittest.TestCase):
         spdx = {"SPDXID": "SPDXRef-DOCUMENT", "spdxVersion": "SPDX-2.3",
             "packages": [
                 {"SPDXID": "SPDXRef-Package-narrivy", "name": "narrivy", "versionInfo": VERSION,
-                 "licenseDeclared": "NOASSERTION", "licenseConcluded": "NOASSERTION"},
+                 "licenseDeclared": "MIT", "licenseConcluded": "MIT"},
                 {"SPDXID": "SPDXRef-Package-dep", "name": "dep", "versionInfo": "1.0.0",
                  "licenseDeclared": "MIT", "licenseConcluded": "MIT",
                  "checksums": [{"algorithm": "SHA256", "checksumValue": "b" * 64}]},
@@ -87,9 +87,16 @@ class SupplyChainEvidenceTests(unittest.TestCase):
         (self.bundle / "release-artifacts.json").write_bytes(release_payload)
         (self.bundle / "result.json").write_text(json.dumps(summary) + "\n", encoding="utf-8")
 
-    def _record(self):
+    LOCKFILE = (
+        b'version = 4\n\n[[package]]\nname = "dep"\nversion = "1.0.0"\n'
+        b'source = "registry+https://github.com/rust-lang/crates.io-index"\n'
+        b'checksum = "' + b"b" * 64 + b'"\n'
+    )
+
+    def _record(self, lockfile: bytes | None = None):
         with mock.patch.object(package_identity, "_require_clean_source", return_value=(self.root, HEAD)), \
-             mock.patch.object(package_identity, "_prepare_package", return_value=(self.identity, {})):
+             mock.patch.object(package_identity, "_prepare_package", return_value=(self.identity, {})), \
+             mock.patch.object(supply, "_read_lockfile", return_value=lockfile or self.LOCKFILE):
             return recorder.record(self.package, self.bundle, self.root, self.evidence, self.index,
                 ["python3", "scripts/record_supply_chain_evidence.py", "package", "bundle"])
 
@@ -180,16 +187,56 @@ class SupplyChainEvidenceTests(unittest.TestCase):
             with self.assertRaisesRegex(recorder.VerificationError, "does not match"):
                 recorder._verify_bundle(self.package, self.bundle, self.root)
 
-    def test_nonhistorical_output_and_index_collisions_fail_closed(self) -> None:
-        self.evidence.parent.mkdir(parents=True); self.evidence.write_text('{"schema_version":2}\n')
-        with self.assertRaisesRegex(recorder.VerificationError, "collision"):
-            self._record()
-        self.evidence.unlink()
+    def _index_entry(self, sha: str) -> None:
         index = json.loads(self.index.read_text()); index["qualified_evidence"].append(
-            {"path": recorder.EVIDENCE, "sha256": "a" * 64, "disposition": "qualified"})
+            {"path": recorder.EVIDENCE, "sha256": sha, "disposition": "qualified"})
         self.index.write_text(json.dumps(index))
-        with self.assertRaisesRegex(recorder.VerificationError, "already contains"):
+
+    def test_nonhistorical_output_and_index_collisions_fail_closed(self) -> None:
+        # An unindexed v2 file is not this recorder's indexed output.
+        self.evidence.parent.mkdir(parents=True); self.evidence.write_text('{"schema_version":2}\n')
+        with self.assertRaisesRegex(recorder.VerificationError, "not match its INDEX hash"):
             self._record()
+        # An indexed v2 record whose bytes no longer match INDEX is refused.
+        self._index_entry("a" * 64)
+        with self.assertRaisesRegex(recorder.VerificationError, "not match its INDEX hash"):
+            self._record()
+        # A current (v3) indexed record is never replaced.
+        payload = b'{"schema_version":3}\n'; self.evidence.write_bytes(payload)
+        index = json.loads(self.index.read_text()); index["qualified_evidence"][0]["sha256"] = self._sha(payload)
+        self.index.write_text(json.dumps(index))
+        with self.assertRaisesRegex(recorder.VerificationError, "not match its INDEX hash"):
+            self._record()
+        self.assertEqual(self.evidence.read_bytes(), payload)
+
+    def test_indexed_hash_matching_v2_output_is_replaced_in_one_transaction(self) -> None:
+        # P-4: the recorder must be able to replace its own indexed v2 output.
+        old = b'{"schema_version":2}\n'
+        self.evidence.parent.mkdir(parents=True); self.evidence.write_bytes(old)
+        self._index_entry(self._sha(old))
+        evidence = self._record()
+        self.assertEqual(evidence["schema_version"], 3)
+        entries = [e for e in json.loads(self.index.read_text())["qualified_evidence"] if e["path"] == recorder.EVIDENCE]
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["sha256"], self._sha(self.evidence.read_bytes()))
+
+    def test_noassertion_licence_fails_closed(self) -> None:
+        # P-4: NOASSERTION is not a licence for a shipped component.
+        self._mutate("spdx.json", lambda value: value["packages"][1].update(licenseDeclared="NOASSERTION"))
+        self._rebind_bundle_hash("spdx.json", "sbom")
+        with self.assertRaisesRegex(recorder.VerificationError, "NOASSERTION"):
+            self._record()
+        self.assertFalse(self.evidence.exists())
+
+    def test_sbom_checksum_must_match_cargo_lock(self) -> None:
+        # P-4: an SBOM checksum is verified against Cargo.lock, not just its shape.
+        lockfile = self.LOCKFILE.replace(b"b" * 64, b"d" * 64)
+        with self.assertRaisesRegex(recorder.VerificationError, "do not match Cargo.lock"):
+            self._record(lockfile)
+        unknown = self.LOCKFILE.replace(b'name = "dep"', b'name = "other"')
+        with self.assertRaisesRegex(recorder.VerificationError, "absent from Cargo.lock"):
+            self._record(unknown)
+        self.assertFalse(self.evidence.exists())
 
 if __name__ == "__main__":
     unittest.main()

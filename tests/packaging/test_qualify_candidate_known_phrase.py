@@ -16,6 +16,7 @@ from pathlib import Path
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts"))
 SPEC = importlib.util.spec_from_file_location(
     "known_phrase", ROOT / "scripts/qualify_candidate_known_phrase.py"
 )
@@ -132,6 +133,9 @@ class FakeOps:
 
     def containerized(self):
         return False
+
+    def native_lane(self):
+        return {"desktop": "COSMIC", "session": "wayland"}
 
     def helper_ready(self, _path):
         return True

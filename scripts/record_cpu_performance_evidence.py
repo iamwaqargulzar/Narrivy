@@ -18,12 +18,14 @@ import sys
 import tempfile
 import time
 import wave
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 
 import jsonschema
 
 import qualify_candidate_known_phrase as package_identity
+import recorder_safety
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = "artifacts/releases/narrivy-linux-amd64.deb"
@@ -34,7 +36,7 @@ FUN_003 = "agent/evidence/P5/VER-FUN-003.json"
 TEST_005 = "agent/evidence/P5/VER-TEST-005.json"
 INDEX = "agent/evidence/INDEX.json"
 IDENTITY_RUNNER = "scripts/qualify_candidate_known_phrase.py"
-IDENTITY_SHA256 = "6c3d9ad93dea7681bad7bb6726c69608444140dc80eda16299b8ec1709c408be"
+IDENTITY_SHA256 = "881e3f12bd04a5f3ee01b86dac3ff7daa82e0191a2a5922cbb8e4e35752ea30b"
 FIXTURE_SHA256 = "59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e"
 EXPECTED_FRAGMENT = b"ask not what your country"
 EXPECTED_ARGV = [
@@ -75,18 +77,6 @@ def sha256(path: Path) -> str:
 def fail(message: str) -> int:
     print(f"record_cpu_performance_evidence: {message}", file=sys.stderr)
     return 1
-
-
-def replaceable(path: Path, index: dict[str, object]) -> bool:
-    relative = path.relative_to(ROOT).as_posix()
-    if any(item.get("path") == relative for item in index["qualified_evidence"]):
-        return False
-    if not path.exists():
-        return True
-    try:
-        return json.loads(path.read_text()).get("schema_version") == 1
-    except (OSError, json.JSONDecodeError):
-        return False
 
 
 def remaining(deadline: float, maximum: float) -> float:
@@ -280,6 +270,48 @@ class Worker:
             stop_process(self.process)
 
 
+def inject_failure_and_fallback(
+    spawn: Callable[[], Worker],
+    samples: bytes,
+    sample_count: int,
+    deadline: float,
+) -> tuple[dict[str, object], str, int]:
+    """Kill one live worker, observe the decode fail, then recover on a new one.
+
+    Returns the measured injection outcome and the fallback transcript identity.
+    The injected failure must be observed as a failure; a decode that "passes"
+    on a killed worker means the harness cannot see failures at all.
+    """
+    victim = spawn()
+    stop_process(victim.process)
+    detected = 0
+    try:
+        victim.decode(samples, sample_count, 5000, deadline)
+    except (BenchmarkError, OSError):
+        detected = 1
+    finally:
+        stop_process(victim.process)
+    if detected != 1:
+        raise BenchmarkError("injected worker failure was not observed")
+    replacement = spawn()
+    try:
+        elapsed, digest, size = replacement.decode(samples, sample_count, 5001, deadline)
+        replacement_stderr = replacement.close(deadline)
+    finally:
+        stop_process(replacement.process)
+    return (
+        {
+            "injected": 1,
+            "detected": detected,
+            "fallback_recovered": True,
+            "fallback_decode_ms": round(elapsed, 3),
+            "fallback_stderr_bytes": replacement_stderr,
+        },
+        digest,
+        size,
+    )
+
+
 def wav_samples(path: Path) -> tuple[bytes, int, float]:
     with wave.open(str(path), "rb") as audio:
         if audio.getnchannels() != 1 or audio.getsampwidth() != 2 or audio.getframerate() != 16_000:
@@ -302,32 +334,8 @@ def summary(values: list[float]) -> dict[str, float | int]:
     }
 
 
-def atomic_json(path: Path, value: object) -> None:
-    payload = (json.dumps(value, indent=2, sort_keys=True) + "\n").encode()
-    temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
-    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
-    try:
-        with os.fdopen(descriptor, "wb") as stream:
-            stream.write(payload)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    finally:
-        try:
-            temporary.unlink()
-        except FileNotFoundError:
-            pass
-
-
 def environment() -> dict[str, object]:
-    values: dict[str, str] = {}
-    try:
-        for line in Path("/etc/os-release").read_text().splitlines():
-            if "=" in line:
-                key, value = line.split("=", 1)
-                values[key] = value.strip().strip('"')
-    except OSError:
-        pass
+    lane = recorder_safety.native_lane()
     cpu = platform.machine()
     try:
         for line in Path("/proc/cpuinfo").read_text().splitlines():
@@ -339,11 +347,11 @@ def environment() -> dict[str, object]:
     return {
         "id": "cosmic-wayland-packaged-cpu-worker",
         "native_or_vm": "native",
-        "os": values.get("NAME", "Linux"),
-        "os_version": values.get("PRETTY_NAME", platform.release()),
+        "os": lane["os"],
+        "os_version": lane["os_version"],
         "kernel": platform.release(),
-        "desktop": os.environ.get("XDG_CURRENT_DESKTOP", "unknown"),
-        "session": os.environ.get("XDG_SESSION_TYPE", "unknown"),
+        "desktop": lane["desktop"],
+        "session": lane["session"],
         "cpu": cpu,
         "gpu": None,
         "npu": None,
@@ -362,8 +370,12 @@ def main() -> int:
     index_path = ROOT / INDEX
     evidence_index = json.loads(index_path.read_text())
     paths = [ROOT / relative for relative in (PERF_005, PERF_007, FUN_003, TEST_005)]
-    if not all(replaceable(path, evidence_index) for path in paths):
-        return fail("an evidence output is already qualified or is not historical schema-v1 material")
+    if not all(recorder_safety.replaceable(path, evidence_index, ROOT) for path in paths):
+        return fail("an evidence output is current, unindexed v2, or does not match its INDEX hash")
+    try:
+        env = environment()
+    except recorder_safety.RecorderSafetyError as error:
+        return fail(str(error))
     if sha256(ROOT / IDENTITY_RUNNER) != IDENTITY_SHA256:
         return fail("package identity runner hash mismatch")
     fixture = ROOT / FIXTURE
@@ -399,6 +411,7 @@ def main() -> int:
     hot_decode: list[float] = []
     stderr_bytes = 0
     capability_snapshots: set[str] = set()
+    workers: list[Worker] = []
     try:
         with tempfile.TemporaryDirectory(prefix="narrivy-cpu-benchmark-") as temporary:
             worker_path = Path(temporary) / "narrivy-transcribe-worker"
@@ -414,20 +427,25 @@ def main() -> int:
                     os.dup2(model_fd, MODEL_FD, inheritable=True)
                 else:
                     os.set_inheritable(MODEL_FD, True)
-                cold = Worker(worker_path, MODEL_FD, model_hash, len(model_payload), deadline)
+                def spawn() -> Worker:
+                    worker = Worker(worker_path, MODEL_FD, model_hash, len(model_payload), deadline)
+                    workers.append(worker)
+                    return worker
+
+                cold = spawn()
                 capability_snapshots.add(json.dumps(cold.capabilities, sort_keys=True))
                 cold_ready.append(cold.ready_ms)
                 elapsed, digest, size = cold.decode(samples, sample_count, 1, deadline)
                 cold_decode.append(elapsed); digests.add(digest); sizes.add(size)
                 stderr_bytes += cold.close(deadline)
                 for index in range(WARM_PROCESSES):
-                    warm = Worker(worker_path, MODEL_FD, model_hash, len(model_payload), deadline)
+                    warm = spawn()
                     capability_snapshots.add(json.dumps(warm.capabilities, sort_keys=True))
                     warm_ready.append(warm.ready_ms)
                     elapsed, digest, size = warm.decode(samples, sample_count, index + 10, deadline)
                     warm_decode.append(elapsed); digests.add(digest); sizes.add(size)
                     stderr_bytes += warm.close(deadline)
-                hot = Worker(worker_path, MODEL_FD, model_hash, len(model_payload), deadline)
+                hot = spawn()
                 capability_snapshots.add(json.dumps(hot.capabilities, sort_keys=True))
                 hot_ready = hot.ready_ms
                 for index in range(HOT_WARMUPS):
@@ -437,7 +455,14 @@ def main() -> int:
                     elapsed, digest, size = hot.decode(samples, sample_count, index + 1000, deadline)
                     hot_decode.append(elapsed); digests.add(digest); sizes.add(size)
                 stderr_bytes += hot.close(deadline)
+                injection, digest, size = inject_failure_and_fallback(
+                    spawn, samples, sample_count, deadline
+                )
+                digests.add(digest); sizes.add(size)
             finally:
+                # Every worker, including one whose decode raised, is stopped.
+                for worker in workers:
+                    stop_process(worker.process)
                 try:
                     os.close(MODEL_FD)
                 except OSError:
@@ -454,10 +479,10 @@ def main() -> int:
     ):
         return fail("worker output identity or stderr was inconsistent")
     decode_samples = len(cold_decode) + len(warm_decode) + len(hot_decode)
-    # Any decode failure raises before a record can exist, so the observed
-    # failure count is zero by construction of the abort-on-failure loop.
-    failed_decodes = 0
-    failure_rate = failed_decodes / decode_samples if decode_samples else 1.0
+    # Failures are observed, not assumed: one worker is killed on purpose and
+    # its decode must fail, then a fresh worker must recover the transcript.
+    # Any other decode failure aborts the run, so no record exists for it.
+    failed_decodes = int(injection["detected"])
     ended = datetime.now(timezone.utc)
     common_metrics = {
         "protocol": "docs/maintainers/qualification/performance-benchmark-protocol.md",
@@ -479,7 +504,7 @@ def main() -> int:
         "worker_stderr_bytes": stderr_bytes,
         "decode_samples": decode_samples,
         "failed_decodes": failed_decodes,
-        "failure_rate": failure_rate,
+        "failure_injection": injection,
     }
     adapter_hash = sha256(Path(__file__))
     artifact_hashes = {
@@ -489,7 +514,6 @@ def main() -> int:
         "scripts/record_cpu_performance_evidence.py": adapter_hash,
     }
     command = shlex.join(EXPECTED_ARGV)
-    env = environment()
 
     def record(
         verification: str,
@@ -557,7 +581,7 @@ def main() -> int:
     KNOWN_PHRASE_CORRECTNESS = measurement("transcript_utf8_bytes", "ge", 1)
     STREAMING_AND_FINAL_RECORDED = measurement("cold_decode.n", "eq", 1)
     TIMESTAMPS_RECORDED = measurement("timestamps_supported", "is_false")
-    FAILURE_AND_FALLBACK = measurement("failure_rate", "eq", 0)
+    FAILURE_AND_FALLBACK = measurement("failure_injection.fallback_recovered", "is_true")
     QUALITY_PERF_BASELINE = measurement("hot_decode.p95_ms", "ge", 0)
 
     records = {
@@ -580,7 +604,7 @@ def main() -> int:
              measured("cold-warm-hot-recorded", COLD_OBSERVED),
              measured("failure-and-fallback-recorded", FAILURE_AND_FALLBACK),
              measured("quality-and-performance-baseline-recorded", QUALITY_PERF_BASELINE)],
-            "The exact packaged CPU worker qualification records known-phrase correctness, the engine's final-only capability, unsupported partial timestamps, cold/warm/hot behavior, CPU fallback, zero observed failures, and latency baselines.",
+            "The exact packaged CPU worker qualification records known-phrase correctness, the engine's final-only capability, unsupported partial timestamps, cold/warm/hot behavior, CPU fallback, one injected worker failure that was observed and recovered on a fresh worker, and latency baselines.",
         ),
         PERF_005: record(
             "VER-PERF-005", "PERF-005", "packaged-cpu-final-only-capability-v1",
@@ -604,22 +628,21 @@ def main() -> int:
         ),
     }
     schema = json.loads((ROOT / "spec/schemas/evidence.schema.json").read_text())
-    index = json.loads(index_path.read_text())
+    index_schema = json.loads((ROOT / "spec/schemas/evidence-index.schema.json").read_text())
+    payloads: list[tuple[Path, bytes]] = []
     for relative, value in records.items():
         jsonschema.validate(instance=value, schema=schema)
-        if any(item.get("path") == relative for item in index["qualified_evidence"]):
-            return fail(f"evidence index already contains {relative}")
-        payload = (json.dumps(value, indent=2, sort_keys=True) + "\n").encode()
-        index["qualified_evidence"].append(
-            {"path": relative, "sha256": hashlib.sha256(payload).hexdigest(), "disposition": "qualified"}
+        payloads.append((ROOT / relative, (json.dumps(value, indent=2, sort_keys=True) + "\n").encode()))
+    try:
+        recorder_safety.commit_records(
+            ROOT,
+            index_path,
+            evidence_index,
+            payloads,
+            validate_index=lambda value: jsonschema.validate(instance=value, schema=index_schema),
         )
-    jsonschema.validate(
-        instance=index,
-        schema=json.loads((ROOT / "spec/schemas/evidence-index.schema.json").read_text()),
-    )
-    for relative, value in records.items():
-        atomic_json(ROOT / relative, value)
-    atomic_json(index_path, index)
+    except (OSError, recorder_safety.RecorderSafetyError, jsonschema.ValidationError) as error:
+        return fail(str(error))
     print(json.dumps({"artifact_sha256": artifact_hash, "hot_samples": HOT_SAMPLES, "result": "pass"}, sort_keys=True))
     return 0
 

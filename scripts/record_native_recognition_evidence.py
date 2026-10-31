@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import platform
 import shlex
 import sys
@@ -16,6 +15,7 @@ from typing import Mapping, Sequence
 import jsonschema
 
 import qualify_candidate_known_phrase as qualifier
+import recorder_safety
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -70,33 +70,6 @@ def sha256(path: Path) -> str:
 def fail(message: str) -> int:
     print(f"record_native_recognition_evidence: {message}", file=sys.stderr)
     return 1
-
-
-def atomic_json(path: Path, value: object) -> bytes:
-    payload = (json.dumps(value, indent=2, sort_keys=True) + "\n").encode()
-    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
-    try:
-        with os.fdopen(descriptor, "wb") as stream:
-            stream.write(payload)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.chmod(temporary, 0o644)
-        os.replace(temporary, path)
-    finally:
-        Path(temporary).unlink(missing_ok=True)
-    return payload
-
-
-def replaceable(path: Path, index: dict[str, object]) -> bool:
-    relative = path.relative_to(ROOT).as_posix()
-    if any(item.get("path") == relative for item in index["qualified_evidence"]):
-        return False
-    if not path.exists():
-        return True
-    try:
-        return json.loads(path.read_text()).get("schema_version") == 1
-    except (OSError, json.JSONDecodeError):
-        return False
 
 
 class RecognitionOperations(qualifier.HostOperations):
@@ -165,8 +138,8 @@ def main() -> int:
     outputs = [ROOT / FUN_028, ROOT / FUN_029]
     index_path = ROOT / INDEX
     index = json.loads(index_path.read_text())
-    if not all(replaceable(path, index) for path in outputs):
-        return fail("an evidence output is already qualified or is not historical schema-v1 material")
+    if not all(recorder_safety.replaceable(path, index, ROOT) for path in outputs):
+        return fail("an evidence output is current, unindexed v2, or does not match its INDEX hash")
 
     operations = RecognitionOperations()
     started = datetime.now(timezone.utc)
@@ -296,19 +269,20 @@ def main() -> int:
     }
     schema = json.loads((ROOT / "spec/schemas/evidence.schema.json").read_text())
     index_schema = json.loads((ROOT / "spec/schemas/evidence-index.schema.json").read_text())
-    payloads: list[tuple[Path, dict[str, object], bytes]] = []
+    payloads: list[tuple[Path, bytes]] = []
     for relative, evidence in records.items():
         jsonschema.validate(instance=evidence, schema=schema)
-        payload = (json.dumps(evidence, indent=2, sort_keys=True) + "\n").encode()
-        payloads.append((ROOT / relative, evidence, payload))
-        index["qualified_evidence"].append(
-            {"path": relative, "sha256": hashlib.sha256(payload).hexdigest(), "disposition": "qualified"}
+        payloads.append((ROOT / relative, (json.dumps(evidence, indent=2, sort_keys=True) + "\n").encode()))
+    try:
+        recorder_safety.commit_records(
+            ROOT,
+            index_path,
+            index,
+            payloads,
+            validate_index=lambda value: jsonschema.validate(instance=value, schema=index_schema),
         )
-    index["qualified_evidence"].sort(key=lambda item: item["path"])
-    jsonschema.validate(instance=index, schema=index_schema)
-    for path, evidence, _payload in payloads:
-        atomic_json(path, evidence)
-    atomic_json(index_path, index)
+    except (OSError, recorder_safety.RecorderSafetyError, jsonschema.ValidationError) as error:
+        return fail(str(error))
     print(json.dumps({"artifact_sha256": artifact_hash, "records": 2, "result": "pass"}, sort_keys=True))
     return 0
 

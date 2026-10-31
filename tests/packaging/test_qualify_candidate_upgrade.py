@@ -30,11 +30,14 @@ class Lifecycle(ContainerFs):
     fake answered every sentinel check with the expected digest, so
     "preserved" could not fail)."""
 
-    def __init__(self, *, fail_upgrade: bool = False) -> None:
+    def __init__(self, *, fail_upgrade: bool = False, status_fails_on: str | None = None) -> None:
         super().__init__()
+        self.exit_code = 0
         self.version = ""
         self.registered = False
         self.fail_upgrade = fail_upgrade
+        self.status_fails_on = status_fails_on
+        self.status_versions: list[str] = []
         self.users: dict[str, int] = {}
         # path -> (content, owner uid)
         self.contents: dict[str, tuple[bytes, int]] = {
@@ -61,6 +64,35 @@ class Lifecycle(ContainerFs):
     def __call__(self, argv: tuple[str, ...]) -> CommandResult:
         if argv[:2] == ("sh", "-c"):
             return self.shell(argv[2])
+        if argv[:3] == ("/bin/sh", "-c", lifecycle.DAEMON_START_SCRIPT):
+            # The start script records exit 127 when the daemon is missing.
+            self.files.pop(lifecycle.PID_FILE, None)
+            if "/usr/bin/narrivyd" not in self.files:
+                self.exit_code = 127
+                self.files[lifecycle.EXIT_FILE] = 0o644
+                return ok()
+            self.exit_code = 0
+            self.files.pop(lifecycle.EXIT_FILE, None)
+            self.files[lifecycle.PID_FILE] = 0o644
+            self.files[lifecycle.SOCKET_PATH] = 0o600
+            return ok()
+        if argv[:3] == ("/bin/sh", "-c", 'kill -TERM "$1"'):
+            if lifecycle.SOCKET_PATH not in self.files:
+                return CommandResult(1, b"", b"No such process")
+            self.files.pop(lifecycle.SOCKET_PATH, None)
+            self.files[lifecycle.EXIT_FILE] = 0o644
+            return ok()
+        if argv[0] == "/usr/bin/narrivy-cli" and argv[-1] == "status":
+            if lifecycle.SOCKET_PATH not in self.files:
+                return CommandResult(1, b"", b"daemon_unavailable")
+            self.status_versions.append(self.version)
+            if self.version == self.status_fails_on:
+                return CommandResult(1, b"", b"")
+            return ok(b"narrivy-cli status: no active session\n")
+        if argv[0] == "cat" and argv[1] in (lifecycle.PID_FILE, lifecycle.EXIT_FILE):
+            if argv[1] not in self.files:
+                return CommandResult(1, b"", b"No such file or directory")
+            return ok(b"4242\n" if argv[1] == lifecycle.PID_FILE else f"{self.exit_code}\n".encode())
         if argv[0] == "sha256sum":
             target = argv[1]
             if target not in self.contents or target not in self.files:
@@ -111,6 +143,8 @@ class Lifecycle(ContainerFs):
         if argv[0] == "apt-get" and argv[1] in ("remove", "purge") and argv[-1] == "narrivy":
             if not self.registered:
                 return CommandResult(100, b"", b"E: Unable to locate package")
+            if lifecycle.SOCKET_PATH in self.files:
+                return CommandResult(1, b"", b"daemon still running")
             self.uninstall()
             if argv[1] == "purge":
                 self.registered = False
@@ -125,7 +159,7 @@ class Lifecycle(ContainerFs):
             return ok(f"{self.contents[argv[3]][1]}\n".encode())
         if argv[:2] == ("test", "-L"):
             return CommandResult(1, b"", b"")
-        if argv[:2] == ("test", "-f"):
+        if argv[:2] in (("test", "-f"), ("test", "-S")):
             return CommandResult(0 if argv[2] in self.files else 1, b"", b"")
         return unmodelled(argv)
 
@@ -191,6 +225,24 @@ class UpgradeQualificationTests(unittest.TestCase):
         self.assertEqual(names[-1], "container_remove")
         self.assertEqual(runner.removed, [(CONTAINER, upgrade._run_digest(PREVIOUS_SHA, CURRENT_SHA))])
         self.assertEqual(set(runner.copies), {upgrade.PREVIOUS_IN_CONTAINER, upgrade.CURRENT_IN_CONTAINER})
+
+    def test_daemon_status_is_checked_after_install_upgrade_rollback_and_reupgrade(self) -> None:
+        # P-4: the upgrade procedure must start the daemon and get a status answer.
+        lifecycle = Lifecycle()
+        outcome, _runner = self.run_flow(lifecycle)
+        self.assertEqual(outcome["result"], "passed")
+        self.assertEqual(outcome["daemon_checks"], {step: True for step in upgrade.DAEMON_CHECK_STEPS})
+        self.assertEqual(lifecycle.status_versions, ["0.1.0~rc1", "0.1.0~rc2", "0.1.0~rc1", "0.1.0~rc2"])
+        names = [step["step"] for step in outcome["steps"]]
+        self.assertLess(names.index("confirm_upgrade"), names.index("daemon_status_upgrade"))
+
+    def test_daemon_status_failure_fails_the_run(self) -> None:
+        lifecycle = Lifecycle(status_fails_on="0.1.0~rc1")
+        outcome, runner = self.run_flow(lifecycle)
+        self.assertEqual(outcome["result"], "failed")
+        self.assertEqual(outcome["failed_step"], "daemon_status_previous")
+        self.assertFalse(outcome["daemon_checks"]["daemon_status_previous"])
+        self.assertEqual(len(runner.removed), 1)
 
     def test_mid_upgrade_failure_is_truthful_and_container_is_removed(self) -> None:
         outcome, runner = self.run_flow(Lifecycle(fail_upgrade=True))

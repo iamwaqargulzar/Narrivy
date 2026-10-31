@@ -1847,3 +1847,59 @@ hash drift waiting for the reviewed regeneration, the `'whisper'` literal in
   as roadmap.
 - Checks: Vitest 55 files / 221 tests pass, `tsc --noEmit` clean,
   `cargo check -p narrivy-desktop` clean, `check_docs.py` OK.
+
+## 2026-10-30: WP4 T4.5, recorder defects (P-4)
+
+Branch `cloud/recorders`. No evidence was re-recorded (that needs the real
+machine); no evidence file was edited.
+
+- New `scripts/recorder_safety.py`, shared by the recorders: guarded
+  replace, native-lane proof, log privacy scan, structured test results and
+  bounded process groups.
+- The 12 P-4 defects:
+  1. Hardening emits its measured assertions as they are (was wrapped as IDs).
+  2. Guarded replace in every recorder that refused its own output: allowed
+     only for an indexed v1/v2 record whose bytes match its INDEX hash (or an
+     unindexed v1); file and INDEX are written in one transaction with
+     rollback. The audio-policy legacy harness output is put back first.
+  3. `native_or_vm: native` needs `recorder_safety.native_lane()`: Pop!_OS
+     24.04, COSMIC, a live Wayland socket, `systemd-detect-virt` = none (VM
+     and container), no container markers. Used by CPU, accessibility, audio
+     policy, hardening, UI dictation and the known-phrase qualifier.
+  4. Logs are scanned for the real transcript's 3-grams (kept in memory) and
+     canaries; a missing or unreadable log fails.
+  5. CPU: one worker is killed on purpose; its decode must fail and a fresh
+     worker must recover. TEST-005 binds `failure_injection.fallback_recovered`.
+  6. Named tests count only with their own `ok`/`passed` result (libtest
+     lines, `unittest -v`, Vitest JSON); skipped or ignored fails.
+  7. PERF-002 uses `installed_toggle_ack_ms`; non-monotonic stages and
+     negative or non-finite latencies fail; one outer `try/finally` owns the
+     daemon and desktop.
+  8. Upgrade: after install, upgrade, rollback and re-upgrade the daemon
+     starts, `narrivy-cli status` must answer, and it must exit 0. The
+     previous package must match `PREVIOUS_SHA256` in the recorder; it is
+     unset, so the recorder fails closed until the owner pins it.
+  9. REL-008 runs the packaged `narrivy-cli support-report` with canaries.
+  10. SEC-005 connects to the live socket as `nobody` (`sudo -n`, an owner
+      step) and requires the daemon's "cross-user connection denied" frame.
+  11. Vertical slice: scenario `p6-e2e-beta`, hash of its spec file.
+  12. OPS-004 rejects `NOASSERTION`/`NONE` licences and checks SBOM checksums
+      against `Cargo.lock` at the source commit. The builder still writes
+      `NOASSERTION` (T6.4, P-8), so OPS-004 fails until that lands.
+- Also from T4.5 item 12: timeouts with process-group kill for the CPU
+  workers, accessibility (AT-SPI app picked by PID), audio policy and the
+  controlled/unit suites. Not done here: item 12 for
+  `qualify_installed_model.py`, items 13, 14 and 15.
+- Profile contract: SEC-005 and REL-008 gain one required assertion each;
+  TEST-005 and OPS-004 bindings changed; runner pins re-pinned. The
+  `controlled-sec-004-v1` pin was already stale (P-3, T4.6) and is unchanged.
+- Release gate: the 140 "no measurement binding" errors come from 14 old
+  schema-v2 evidence files; 12 of those recorders already emit bindings and
+  hardening now does too, so re-recording clears them. Now 142: the two new
+  required assertions are also absent from the old files. Changed recorder
+  hashes add "artifact hash mismatch" lines on already-failing requirements;
+  accepted count unchanged.
+
+| Date | Task | Commit | Check | Result |
+|---|---|---|---|---|
+| 2026-10-30 | WP4 T4.5 (P-4): recorder defects 1–12 | cloud/recorders | pytest tests/packaging/test_recorder_defects_p4.py (35) + touched recorder tests; pytest tests (346 pass, 8 fail as on base: missing local artifacts/tools); doctor.py; release_gate (exit 1, 142 binding errors) | pass |

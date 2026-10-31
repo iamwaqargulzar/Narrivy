@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import platform
 import shlex
 import sys
@@ -15,6 +14,7 @@ from pathlib import Path
 import jsonschema
 
 import qualify_candidate_known_phrase as qualifier
+import recorder_safety
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = "artifacts/releases/narrivy-linux-amd64.deb"
@@ -22,9 +22,12 @@ FIXTURE = "tests/fixtures/jfk16.wav"
 EVIDENCE = "agent/evidence/P6/VER-TEST-009.json"
 INDEX = "agent/evidence/INDEX.json"
 QUALIFIER = "scripts/qualify_candidate_known_phrase.py"
-QUALIFIER_SHA256 = "6c3d9ad93dea7681bad7bb6726c69608444140dc80eda16299b8ec1709c408be"
+QUALIFIER_SHA256 = "881e3f12bd04a5f3ee01b86dac3ff7daa82e0191a2a5922cbb8e4e35752ea30b"
 FIXTURE_SHA256 = "59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e"
 PROCEDURE_ID = "cosmic-physical-mic-local-asr-inbox-v1"
+# The reviewed scenario this run executes; the record carries its id and hash.
+SCENARIO_ID = "p6-e2e-beta"
+SCENARIO = f"spec/scenarios/{SCENARIO_ID}.json"
 PROFILE_ID = "native-behavior-v1"
 EXPECTED_ARGV = [
     "python3",
@@ -68,23 +71,6 @@ def os_release() -> tuple[str, str]:
     return values.get("NAME", "Linux"), values.get("PRETTY_NAME", platform.release())
 
 
-def atomic_json(path: Path, value: object, mode: int) -> None:
-    payload = (json.dumps(value, indent=2, sort_keys=True) + "\n").encode("utf-8")
-    temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
-    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
-    try:
-        with os.fdopen(descriptor, "wb") as stream:
-            stream.write(payload)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    finally:
-        try:
-            temporary.unlink()
-        except FileNotFoundError:
-            pass
-
-
 def main() -> int:
     if sys.argv != EXPECTED_ARGV[1:]:
         return fail("argv does not match the reviewed procedure")
@@ -93,8 +79,16 @@ def main() -> int:
     evidence_path = ROOT / EVIDENCE
     index_path = ROOT / INDEX
     qualifier_path = ROOT / QUALIFIER
-    if evidence_path.exists():
-        return fail("evidence output already exists")
+    index = json.loads(index_path.read_text())
+    if not recorder_safety.replaceable(evidence_path, index, ROOT):
+        return fail("evidence output is current, unindexed v2, or does not match its INDEX hash")
+    scenario_path = ROOT / SCENARIO
+    try:
+        scenario = json.loads(scenario_path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return fail(f"reviewed scenario is unreadable: {SCENARIO}")
+    if scenario.get("id") != SCENARIO_ID or scenario.get("verification_id") != "VER-TEST-009":
+        return fail(f"reviewed scenario does not describe VER-TEST-009: {SCENARIO}")
     if sha256(qualifier_path) != QUALIFIER_SHA256:
         return fail("primary qualifier hash does not match the reviewed adapter")
     if sha256(fixture) != FIXTURE_SHA256:
@@ -131,7 +125,7 @@ def main() -> int:
         "verification_id": "VER-TEST-009",
         "requirement_ids": ["TEST-009"],
         "phase": "P6",
-        "scenario_id": "cosmic-physical-mic-local-asr-clean-inbox-v1",
+        "scenario_id": SCENARIO_ID,
         "git_commit": source["head"],
         "git_dirty": source["git_dirty"],
         "build_id": artifact.name,
@@ -156,7 +150,7 @@ def main() -> int:
         },
         "command": shlex.join(EXPECTED_ARGV),
         "scenario_version": "1",
-        "scenario_hash": sha256(Path(__file__)),
+        "scenario_hash": sha256(scenario_path),
         "started_at": started.isoformat(),
         "ended_at": ended.isoformat(),
         "exit_code": 0,
@@ -175,6 +169,7 @@ def main() -> int:
             ARTIFACT: artifact_hash,
             FIXTURE: FIXTURE_SHA256,
             QUALIFIER: QUALIFIER_SHA256,
+            SCENARIO: sha256(scenario_path),
             "scripts/record_cosmic_vertical_slice_evidence.py": sha256(Path(__file__)),
         },
         "artifact_under_test": {
@@ -202,21 +197,15 @@ def main() -> int:
     }
     evidence_schema = json.loads((ROOT / "spec/schemas/evidence.schema.json").read_text())
     jsonschema.validate(instance=evidence, schema=evidence_schema)
-    index = json.loads(index_path.read_text())
-    if any(item.get("path") == EVIDENCE for item in index["qualified_evidence"]):
-        return fail("evidence index already contains the output path")
     evidence_payload = (json.dumps(evidence, indent=2, sort_keys=True) + "\n").encode()
-    index["qualified_evidence"].append(
-        {
-            "path": EVIDENCE,
-            "sha256": hashlib.sha256(evidence_payload).hexdigest(),
-            "disposition": "qualified",
-        }
-    )
     index_schema = json.loads((ROOT / "spec/schemas/evidence-index.schema.json").read_text())
-    jsonschema.validate(instance=index, schema=index_schema)
-    atomic_json(evidence_path, evidence, 0o644)
-    atomic_json(index_path, index, 0o644)
+    try:
+        recorder_safety.commit_records(
+            ROOT, index_path, index, [(evidence_path, evidence_payload)],
+            validate_index=lambda value: jsonschema.validate(instance=value, schema=index_schema),
+        )
+    except (OSError, recorder_safety.RecorderSafetyError, jsonschema.ValidationError) as error:
+        return fail(str(error))
     print(
         json.dumps(
             {

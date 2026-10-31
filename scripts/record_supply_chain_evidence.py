@@ -18,6 +18,7 @@ import jsonschema
 
 import build_candidate_supply_chain as supply
 import qualify_candidate_known_phrase as package_identity
+import recorder_safety
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = "agent/evidence/P10/VER-OPS-004.json"
@@ -69,6 +70,66 @@ def _artifact(manifest: dict[str, Any], kind: str) -> dict[str, Any]:
     if len(matches) != 1:
         raise VerificationError(f"release manifest must contain one {kind} artifact")
     return matches[0]
+
+UNASSERTED_LICENSES = frozenset({"", "NOASSERTION", "NONE"})
+
+
+def _verify_inventory(
+    packages: list[Any], lock_packages: list[supply.LockPackage], product_name: str
+) -> dict[str, int]:
+    """Every shipped component has a real licence and a Cargo.lock-matched checksum.
+
+    ``NOASSERTION`` (or ``NONE``) is not a licence: it fails. Each dependency
+    must be in the source commit's Cargo.lock at the same version, and when
+    Cargo.lock pins a checksum the SBOM must carry exactly that checksum.
+    """
+    locked = {(item.name, item.version): item for item in lock_packages}
+    unasserted = 0
+    mismatched = 0
+    unknown = 0
+    verified = 0
+    for item in packages:
+        if not isinstance(item, dict):
+            raise VerificationError("SPDX dependency or license inventory is malformed")
+        for field in ("licenseDeclared", "licenseConcluded"):
+            if str(item.get(field, "")).strip().upper() in UNASSERTED_LICENSES:
+                unasserted += 1
+        if item.get("name") == product_name:
+            continue
+        lock = locked.get((item.get("name"), item.get("versionInfo")))
+        if lock is None:
+            unknown += 1
+            continue
+        observed = [
+            checksum.get("checksumValue")
+            for checksum in item.get("checksums", []) or []
+            if isinstance(checksum, dict) and checksum.get("algorithm") == "SHA256"
+        ]
+        if lock.checksum is None:
+            if observed:
+                mismatched += 1
+            continue
+        if observed != [lock.checksum]:
+            mismatched += 1
+        else:
+            verified += 1
+    if unasserted:
+        raise VerificationError(
+            f"SPDX inventory has {unasserted} NOASSERTION/NONE licence fields for shipped components"
+        )
+    if unknown:
+        raise VerificationError(f"SPDX inventory has {unknown} components absent from Cargo.lock")
+    if mismatched:
+        raise VerificationError(f"SPDX inventory has {mismatched} checksums that do not match Cargo.lock")
+    if verified < 1:
+        raise VerificationError("SPDX inventory verified no checksum against Cargo.lock")
+    return {
+        "unasserted_license_fields": unasserted,
+        "components_absent_from_lockfile": unknown,
+        "lockfile_checksum_mismatches": mismatched,
+        "lockfile_checksums_verified": verified,
+    }
+
 
 def _verify_bundle(package: Path, bundle: Path, source_root: Path) -> dict[str, Any]:
     try:
@@ -174,6 +235,13 @@ def _verify_bundle(package: Path, bundle: Path, source_root: Path) -> dict[str, 
             checksummed += 1
     if checksummed < 1:
         raise VerificationError("SPDX package checksum inventory is missing")
+    try:
+        lock_packages = supply._parse_lockfile(
+            supply._read_lockfile(source_root, head, git=supply.GIT, timeout=supply.GIT_TIMEOUT_SECONDS)
+        )
+    except supply.SupplyChainError as exc:
+        raise VerificationError(f"Cargo.lock at the source commit is unavailable: {exc}") from exc
+    inventory = _verify_inventory(packages, lock_packages, supply.PACKAGE_NAME)
 
     subject = provenance.get("subject")
     predicate = provenance.get("predicate")
@@ -224,6 +292,7 @@ def _verify_bundle(package: Path, bundle: Path, source_root: Path) -> dict[str, 
         "release_hash": _sha(release_payload), "summary_hash": _sha(result_payload),
         "dependency_count": len(packages) - 1, "checksummed_dependency_count": checksummed,
         "signing": signing,
+        "inventory": inventory,
         "checks": {
             "manifest_checksum_match": (
                 deb["sha256"] == package_hash and deb["size_bytes"] == package_size
@@ -238,7 +307,10 @@ def _verify_bundle(package: Path, bundle: Path, source_root: Path) -> dict[str, 
                     for x in relationships
                 )
             ),
-            "spdx_package_checksums_verified": checksummed >= 1,
+            "spdx_package_checksums_verified": checksummed >= 1
+            and inventory["lockfile_checksum_mismatches"] == 0
+            and inventory["lockfile_checksums_verified"] >= 1,
+            "spdx_licenses_asserted": inventory["unasserted_license_fields"] == 0,
             "in_toto_subject_matched": subject[0].get("digest") == {"sha256": package_hash},
             "immutable_build_identity_matched": (
                 manifest["build_identity"] == f"narrivy-{identity.version}+{head[:7]}"
@@ -262,15 +334,8 @@ def _atomic_json(path: Path, value: object) -> bytes:
 
 def record(package: Path, bundle: Path, source_root: Path, evidence_path: Path, index_path: Path, command: list[str]) -> dict[str, Any]:
     index = json.loads(index_path.read_text())
-    evidence_rel = evidence_path.relative_to(source_root).as_posix()
-    if any(item.get("path") == evidence_rel for item in index["qualified_evidence"]):
-        raise VerificationError("evidence index already contains the output path")
-    if evidence_path.exists():
-        try:
-            if json.loads(evidence_path.read_text()).get("schema_version") != 1:
-                raise VerificationError("evidence output collision")
-        except (OSError, json.JSONDecodeError) as exc:
-            raise VerificationError("evidence output collision") from exc
+    if not recorder_safety.replaceable(evidence_path, index, source_root):
+        raise VerificationError("evidence output is current, unindexed v2, or does not match its INDEX hash")
     started = datetime.now(timezone.utc)
     verified = _verify_bundle(package, bundle, source_root)
     ended = datetime.now(timezone.utc)
@@ -300,6 +365,7 @@ def record(package: Path, bundle: Path, source_root: Path, evidence_path: Path, 
                 1 for x in verified["spdx"].get("relationships", [])
                 if isinstance(x, dict) and x.get("relationshipType") == "DEPENDS_ON"
             ),
+            "inventory": verified["inventory"],
             "checks": verified["checks"]},
         "artifact_hashes": {package_rel: verified["package_hash"],
             f"{bundle_rel}/{supply.SPDX_NAME}": verified["spdx_hash"],
@@ -312,8 +378,8 @@ def record(package: Path, bundle: Path, source_root: Path, evidence_path: Path, 
             "assertions": [
                 measured("exact-clean-package-bound", measurement("checks.source_commit_match", "is_true")),
                 measured("package-checksum-manifest-matched", measurement("checks.manifest_checksum_match", "is_true")),
-                measured("spdx-dependency-license-inventory-present", measurement("spdx_relationships", "ge", 1)),
-                measured("spdx-package-checksums-verified", measurement("checksummed_dependency_count", "ge", 1)),
+                measured("spdx-dependency-license-inventory-present", measurement("inventory.unasserted_license_fields", "eq", 0)),
+                measured("spdx-package-checksums-verified", measurement("inventory.lockfile_checksum_mismatches", "eq", 0)),
                 measured("in-toto-subject-matched", measurement("checks.in_toto_subject_matched", "is_true")),
                 measured("immutable-build-identity-matched", measurement("checks.immutable_build_identity_matched", "is_true")),
                 measured("signing-state-truthful", measurement("signing_status", "eq", "not-supported")),
@@ -325,10 +391,14 @@ def record(package: Path, bundle: Path, source_root: Path, evidence_path: Path, 
     }
     jsonschema.validate(instance=evidence, schema=json.loads((source_root / "spec/schemas/evidence.schema.json").read_text()))
     payload = (json.dumps(evidence, indent=2, sort_keys=True) + "\n").encode()
-    index["qualified_evidence"].append({"path": evidence_rel, "sha256": _sha(payload), "disposition": "qualified"})
-    index["qualified_evidence"].sort(key=lambda item: item["path"])
-    jsonschema.validate(instance=index, schema=json.loads((source_root / "spec/schemas/evidence-index.schema.json").read_text()))
-    _atomic_json(evidence_path, evidence); _atomic_json(index_path, index)
+    index_schema = json.loads((source_root / "spec/schemas/evidence-index.schema.json").read_text())
+    try:
+        recorder_safety.commit_records(
+            source_root, index_path, index, [(evidence_path, payload)],
+            validate_index=lambda value: jsonschema.validate(instance=value, schema=index_schema),
+        )
+    except recorder_safety.RecorderSafetyError as exc:
+        raise VerificationError(str(exc)) from exc
     return evidence
 
 def main(argv: list[str] | None = None) -> int:

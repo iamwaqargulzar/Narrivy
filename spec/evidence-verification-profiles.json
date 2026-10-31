@@ -109,7 +109,7 @@
       ],
       "runner": {
         "path": "scripts/record_cosmic_vertical_slice_evidence.py",
-        "sha256": "cf8791cb5232c97ae9ae33b37f40852b78044fa6fda20bda1b5ac3d61ef97b27",
+        "sha256": "75265a56ba0ef39ed8b0ec8d8caf3ba2b68e8a6f96ec2b0d982750594a03e39c",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -136,7 +136,7 @@
       ],
       "runner": {
         "path": "scripts/record_package_lifecycle_evidence.py",
-        "sha256": "66b43deff886b0c80a4496d72232852ece2c7ef969356cf3411e2066e27b2b51",
+        "sha256": "04d76ddcf194ac3e4619cdd4daf294237f33d3022d3441c61d6d49e4d79b04c9",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -166,7 +166,7 @@
       ],
       "runner": {
         "path": "scripts/record_cpu_performance_evidence.py",
-        "sha256": "4e50488d17f60a1a24730bc6f6b7b318555784d106b39e048720ede6e2525029",
+        "sha256": "10c3d1a3e2ec0041fca7244542397d0d3fbc9cc0af927813ff36772e22a0bf9d",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -216,7 +216,7 @@
       ],
       "runner": {
         "path": "scripts/record_cpu_performance_evidence.py",
-        "sha256": "4e50488d17f60a1a24730bc6f6b7b318555784d106b39e048720ede6e2525029",
+        "sha256": "10c3d1a3e2ec0041fca7244542397d0d3fbc9cc0af927813ff36772e22a0bf9d",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1369,7 +1369,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_hardening_evidence.py",
-        "sha256": "500b3c7919f293ab105b154f717d36ecb5a1752a5b593ea3e36a8019864a8ed1",
+        "sha256": "28e8ff33379f5fd41dbf255f40d9641542f4ab5bbb279fe709ecc529241c12f4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1412,6 +1412,13 @@
           }
         },
         {
+          "id": "cross-uid-peer-rejected",
+          "measurement": {
+            "metric": "endpoint.cross_uid_rejected",
+            "comparator": "is_true"
+          }
+        },
+        {
           "id": "daemon-clean-shutdown",
           "measurement": {
             "metric": "endpoint.daemon_exit_code",
@@ -1432,7 +1439,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_hardening_evidence.py",
-        "sha256": "500b3c7919f293ab105b154f717d36ecb5a1752a5b593ea3e36a8019864a8ed1",
+        "sha256": "28e8ff33379f5fd41dbf255f40d9641542f4ab5bbb279fe709ecc529241c12f4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1445,9 +1452,17 @@
           }
         },
         {
+          "id": "packaged-support-report-generated",
+          "measurement": {
+            "metric": "support_report.exit_code",
+            "comparator": "eq",
+            "expected": 0
+          }
+        },
+        {
           "id": "support-report-default-redaction",
           "measurement": {
-            "metric": "canaries.diagnostics_absent",
+            "metric": "canaries.support_report_absent",
             "comparator": "is_true"
           }
         },
@@ -1479,7 +1494,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_hardening_evidence.py",
-        "sha256": "500b3c7919f293ab105b154f717d36ecb5a1752a5b593ea3e36a8019864a8ed1",
+        "sha256": "28e8ff33379f5fd41dbf255f40d9641542f4ab5bbb279fe709ecc529241c12f4",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1534,7 +1549,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_accessibility_evidence.py",
-        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "sha256": "67c247b41428d084455b287d089a32676ad0ead9441d3a0741a1b6c30a717a6f",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1591,7 +1606,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_accessibility_evidence.py",
-        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "sha256": "67c247b41428d084455b287d089a32676ad0ead9441d3a0741a1b6c30a717a6f",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1640,7 +1655,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_accessibility_evidence.py",
-        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "sha256": "67c247b41428d084455b287d089a32676ad0ead9441d3a0741a1b6c30a717a6f",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1693,7 +1708,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_accessibility_evidence.py",
-        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "sha256": "67c247b41428d084455b287d089a32676ad0ead9441d3a0741a1b6c30a717a6f",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1768,7 +1783,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1796,7 +1811,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1820,7 +1835,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_accessibility_evidence.py",
-        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "sha256": "67c247b41428d084455b287d089a32676ad0ead9441d3a0741a1b6c30a717a6f",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1875,7 +1890,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_accessibility_evidence.py",
-        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "sha256": "67c247b41428d084455b287d089a32676ad0ead9441d3a0741a1b6c30a717a6f",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1923,7 +1938,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_accessibility_evidence.py",
-        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "sha256": "67c247b41428d084455b287d089a32676ad0ead9441d3a0741a1b6c30a717a6f",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -1971,7 +1986,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_accessibility_evidence.py",
-        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "sha256": "67c247b41428d084455b287d089a32676ad0ead9441d3a0741a1b6c30a717a6f",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2019,7 +2034,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_accessibility_evidence.py",
-        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "sha256": "67c247b41428d084455b287d089a32676ad0ead9441d3a0741a1b6c30a717a6f",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2070,7 +2085,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2094,7 +2109,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2118,7 +2133,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2143,7 +2158,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2165,7 +2180,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_accessibility_evidence.py",
-        "sha256": "43523888c2890a3958e5544019a8b0966f8dddcda6d88821daffe3dd5904e277",
+        "sha256": "67c247b41428d084455b287d089a32676ad0ead9441d3a0741a1b6c30a717a6f",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2258,7 +2273,7 @@
       ],
       "runner": {
         "path": "scripts/record_cpu_performance_evidence.py",
-        "sha256": "4e50488d17f60a1a24730bc6f6b7b318555784d106b39e048720ede6e2525029",
+        "sha256": "10c3d1a3e2ec0041fca7244542397d0d3fbc9cc0af927813ff36772e22a0bf9d",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2308,7 +2323,7 @@
       ],
       "runner": {
         "path": "scripts/record_cpu_performance_evidence.py",
-        "sha256": "4e50488d17f60a1a24730bc6f6b7b318555784d106b39e048720ede6e2525029",
+        "sha256": "10c3d1a3e2ec0041fca7244542397d0d3fbc9cc0af927813ff36772e22a0bf9d",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2355,9 +2370,8 @@
         {
           "id": "failure-and-fallback-recorded",
           "measurement": {
-            "metric": "failure_rate",
-            "comparator": "eq",
-            "expected": 0
+            "metric": "failure_injection.fallback_recovered",
+            "comparator": "is_true"
           }
         },
         {
@@ -2381,7 +2395,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_audio_policy_evidence.py",
-        "sha256": "4f45575c69c276917ffa04ce774fe2a35a61070a68822aeaef3756a6e8070793",
+        "sha256": "ccc687e41224958aacc420b68b4c8f83ce789c994a61049e267035b0bf96de09",
         "argv_index": 0
       },
       "permitted_substitutions": [],
@@ -2402,7 +2416,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_audio_policy_evidence.py",
-        "sha256": "4f45575c69c276917ffa04ce774fe2a35a61070a68822aeaef3756a6e8070793",
+        "sha256": "ccc687e41224958aacc420b68b4c8f83ce789c994a61049e267035b0bf96de09",
         "argv_index": 0
       },
       "permitted_substitutions": [],
@@ -2423,7 +2437,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_audio_policy_evidence.py",
-        "sha256": "4f45575c69c276917ffa04ce774fe2a35a61070a68822aeaef3756a6e8070793",
+        "sha256": "ccc687e41224958aacc420b68b4c8f83ce789c994a61049e267035b0bf96de09",
         "argv_index": 0
       },
       "permitted_substitutions": [],
@@ -2445,7 +2459,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_audio_policy_evidence.py",
-        "sha256": "4f45575c69c276917ffa04ce774fe2a35a61070a68822aeaef3756a6e8070793",
+        "sha256": "ccc687e41224958aacc420b68b4c8f83ce789c994a61049e267035b0bf96de09",
         "argv_index": 0
       },
       "permitted_substitutions": [],
@@ -2466,7 +2480,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_audio_policy_evidence.py",
-        "sha256": "4f45575c69c276917ffa04ce774fe2a35a61070a68822aeaef3756a6e8070793",
+        "sha256": "ccc687e41224958aacc420b68b4c8f83ce789c994a61049e267035b0bf96de09",
         "argv_index": 0
       },
       "permitted_substitutions": [],
@@ -2487,7 +2501,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_audio_policy_evidence.py",
-        "sha256": "4f45575c69c276917ffa04ce774fe2a35a61070a68822aeaef3756a6e8070793",
+        "sha256": "ccc687e41224958aacc420b68b4c8f83ce789c994a61049e267035b0bf96de09",
         "argv_index": 0
       },
       "permitted_substitutions": [],
@@ -2508,7 +2522,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_audio_policy_evidence.py",
-        "sha256": "4f45575c69c276917ffa04ce774fe2a35a61070a68822aeaef3756a6e8070793",
+        "sha256": "ccc687e41224958aacc420b68b4c8f83ce789c994a61049e267035b0bf96de09",
         "argv_index": 0
       },
       "permitted_substitutions": [],
@@ -2577,7 +2591,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2601,7 +2615,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2626,7 +2640,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2649,7 +2663,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2672,7 +2686,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2696,7 +2710,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -2840,7 +2854,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -3116,7 +3130,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -3143,7 +3157,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_recognition_evidence.py",
-        "sha256": "a024c10b39f2928360a081f3ea4255ca55d3bf8af1d99cf80cd82db730c45aed",
+        "sha256": "1335e843d5450542ffaa371b6126f48b81a30c5dbbb6c6673948da6a9fef24d7",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -3170,7 +3184,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_recognition_evidence.py",
-        "sha256": "a024c10b39f2928360a081f3ea4255ca55d3bf8af1d99cf80cd82db730c45aed",
+        "sha256": "1335e843d5450542ffaa371b6126f48b81a30c5dbbb6c6673948da6a9fef24d7",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -3196,7 +3210,7 @@
       ],
       "runner": {
         "path": "scripts/record_native_ui_dictation_evidence.py",
-        "sha256": "b55dcdf62fd425a8115dfe54b9c6bacc5de84fb9289b5b1ff15c609a13ed7bea",
+        "sha256": "0fe9bdc0ef8f51065f182aa9f5d62a49a34d5d229be0add0e91bb87ccbff7e7b",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -3218,7 +3232,7 @@
       ],
       "runner": {
         "path": "scripts/record_package_upgrade_evidence.py",
-        "sha256": "5cd138587aa336e57600c72e2fc12564b4eecea9cebd0a55c28852a7c009fb11",
+        "sha256": "b9d8d8ddf81cf78839bb37664633d70b32c5e170872c9a106c6a4a4b311a3c2d",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -3247,7 +3261,7 @@
       ],
       "runner": {
         "path": "scripts/record_supply_chain_evidence.py",
-        "sha256": "eef9a79fec3f87887896ac072dd5214010e5c85fcab989a65446d61dba227579",
+        "sha256": "5771eee904f0e5ec92ad32cfd94939df6db582df38f79155b5a8cf05ce7ea584",
         "argv_index": 1
       },
       "permitted_substitutions": [],
@@ -3269,17 +3283,17 @@
         {
           "id": "spdx-dependency-license-inventory-present",
           "measurement": {
-            "metric": "spdx_relationships",
-            "comparator": "ge",
-            "expected": 1
+            "metric": "inventory.unasserted_license_fields",
+            "comparator": "eq",
+            "expected": 0
           }
         },
         {
           "id": "spdx-package-checksums-verified",
           "measurement": {
-            "metric": "checksummed_dependency_count",
-            "comparator": "ge",
-            "expected": 1
+            "metric": "inventory.lockfile_checksum_mismatches",
+            "comparator": "eq",
+            "expected": 0
           }
         },
         {
