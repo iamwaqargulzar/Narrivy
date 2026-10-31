@@ -5,8 +5,8 @@ families**; the table below is a complete transcription of that catalog, not a
 curated subset, so the two cannot drift. Engine `status` is a
 *product-capability* status, not an implementation claim: `test-only` means no
 release requirement, package, or platform qualification derives from that
-engine. `asr-mock` is nevertheless a non-optional `narrivyd` dependency and the
-daemon's default composition — see `docs/architecture/README.md`.
+engine. `asr-mock` is linked into `narrivyd` as a test and development
+default only — see `docs/architecture/README.md`.
 
 | Engine | Capabilities | Status | Purpose | Runtime notes | License |
 |---|---|---|---|---|---|
@@ -39,20 +39,22 @@ daemon's default composition — see `docs/architecture/README.md`.
 
 ## Implemented bindings
 
-Only two Engine families have code in this tree (`engines/`):
+`engines/` holds four crates (checked at rc13):
 
-- `asr-mock` — deterministic in-tree engine, `engines/asr-mock`, a non-optional
-  `narrivy-asr-mock` dependency of `narrivyd`
-  (`services/narrivyd/Cargo.toml:47`) and the `EngineConfig::default()`
-  selection.
-- `transcribe-cpp` — GGUF ASR binding used by the installed resident-worker
-  lanes, behind the `asr-transcribe-cpp` / `asr-transcribe-resident` features
-  (`services/narrivyd/Cargo.toml:49,55-62`).
-
-No OpenVINO inference engine exists in the tree. OpenVINO appears only as
-absence detection returning an install suggestion
-(`crates/narrivy-compute/src/discovery.rs:188`,
-`crates/narrivy-model-manager/src/manager.rs:170`).
+- `asr-mock` — deterministic test engine. `narrivyd` always links it, and
+  `EngineConfig::new()` with no environment selects it (with a sine fixture
+  and a null sink). That is a test and development default only: the
+  packaged unit and `scripts/dev-daemon.sh` set `NARRIVY_RECOVERY_MODE`,
+  `NARRIVY_ASR_ENGINE=transcribe-cpp` and the resident runtime, so an
+  installed Narrivy never uses the mock engine.
+- `transcribe-cpp` — the GGUF ASR binding the installed daemon uses. It is
+  optional, behind the `asr-transcribe-cpp` / `asr-transcribe-resident`
+  features (`services/narrivyd/Cargo.toml`).
+- `openvino` — the OpenVINO add-on engine (D25, ADR-0078). The daemon never
+  loads OpenVINO; it starts `narrivy-openvino-worker`, which loads the
+  runtime pack the user installs from the Store. Device claims still need
+  qualification.
+- `grammar-harper` — the Harper grammar checker used by the text stages.
 
 ## 2026-08-22 verified additions (research sweep)
 

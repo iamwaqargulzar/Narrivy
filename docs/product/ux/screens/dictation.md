@@ -1,9 +1,13 @@
-# Dictation Screen + Overlay Contract
+# Dictation Controls + Overlay Contract
 
 ## Job
 Configure and understand daily dictation behavior without exposing unnecessary runtime details.
 
-Page shows trigger mode/binding, default Raw/Clean mode, microphone, audio policy, overlay preference, delivery behavior summary, and links to advanced/profile-specific configuration.
+There is no Dictation page: it was removed in rc12. Start, Stop and Cancel
+are on Home (`HomeScreen`). The Raw/Clean mode and the dictation language
+are on Pipelines (Transcribe stage) and in the tray. The start and cancel
+shortcuts and the overlay position are in Settings. The microphone is
+chosen with `narrivy-cli mic`.
 
 ## Overlay
 
@@ -23,4 +27,9 @@ Clearly distinguishes PTT-capable vs toggle-only backend. Detect conflicts where
 
 ## Tests
 
-`UI-DICT-BIND`, `UI-DICT-PTT-CAPABILITY`, `UI-OVERLAY-NO-FOCUS`, `UI-OVERLAY-STALE-EVENT`, `E2E-DICT-CANCEL`.
+The IDs `UI-DICT-BIND`, `UI-DICT-PTT-CAPABILITY`, `UI-OVERLAY-NO-FOCUS`,
+`UI-OVERLAY-STALE-EVENT` and `E2E-DICT-CANCEL` are not real tests (WP4 T4.7).
+The real frontend tests for these controls are in
+`apps/narrivy-desktop/src/__tests__/`: `DictationCancellationRace`,
+`DictationLatchShared`, `DictationStartsAdvertisedPipelineId`,
+`DictationStateFromEvents` and `PerfDictationStartToListening`.

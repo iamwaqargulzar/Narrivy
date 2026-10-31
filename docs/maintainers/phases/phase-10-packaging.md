@@ -23,8 +23,7 @@ Desktop metadata/icons; daemon/autostart ownership (per ADR-0012); XDG config/da
 ## Supply chain & reproducibility (Part J)
 - Rust toolchain pinned (1.97.1), `Cargo.lock` required, tools pinned;
 - CI/build environments have defined immutable baseline/container/image identity with digest recorded; floating labels may be used only for broad compatibility signal;
-- AppImage builder baseline is a concrete Linux baseline compatible with oldest supported target (e.g., Ubuntu 22.04 or explicitly documented baseline), not "sufficiently compatible";
-- Release manifest includes .deb/AppImage paths/hashes, source commit, build ID, builder identity, SBOM, third-party inventory/notices, provenance/attestation, signing state, qualification evidence set, release notes/support matrix derived from P11 evidence;
+- Release manifest includes the .deb path/hash, source commit, build ID, builder identity, SBOM, third-party inventory/notices, provenance/attestation, signing state, qualification evidence set, release notes/support matrix derived from P11 evidence;
 - Checksums verified; immutable CI actions; dependency/license inventory via `cargo-deny`.
 
 ## Update policy

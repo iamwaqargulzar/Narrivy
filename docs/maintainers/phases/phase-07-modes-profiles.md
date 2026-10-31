@@ -19,4 +19,4 @@ Deferred per Part D (now R12/R14, not 1.0 blockers): `FUN-023` (advanced App Pro
 Raw and Clean work end-to-end on reference environments; no deferred feature is presented as complete in UI. Schema-valid evidence for P7 verification IDs. `python3 scripts/phase_gate.py --phase P7` exits 0.
 ## v1.3 first-class pipelines
 
-Linux 1.0 now requires the lean Fast Dictation default plus first-class saved Pipeline support, optional guarded post-processing stage contracts, and versioned settings/Pipeline import/export (FUN-032, FUN-033, UX-011). This does **not** require shipping every candidate denoiser/provider or the public plugin marketplace. The normal UI remains simple; graph/module controls are Advanced.
+Linux 1.0 requires the lean Clean default (`clean`, with `raw` beside it; the Fast Dictation recipe is roadmap) plus first-class saved Pipeline support, optional guarded post-processing stage contracts, and versioned settings/Pipeline import/export (FUN-032, FUN-033, UX-011). This does **not** require shipping every candidate denoiser/provider or the public plugin marketplace. The normal UI remains simple; graph/module controls are Advanced.

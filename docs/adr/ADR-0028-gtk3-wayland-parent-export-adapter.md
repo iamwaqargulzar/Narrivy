@@ -3,6 +3,10 @@
 **Status:** Accepted for a startup-disabled Recovery Phase 2C foundation
 (2026-08-27)
 
+**Status note (2026-10-30):** retired. `adapters/desktop-parent-linux` was
+removed in WP1 T1.4 with the GTK4 shell (ADR-0075). Portal window parenting
+is dormant. The body below is history.
+
 ## Context
 
 The RemoteDesktop portal must parent its permission dialog to the visible

@@ -40,25 +40,22 @@ Use separate workers later only when native runtime isolation measurably improve
 
 ## Implemented engine bindings
 
-`engines/` contains exactly two ASR engine bindings:
+`engines/` holds four crates (checked at rc13):
 
-- `asr-mock` — deterministic in-tree engine. It is a non-optional
-  `narrivyd` dependency and the current default composition
-  (`EngineConfig::default()` selects `AsrEngineKind::Mock`,
-  `AudioSourceKind::SineFixture`, `DeliveryBackendKind::NullSink`).
-- `transcribe-cpp` — real GGUF ASR binding. It is an **optional**
-  `narrivyd` dependency behind the `asr-transcribe-cpp` /
-  `asr-transcribe-resident` features (`services/narrivyd/Cargo.toml:49,55-62`),
-  so a default build stays toolchain-free while the installed
-  resident-worker lanes use it.
-
-There is **no OpenVINO inference engine in this tree**. OpenVINO exists only
-as absence detection: `crates/narrivy-compute/src/discovery.rs`
-(`probe_openvino_install`) greps installed runtime output for
-`libopenvino.so` and returns a `RuntimePackSuggestion` install hint when it is
-absent; `crates/narrivy-model-manager/src/manager.rs` builds the same
-suggestion. `OpenVINO` remains a catalog runtime name
-(`spec/catalogs/runtimes.json`) and a future lane, not an implemented engine.
+- `asr-mock` — deterministic test engine. `narrivyd` always links it, and
+  `EngineConfig::new()` with no environment selects it (with a sine fixture
+  and a null sink). That is a test and development default only: the
+  packaged unit and `scripts/dev-daemon.sh` set `NARRIVY_RECOVERY_MODE`,
+  `NARRIVY_ASR_ENGINE=transcribe-cpp` and the resident runtime, so an
+  installed Narrivy never uses the mock engine.
+- `transcribe-cpp` — the GGUF ASR binding the installed daemon uses. It is
+  optional, behind the `asr-transcribe-cpp` / `asr-transcribe-resident`
+  features (`services/narrivyd/Cargo.toml`).
+- `openvino` — the OpenVINO add-on engine (D25, ADR-0078). The daemon never
+  loads OpenVINO; it starts `narrivy-openvino-worker`, which loads the
+  runtime pack the user installs from the Store. Device claims still need
+  qualification.
+- `grammar-harper` — the Harper grammar checker used by the text stages.
 
 ## Portable crate boundary
 

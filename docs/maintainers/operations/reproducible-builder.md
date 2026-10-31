@@ -18,7 +18,7 @@
   - `builder_identity.os`: e.g., `Ubuntu 22.04.5 LTS`
   - `builder_identity.image`: e.g., `ghcr.io/narrivy/builder:2026-08-21-1`
   - `builder_identity.image_digest`: `sha256:...`
-  - `toolchain`: e.g., `rustc 1.97.1 + cargo 1.97.1 + Tauri 2.11.5 (GTK3 + WebKitGTK 4.1, gtk-layer-shell 0.8; ADR-0075)`. The maintained desktop shell is GTK4/WebKitGTK 6 per ADR-0064; a `Tauri 2.x + WebKitGTK 4.1` value describes the excluded parity shell and is not a release-runtime record.
+  - `toolchain`: e.g., `rustc 1.97.1 + cargo 1.97.1 + Tauri 2.12.5 (GTK3 + WebKitGTK 4.1, gtk-layer-shell 0.8; ADR-0075)`. Tauri 2 on WebKitGTK 4.1 is the shipped desktop host (ADR-0075); the GTK4/WebKitGTK 6 shell of ADR-0064 was removed.
   - Recorded in `artifacts/release-evidence/linux-1.0/release-artifacts.json: builder_identity` and in `agent/RESOLVED_VERSIONS.json`.
 - For CI hosted builders where a custom image is not yet available, record at least `os`, `image` (runner image version), `toolchain`, and `cargo_lock_hash` (sha256 of `Cargo.lock`).
 
@@ -58,29 +58,18 @@ For **Linux 1.0**:
 ## How to cut a release
 
 ```bash
-# 1. Ensure P11 qualification evidence exists and release_gate dry-runs green
+# 1. Check the pack and owner gates (release_gate.py has no --dry-run).
 python3 scripts/validate_pack.py
 python3 scripts/verify_owner_gates.py
-python3 scripts/release_gate.py --target linux-1.0 --dry-run  # (if implemented) or full
 
-# 2. Build the .deb on the immutable builder
-./packaging/build-deb.sh --builder ghcr.io/narrivy/builder:2026-08-21-1
-# (AppImage build removed from 1.0 — follow-on only)
+# 2. Build the .deb from a clean commit. This also builds the unqualified
+#    supply-chain bundle and writes artifacts/candidates/VERSION-build.json.
+#    (There is no packaging/build-deb.sh; no AppImage in 1.0.)
+scripts/build_release_candidate.sh 1.0.0~rc13
 
-# 3. Bind SPDX/provenance to the exact candidate (unqualified bundle)
-python3 scripts/build_candidate_supply_chain.py \
-  --candidate "$PWD/artifacts/candidates/narrivy_${VERSION}_amd64.deb" \
-  --source-root "$PWD" \
-  --output "$PWD/artifacts/candidate-supply-chain" \
-  --expected-sha256 "$CANDIDATE_SHA256" \
-  --builder-os "$BUILDER_OS" \
-  --builder-image "$BUILDER_IMAGE" \
-  --builder-image-digest "$BUILDER_DIGEST" \
-  --toolchain "$TOOLCHAIN"
-# This bundle is unqualified: it does not replace native qualification, signing,
-# immutable-builder proof, or release-gate evidence.
-
-# 4. Populate artifacts/release-evidence/linux-1.0/ and re-run release_gate
+# 3. After native qualification, populate
+#    artifacts/release-evidence/linux-1.0/ and run the release gate.
+python3 scripts/release_gate.py --target linux-1.0
 ```
 
 ## Verification

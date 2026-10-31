@@ -2,9 +2,9 @@
 
 ## Simple surface
 
-Normal users see outcomes, not graph jargon. The default is **Fast Dictation** and should work immediately after minimal onboarding.
+Normal users see outcomes, not graph jargon. The default is **Clean** (`clean`) and should work immediately after minimal onboarding. At rc13 the only modes are Clean and Raw.
 
-Built-in friendly recipes may be presented as Raw, Clean/Fast Dictation, Smart Local, or other outcome names as they become implemented. A Mode is a friendly recipe over a Pipeline, not a separate execution engine.
+Further recipes (Fast Dictation, Smart Local and others) are roadmap and appear only when implemented. A Mode is a friendly recipe over a Pipeline, not a separate execution engine.
 
 ## Pipeline picker
 

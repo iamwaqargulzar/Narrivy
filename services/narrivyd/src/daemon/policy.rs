@@ -28,10 +28,6 @@ fn private_tempdir() -> std::io::Result<tempfile::TempDir> {
 // Pipeline / correction policy constants
 // ---------------------------------------------------------------------------
 
-/// The one pipeline this build serves (mock ASR -> deterministic corrector
-/// -> null delivery).
-pub const DEFAULT_PIPELINE_ID: &str = "mock-dictation";
-
 /// Historical Recovery Phase 2A **composition lane** identity. This value is
 /// selected by `NARRIVY_RECOVERY_MODE` and chooses the owned Linux microphone
 /// capture plus Inbox-primary delivery path. It is not a selectable or
@@ -119,7 +115,7 @@ pub enum CorrectionStrategy {
 
 impl CorrectionStrategy {
     /// Resolve the deterministic correction for one historical **non-strict**
-    /// pipeline id (mock dictation or a mock-composition mode alias). Strict
+    /// pipeline id (a mock-composition mode alias). Strict
     /// microphone compositions resolve their canonical [`CorrectionMode`] into
     /// an [`AdmittedPipeline`] instead; their lane ids are composition
     /// configuration and never resolve to a selectable pipeline here.
@@ -132,7 +128,7 @@ impl CorrectionStrategy {
         };
         match id {
             RAW_PIPELINE_ID => Some(Self::CollapseOnly),
-            DEFAULT_PIPELINE_ID | CLEAN_PIPELINE_ID => Some(Self::FullCorrect),
+            CLEAN_PIPELINE_ID => Some(Self::FullCorrect),
             _ => None,
         }
     }
@@ -245,8 +241,8 @@ impl AdmittedPipeline {
         }
     }
 
-    /// One historical non-strict pipeline id (mock dictation or a
-    /// mock-composition mode alias) with its resolved correction strategy.
+    /// One non-strict (mock composition) mode id with its resolved
+    /// correction strategy.
     #[must_use]
     pub fn mock_lane(id: impl Into<String>, correction: CorrectionStrategy) -> Self {
         Self {
@@ -281,12 +277,12 @@ impl AdmittedPipeline {
 pub fn default_pipeline_id_from(env_value: Option<&str>) -> String {
     match env_value {
         Some(v) if CorrectionStrategy::resolve(Some(v)).is_some() => v.to_owned(),
-        _ => DEFAULT_PIPELINE_ID.to_owned(),
+        _ => CLEAN_PIPELINE_ID.to_owned(),
     }
 }
 
 /// Default pipeline id: `NARRIVY_DEFAULT_PIPELINE` when it names a known
-/// pipeline, else the historical mock-dictation default.
+/// pipeline, else Clean.
 pub fn default_pipeline_id() -> String {
     default_pipeline_id_from(std::env::var(DEFAULT_PIPELINE_ENV).ok().as_deref())
 }
@@ -361,7 +357,7 @@ impl StrictRecoveryLane {
 pub const MAX_MOCK_DELIVERY_HOLD: std::time::Duration = std::time::Duration::from_secs(60);
 
 /// Immutable per-process composition choices. Defaults reproduce the P1
-/// mock-dictation contract exactly; `from_env` is called once in `main`.
+/// mock composition; `from_env` is called once in `main`.
 #[derive(Debug, Clone)]
 pub struct EngineConfig {
     /// Opt-in strict recovery composition lane selected by
@@ -1885,7 +1881,7 @@ mod p2_config_tests {
         assert!(strict_default_pipeline_is_valid(Some(RAW_PIPELINE_ID)));
         assert!(strict_default_pipeline_is_valid(Some(CLEAN_PIPELINE_ID)));
         for invalid in [
-            DEFAULT_PIPELINE_ID,
+            "mock-dictation",
             LINUX_MIC_INBOX_PIPELINE_ID,
             LINUX_MIC_WTYPE_INBOX_PIPELINE_ID,
             "bogus",

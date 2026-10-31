@@ -25,7 +25,8 @@ unqualified: no native latency, accuracy, loss, or microphone claim follows.
 Recovery 4I adds independent `speech.vad` and `speech.endpoint` contracts on
 the orchestration worker. The controlled Linux candidate uses energy
 hysteresis and sample-count timing (240 ms minimum contiguous speech, then
-560 ms trailing silence). It observes but never trims audio: the triggering
+1500 ms trailing silence; `DictationEndpointConfig` in
+`crates/narrivy-core/src/endpoint.rs`). It observes but never trims audio: the triggering
 and already-buffered chunks are still fed to ASR. Automatic endpoint, user
 Stop, and Cancel retain separate typed meanings. These are controlled defaults,
 not native threshold, speech/noise quality, first/last-word preservation, or

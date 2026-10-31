@@ -118,6 +118,17 @@ class InstallableDebBuilderTests(unittest.TestCase):
         for bad in ("0.1.0~rc-test", "1.0.0~beta1", "1.0", "01.0.0", "1.0.0~rc0", "1.0.0+git"):
             self.assertIsNone(installable.VERSION_RE.fullmatch(bad), bad)
 
+    def test_control_templates_match_the_builder(self) -> None:
+        # F-M6: the checked-in templates are what the builder writes, at the
+        # desktop app's current release version.
+        tauri = json.loads(
+            (ROOT / "apps/narrivy-desktop/src-tauri/tauri.conf.json").read_text()
+        )
+        release = tauri["version"].replace("-rc.", "~rc")
+        expected = installable._control(release).decode()
+        for template in ("packaging/deb/control", "packaging/linux/deb/control"):
+            self.assertEqual((ROOT / template).read_text(), expected, template)
+
     def test_maintainer_scripts_stop_and_reload_running_user_daemons(self) -> None:
         # F-H15: remove/upgrade stop the daemon in every running user manager;
         # configure reloads and restarts a running one; nothing is enabled

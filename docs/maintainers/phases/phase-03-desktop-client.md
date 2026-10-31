@@ -2,7 +2,7 @@
 
 
 ## Outcome
-Build the GTK4/WebKitGTK 6 + React/TypeScript desktop client **on top of the already-proven service path (P2)**. The UI is a client, not the owner of product policy. Hide or clearly label experimental/post-1.0 capabilities; do not expose screens for deferred features as if complete.
+Build the Tauri 2 + React/TypeScript desktop client (ADR-0075; the GTK4/WebKitGTK 6 shell of ADR-0064 was removed) **on top of the already-proven service path (P2)**. The UI is a client, not the owner of product policy. Hide or clearly label experimental/post-1.0 capabilities; do not expose screens for deferred features as if complete.
 
 > Runtime note (2026-09-04, ADR-0064): P3 was originally specified against Tauri 2. The maintained Linux shell is now `narrivy-desktop-gtk`; the Tauri shell is excluded from the workspace (`Cargo.toml` `exclude`) and is retained only as a migration parity oracle.
 

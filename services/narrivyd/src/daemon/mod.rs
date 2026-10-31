@@ -55,8 +55,8 @@ pub use self::shutdown::{DAEMON_SHUTDOWN_TOTAL, ShutdownBudget, join_thread_boun
 pub use self::capture::{AudioSourceKind, SAMPLE_RATE_HZ, parse_wav_mono, sine_fixture_samples};
 pub use self::policy::{
     ActivationFacts, AsrEngineKind, CLEAN_PIPELINE_ID, CorrectionStrategy, DEFAULT_PIPELINE_ENV,
-    DEFAULT_PIPELINE_ID, DeliveryBackendKind, EngineConfig, LINUX_MIC_INBOX_PIPELINE_ID,
-    MOCK_TRANSCRIPT, RAW_PIPELINE_ID, builtin_pipeline_defs, collapse_only, default_pipeline_id,
+    DeliveryBackendKind, EngineConfig, LINUX_MIC_INBOX_PIPELINE_ID, MOCK_TRANSCRIPT,
+    RAW_PIPELINE_ID, builtin_pipeline_defs, collapse_only, default_pipeline_id,
     default_pipeline_id_from, open_journal, open_startup_journal, pipelines_dir, probe_pw_record,
     probe_theme_store_writability, run_capability_check, run_capability_check_with,
     seed_builtin_pipelines,

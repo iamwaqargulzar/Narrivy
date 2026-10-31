@@ -2,6 +2,9 @@
 
 Status: Accepted for source composition; attended behavior and delivery remain unqualified (2026-09-11)
 
+Status note (2026-10-30): the GTK shell named below was removed (ADR-0075);
+the Tauri app is the desktop client. Portal window parenting is dormant.
+
 ## Context
 
 The daemon already owns a tested single-flight portal permission service, a

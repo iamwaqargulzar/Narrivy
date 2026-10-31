@@ -273,13 +273,11 @@ fn p3_list_pipelines_unchanged_for_plain_clients() -> TestResult {
     else {
         return Err("expected Pipelines payload".into());
     };
-    // P7: the built-in Raw/Clean mode pipelines are listed next to the
-    // historical mock-dictation default; the default stays first.
-    assert_eq!(pipelines.len(), 3);
-    assert_eq!(pipelines[0].id, "mock-dictation");
+    // P7: the built-in Clean and Raw modes; the Clean default stays first.
+    assert_eq!(pipelines.len(), 2);
+    assert_eq!(pipelines[0].id, "clean");
     assert!(pipelines[0].enabled);
     assert!(pipelines.iter().any(|p| p.id == "raw"));
-    assert!(pipelines.iter().any(|p| p.id == "clean"));
     harness.shutdown()
 }
 
