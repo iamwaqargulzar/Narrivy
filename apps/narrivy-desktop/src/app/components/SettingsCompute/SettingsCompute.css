@@ -26,7 +26,7 @@
 .settings-card-header svg { width: 17px; height: 17px; color: var(--accent-strong); }
 .settings-card-desc { color: var(--muted); font-size: var(--fs-sm); line-height: 1.5; }
 
-.compute-section-title, .optimization-label { color: var(--faint); font-size: var(--fs-xs); font-weight: var(--fw-semibold); letter-spacing: 0.06em; text-transform: uppercase; }
+.compute-section-title, .optimization-label { color: var(--faint-text); font-size: var(--fs-xs); font-weight: var(--fw-semibold); letter-spacing: 0.06em; text-transform: uppercase; }
 .control-reason { color: var(--muted); font: var(--font-small); }
 .resolved-line {
   display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px;
@@ -142,7 +142,7 @@
 .fm-badge-proposed { border-style: dashed; }
 .fm-control { display: flex; align-items: center; justify-content: flex-end; min-width: 120px; }
 .fm-value { color: var(--text-strong); font-weight: var(--fw-semibold); font-size: var(--fs-sm); text-align: right; }
-.fm-muted { color: var(--faint); font-weight: var(--fw-medium); }
+.fm-muted { color: var(--faint-text); font-weight: var(--fw-medium); }
 .fm-command { padding: 4px 9px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-sunken); font-size: var(--fs-xs); }
 .fm-keys { display: flex; gap: 4px; }
 .fm-number { display: flex; align-items: center; gap: 8px; }

@@ -14,6 +14,7 @@ import {
 } from 'react';
 import { Icon } from '../../ui/icons';
 import { t } from '../../i18n';
+import { usePopoverDismiss } from '../../hooks/useDialogFocus';
 import { bridge, type Meeting, type SessionEvent } from '../../lib/bridge';
 import { useAssistant, type ChatSummary, type ThinkingLevel, type ToolUse, type Turn } from '../../state/AssistantContext';
 import { VoicePanel } from '../components/assistant/VoicePanel';
@@ -345,7 +346,7 @@ function AssistantBody() {
                   </div>
                 ) : null}
                 {attachError ? (
-                  <p className="assistant-meta assistant-error">{t('assistant.error.other', { code: attachError })}</p>
+                  <p className="assistant-meta assistant-error" role="alert">{t('assistant.error.other', { code: attachError })}</p>
                 ) : null}
 
                 <div className="assistant-composer">
@@ -382,7 +383,10 @@ function AssistantBody() {
                       className={`composer-icon${voiceOn ? ' is-live' : ''}`}
                       aria-pressed={voiceOn}
                       aria-label={voiceOn ? t('assistant.voice.stop') : t('assistant.voice.start')}
-                      title={`${voiceOn ? t('assistant.voice.stop') : voiceLoaded ? t('assistant.voice.startLoaded') : t('assistant.voice.start')} (Ctrl+Shift+V)`}
+                      title={t('key.withShortcut', {
+                        label: voiceOn ? t('assistant.voice.stop') : voiceLoaded ? t('assistant.voice.startLoaded') : t('assistant.voice.start'),
+                        keys: 'Ctrl+Shift+V',
+                      })}
                       data-loaded={voiceLoaded && !voiceOn ? 'true' : undefined}
                       onClick={toggleVoice}
                       disabled={!voice.prefs.available && !voiceOn}
@@ -451,25 +455,7 @@ function AssistantBody() {
 }
 
 /** Closes a popover on a click outside it or on Escape. */
-function useDismiss(open: boolean, close: () => void) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDown = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) close();
-    };
-    const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') close();
-    };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open, close]);
-  return ref;
-}
+const useDismiss = usePopoverDismiss;
 
 type Group = 'pinned' | 'today' | 'yesterday' | 'week' | 'month' | 'older';
 const GROUPS: Group[] = ['pinned', 'today', 'yesterday', 'week', 'month', 'older'];
@@ -881,7 +867,7 @@ function AddMenu({ disabled, onPicture }: { disabled: boolean; onPicture: () => 
               {sessions.filter((session) => session.raw).map(item)}
             </>
           ) : null}
-          {error ? <p className="assistant-menu-note assistant-error">{t('assistant.error.other', { code: error })}</p> : null}
+          {error ? <p className="assistant-menu-note assistant-error" role="alert">{t('assistant.error.other', { code: error })}</p> : null}
         </div>
       ) : null}
     </div>
@@ -1136,7 +1122,7 @@ function WorkingFolder({ disabled }: { disabled: boolean }) {
         ) : null}
       </div>
       <p className="voice-hint">{t('assistant.folder.hint')}</p>
-      {error ? <p className="assistant-error">{t('assistant.error.other', { code: error })}</p> : null}
+      {error ? <p className="assistant-error" role="alert">{t('assistant.error.other', { code: error })}</p> : null}
     </div>
   );
 }

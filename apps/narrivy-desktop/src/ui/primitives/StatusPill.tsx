@@ -1,23 +1,25 @@
 // Live session-state pill. The tone and label follow the daemon state string;
 // unknown states are shown as reported, never guessed.
+import { t } from '../../i18n';
+
 const LABELS: Record<string, string> = {
-  '': 'Unknown',
-  idle: 'Idle',
-  preparing: 'Starting',
-  recording: 'Listening',
-  listening: 'Listening',
-  finalizing_audio: 'Processing',
-  transcribing: 'Processing',
-  transforming: 'Processing',
-  delivering: 'Delivering',
-  processing: 'Processing',
-  committed: 'Processing',
-  finalized: 'Processing',
-  delivered: 'Delivered',
-  inbox_recovered: 'Saved to Inbox',
-  cancelled: 'Cancelled',
-  failed: 'Failed',
-  error: 'Error',
+  '': 'pill.unknown',
+  idle: 'pill.idle',
+  preparing: 'pill.starting',
+  recording: 'pill.listening',
+  listening: 'pill.listening',
+  finalizing_audio: 'pill.processing',
+  transcribing: 'pill.processing',
+  transforming: 'pill.processing',
+  delivering: 'pill.delivering',
+  processing: 'pill.processing',
+  committed: 'pill.processing',
+  finalized: 'pill.processing',
+  delivered: 'pill.delivered',
+  inbox_recovered: 'pill.inboxRecovered',
+  cancelled: 'pill.cancelled',
+  failed: 'pill.failed',
+  error: 'pill.error',
 };
 
 export function StatusPill({ phase, label }: { phase: string; label?: string }) {
@@ -31,7 +33,7 @@ export function StatusPill({ phase, label }: { phase: string; label?: string }) 
           : phase === 'idle' || phase === '' || phase === 'cancelled'
             ? ''
             : 'pill-busy';
-  const shown = label ?? LABELS[phase] ?? phase;
+  const shown = label ?? (phase in LABELS ? t(LABELS[phase]) : phase);
   return (
     <span className={`pill ${kind}`} data-phase={phase || 'unknown'}>
       <span className="pill-dot" aria-hidden="true" />

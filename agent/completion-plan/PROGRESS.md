@@ -2091,3 +2091,49 @@ fails on the base commit in a container without PipeWire;
   same for `narrivyd` with `asr-transcribe-resident`, `cargo test --workspace`
   (2224 passed) and `cargo test -p narrivyd --features
   asr-transcribe-resident` (1387 passed), `check_docs`.
+
+## 2026-10-30: desktop WCAG 2.1 AA audit and i18n sweep (`cloud/a11y-i18n`)
+
+Fixed:
+
+- Dialogs: Onboarding and the shortcut dialog now take focus, keep Tab
+  inside and give focus back on close (`src/hooks/useDialogFocus.ts`).
+  Onboarding moves focus to each new step's heading.
+- Popovers (Tips, voice settings, record a session, the Assistant menus)
+  share one hook: Escape gives focus back to the button that opened them,
+  and arrow keys move through `role="menu"` items.
+- Command palette: the search box is a combobox with
+  `aria-activedescendant` on the selected option; "no results" is announced.
+- Live regions: errors that appear after an action (Assistant, Meetings,
+  live session, voice, library, source switches) use `role="alert"`; the
+  meeting clock and the screen-session clock are timers, so screen readers
+  hear the state once, not every second; the onboarding mic check result is
+  in a live region that exists before the result arrives.
+- Contrast (4.5:1, both themes): light live, ok, warn and Gold accent are a
+  shade darker; small text that used `--faint` uses the new `--faint-text`;
+  dark Blue accent buttons use dark text; text on filled live/error colours
+  uses `--on-live` / `--on-err`. Recent actions show at 80%, not 50%.
+- Focus: search boxes, filters and inline text fields drawn without an
+  outline show the focus ring on their box.
+- 200% zoom: the nav rail scrolls, and the status strip scrolls instead of
+  clipping its switches.
+- i18n: ThemeCard, StatusPill, History states, the Home "Auto detect"
+  value, new screen-session titles, Tips key caps, shortcut tooltips, voice
+  speed value and the top bar "Processing mode" label now come from
+  `en.json`. The `aria-label` on a plain span got `role="note"`.
+- Tests: `A11yFocusAndI18n.test.tsx` (dialog trap and restore, Escape
+  returns focus, palette active option, catalogue labels, and a guard that
+  fails on plain words between JSX tags). 224 Vitest tests and `tsc` pass.
+
+Left:
+
+- The Assistant composer shows focus only by its border colour (no ring).
+- Home and the top bar both announce the dictation state, so a screen
+  reader may hear it twice.
+- Toasts are announced politely; error toasts are not `role="alert"`.
+- Example placeholders (paths, `npx`, URLs, `BSA…`) and key names inside
+  shortcut strings (`Ctrl+Shift+V`) stay in code; they are not prose.
+- Not checked with a real screen reader (Orca) or in the GTK/WebKit host;
+  zoom and Tab order were checked in Chromium with the preview bridge.
+- `app/screens/Settings.tsx` was not changed (pipeline import/export is on
+  another branch).

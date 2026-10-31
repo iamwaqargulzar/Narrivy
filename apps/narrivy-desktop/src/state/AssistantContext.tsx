@@ -1044,12 +1044,12 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         const stamp = new Date().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
         const kind = what.screen
           ? mode === 'share'
-            ? 'Screen share'
-            : 'Screen recording'
+            ? 'share'
+            : 'record'
           : mode === 'share'
-            ? 'Live transcript'
-            : 'Sound recording';
-        const title = `${kind} ${stamp}`;
+            ? 'transcript'
+            : 'sound';
+        const title = t(`assistant.screen.title.${kind}`, { when: stamp });
         // A share belongs to the open chat (kept first) or a new one: that
         // chat sees the screen while it lasts. A recording is kept with the
         // open chat, if there is one.

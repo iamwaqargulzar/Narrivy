@@ -2,7 +2,8 @@
 // the open chat sees the screen (and hears what is said) while it lasts.
 // Either is kept as a session once stopped, raw (its sound, live transcript
 // and screens as they are), to give to a chat later: it is gone over then.
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { usePopoverDismiss } from '../../../hooks/useDialogFocus';
 import { Icon } from '../../../ui/icons';
 import { hasMessage, t } from '../../../i18n';
 import { useAssistant, type ScreenMode } from '../../../state/AssistantContext';
@@ -19,23 +20,8 @@ export function WatchButton() {
   const [screen, setScreen] = useState(true);
   const [microphone, setMicrophone] = useState(false);
   const [computerSound, setComputerSound] = useState(true);
-  const ref = useRef<HTMLDivElement | null>(null);
   const close = useCallback(() => setOpen(false), []);
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDown = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) close();
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') close();
-    };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open, close]);
+  const ref = usePopoverDismiss(open, close);
   if (watch.phase !== 'idle' && watch.phase !== 'error') return null;
   return (
     <div className="watch-start" ref={ref}>
@@ -43,6 +29,7 @@ export function WatchButton() {
         type="button"
         className="btn btn-default"
         aria-expanded={open}
+        aria-haspopup="dialog"
         disabled={busy}
         title={t('assistant.screen.recordHint')}
         onClick={() => setOpen(!open)}
@@ -104,7 +91,7 @@ export function WatchButton() {
             </button>
           </div>
           {!screen && !microphone && !computerSound ? (
-            <p className="assistant-error">{t('assistant.screen.nothing')}</p>
+            <p className="assistant-error" role="alert">{t('assistant.screen.nothing')}</p>
           ) : null}
           <button
             type="button"
@@ -155,22 +142,25 @@ export function WatchBar() {
   }
   const share = watch.mode === 'share';
   const time = clock(Date.now() - watch.startedAt);
-  const status =
+  const line = (when: string) =>
     watch.phase === 'starting'
       ? t('assistant.screen.starting')
       : watch.phase === 'watching'
         ? share
           ? watch.screen === false
-            ? t('assistant.screen.listening', { time })
-            : t('assistant.screen.sharing', { time })
+            ? t('assistant.screen.listening', { time: when })
+            : t('assistant.screen.sharing', { time: when })
           : watch.screen === false
-            ? t('assistant.screen.recordingSound', { time })
-            : t('assistant.screen.recording', { time })
+            ? t('assistant.screen.recordingSound', { time: when })
+            : t('assistant.screen.recording', { time: when })
         : watch.phase === 'processing'
           ? watch.paused
             ? t('assistant.watch.paused')
             : t('assistant.screen.processing')
           : '';
+  const status = line(time);
+  // Screen readers hear the phase once, not the clock every second.
+  const announced = line('').replace(/\s*·\s*$/, '');
   return (
     <section className="watch-bar" data-mode={watch.mode} aria-label={t('assistant.screen.button')}>
       <div className="watch-bar-head">
@@ -179,7 +169,10 @@ export function WatchBar() {
           data-paused={watch.paused ? 'true' : 'false'}
           aria-hidden="true"
         />
-        <strong role="status">{status}</strong>
+        <strong role="timer">{status}</strong>
+        <span className="sr-only" role="status">
+          {announced}
+        </span>
         {watch.phase === 'watching' ? (
           <button type="button" className="btn btn-primary" onClick={stopScreen}>
             <Icon name="stop" />

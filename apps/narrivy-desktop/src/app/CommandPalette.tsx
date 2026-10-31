@@ -104,6 +104,11 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       <div className="palette" role="dialog" aria-modal="true" aria-label={t('palette.title')}>
         <input
           ref={inputRef}
+          role="combobox"
+          aria-expanded={filtered.length > 0}
+          aria-controls="palette-list"
+          aria-autocomplete="list"
+          aria-activedescendant={filtered[selected] ? `palette-option-${selected}` : undefined}
           value={query}
           placeholder={t('palette.placeholder')}
           onChange={(e) => {
@@ -114,12 +119,13 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           aria-label={t('palette.placeholder')}
         />
         {filtered.length === 0 ? (
-          <div className="palette-empty">{t('palette.empty')}</div>
+          <div className="palette-empty" role="status">{t('palette.empty')}</div>
         ) : (
-          <ul role="listbox" aria-label={t('palette.title')}>
+          <ul id="palette-list" role="listbox" aria-label={t('palette.title')}>
             {filtered.map((action, index) => (
               <li
                 key={action.id}
+                id={`palette-option-${index}`}
                 role="option"
                 aria-selected={index === selected}
                 onMouseEnter={() => setSelected(index)}

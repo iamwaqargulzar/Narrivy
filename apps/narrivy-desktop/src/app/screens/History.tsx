@@ -24,12 +24,12 @@ const STATE_LABELS: Record<
   string,
   { label: string; tone: "" | " chip-ok" | " chip-warn" }
 > = {
-  delivered: { label: "Delivered", tone: " chip-ok" },
-  inbox_recovered: { label: "Saved to Inbox", tone: " chip-warn" },
-  failed: { label: "Failed", tone: " chip-warn" },
-  cancelled: { label: "Cancelled", tone: "" },
+  delivered: { label: "history.state.delivered", tone: " chip-ok" },
+  inbox_recovered: { label: "history.state.inboxRecovered", tone: " chip-warn" },
+  failed: { label: "history.state.failed", tone: " chip-warn" },
+  cancelled: { label: "history.state.cancelled", tone: "" },
   // Text was transcribed but not typed into the app (same rule as Home's Recent).
-  committed: { label: "Not inserted", tone: " chip-warn" },
+  committed: { label: "history.state.notInserted", tone: " chip-warn" },
 };
 
 /** Delete needs a daemon at protocol minor 10 or newer. */
@@ -258,10 +258,10 @@ export function HistoryScreen() {
         <ul className="history-list" data-testid="history-virtual-list">
           {visible.map((entry) => {
             const text = texts[entry.txid];
-            const state = STATE_LABELS[entry.state ?? ""] ?? {
-              label: humanState(entry.state),
-              tone: "" as const,
-            };
+            const known = STATE_LABELS[entry.state ?? ""];
+            const state = known
+              ? { label: t(known.label), tone: known.tone }
+              : { label: humanState(entry.state), tone: "" as const };
             return (
               <li
                 key={entry.txid}

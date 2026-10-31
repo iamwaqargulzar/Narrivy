@@ -54,7 +54,8 @@ html.dark {
   --text-strong: #ffffff;
   --muted: #9a9a9a;
   --muted-strong: #c4c4c4;
-  --faint: #5f5f5f;
+  --faint: #5f5f5f;      /* icons, dots and disabled controls only */
+  --faint-text: #888888; /* the quietest text that still reads at 4.5:1 */
 
   /* Lines. */
   --border: rgba(255, 255, 255, 0.08);
@@ -77,6 +78,9 @@ html.dark {
   --err: #ff7a74;
   --err-soft: rgba(255, 122, 116, 0.12);
   --rec-dot: var(--live);
+  /* Text and icons on a filled live or error colour (4.5:1 or more). */
+  --on-live: #0a0a0a;
+  --on-err: #0a0a0a;
 
   /* Orb follows the accent. */
   --orb-idle-a: var(--accent);
@@ -119,19 +123,22 @@ html.light {
   --muted: #6b6b6b;
   --muted-strong: #3f3f3f;
   --faint: #a3a3a3;
+  --faint-text: #6b6b6b;
   --border: rgba(10, 10, 10, 0.08);
   --border-strong: rgba(10, 10, 10, 0.15);
   --accent: #111111;
   --accent-strong: #000000;
   --accent-contrast: #ffffff;
-  --live: #e0463a;
-  --live-soft: rgba(224, 70, 58, 0.09);
-  --ok: #1e9e62;
+  --live: #cc2d20;
+  --live-soft: rgba(204, 45, 32, 0.09);
+  --ok: #177a4b;
   --ok-soft: #e8f6ee;
-  --warn: #a4680f;
+  --warn: #965f0e;
   --warn-soft: #fbf1df;
   --err: #c2392f;
   --err-soft: #fdecea;
+  --on-live: #ffffff;
+  --on-err: #ffffff;
   --orb-core: #ffffff;
   --orb-idle-b: color-mix(in srgb, var(--accent) 40%, #bdbdbd);
   --orb-shadow: 0 14px 36px rgba(10, 10, 10, 0.12);
@@ -144,7 +151,7 @@ html.dark[data-accent='blue'],
 html:not(.light)[data-accent='blue'] {
   --accent: #5b93ff;
   --accent-strong: #80abff;
-  --accent-contrast: #ffffff;
+  --accent-contrast: #0a0a0a;
 }
 html.light[data-accent='blue'] {
   --accent: #2459e0;
@@ -158,8 +165,8 @@ html:not(.light)[data-accent='gold'] {
   --accent-contrast: #141005;
 }
 html.light[data-accent='gold'] {
-  --accent: #9a7428;
-  --accent-strong: #7f5f1f;
+  --accent: #866523;
+  --accent-strong: #6e5219;
   --accent-contrast: #ffffff;
 }
 
@@ -173,6 +180,7 @@ html.light[data-accent='gold'] {
     --text: #ffffff;
     --muted: #e6e6e6;
     --muted-strong: #ffffff;
+    --faint-text: #e6e6e6;
     --border: #ffffff;
     --border-strong: #ffffff;
   }
@@ -185,6 +193,7 @@ html.light[data-accent='gold'] {
     --text: #000000;
     --muted: #292929;
     --muted-strong: #000000;
+    --faint-text: #292929;
     --border: #000000;
     --border-strong: #000000;
   }

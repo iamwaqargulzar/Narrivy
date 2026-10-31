@@ -77,7 +77,7 @@ export function SourceSwitches({
           </span>
         </button>
       ))}
-      {error ? <span className="assistant-error">{t('assistant.error.other', { code: error })}</span> : null}
+      {error ? <span className="assistant-error" role="alert">{t('assistant.error.other', { code: error })}</span> : null}
     </div>
   );
 }

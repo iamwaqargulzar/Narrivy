@@ -46,7 +46,7 @@ export function ScreenLive({ meetingId }: { meetingId: string }) {
     };
   }, [meetingId]);
 
-  if (error) return <p className="meeting-note meeting-error">{t('meetings.screen.liveError', { code: error })}</p>;
+  if (error) return <p className="meeting-note meeting-error" role="alert">{t('meetings.screen.liveError', { code: error })}</p>;
   if (!sources.length) return <p className="source">{t('meetings.screen.choosing')}</p>;
   return (
     <ul className="screen-live" aria-label={t('meetings.screen.watching')}>

@@ -2,7 +2,7 @@
 // The last step installs the bundled speech model first when the daemon has
 // none (F-M11: on a clean install Start could never be enabled).
 // Skippable at every step; completing or skipping sets narrivy.onboarded.v1.
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '../ui/primitives/Button';
 import { useErrorHandler } from '../ui/primitives/Toast';
 import { t } from '../i18n';
@@ -12,6 +12,7 @@ import { availabilityMessageKey } from '../lib/pipelines';
 import { usePipelines } from '../state/PipelinesContext';
 import { useDaemonStatus } from '../state/StatusContext';
 import { useDictationActions } from '../hooks/useDictationActions';
+import { keepTabInside, useDialogFocus } from '../hooks/useDialogFocus';
 import { BrandMark } from '../ui/icons';
 import { provisionFailureText } from './screens/Models';
 import { ShortcutCapture } from './components/ShortcutCapture';
@@ -32,6 +33,19 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const [shortcutSaved, setShortcutSaved] = useState(false);
   const report = useErrorHandler();
   const dictation = useDictationActions();
+  const dialog = useRef<HTMLDivElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const firstStep = useRef(true);
+  useDialogFocus(dialog);
+  // Next and Back remove the button that had focus: move it to the new
+  // step's heading so it is read and Tab starts from the top of the step.
+  useEffect(() => {
+    if (firstStep.current) {
+      firstStep.current = false;
+      return;
+    }
+    heading.current?.focus();
+  }, [step]);
   const { catalog } = usePipelines();
   const { status, reload } = useDaemonStatus();
   const availabilityKey = availabilityMessageKey(catalog);
@@ -93,7 +107,15 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="modal-overlay onboarding">
-      <div className="modal onboard-card" role="dialog" aria-modal="true" aria-label={t('onboard.title')}>
+      <div
+        ref={dialog}
+        className="modal onboard-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('onboard.title')}
+        tabIndex={-1}
+        onKeyDown={(event) => keepTabInside(event, dialog.current)}
+      >
         <div className="onboard-top">
           <BrandMark />
           <div className="onboard-progress" aria-hidden="true">
@@ -106,7 +128,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
         {step === 0 ? (
           <>
-            <h2>{t('onboard.welcome.title')}</h2>
+            <h2 ref={heading} tabIndex={-1}>{t('onboard.welcome.title')}</h2>
             <p>{t('onboard.welcome.body')}</p>
             {activation.suggestedCommand ? (
               <div className="onboard-shortcut" role="status">
@@ -155,13 +177,14 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
         {step === 1 ? (
           <>
-            <h2>{t('onboard.mic.title')}</h2>
+            <h2 ref={heading} tabIndex={-1}>{t('onboard.mic.title')}</h2>
             <p>{t('onboard.mic.body')}</p>
             <Button onClick={() => void runMicCheck()} disabled={mic.kind === 'running'}>
               {t('onboard.mic.run')}
             </Button>
+            <div aria-live="polite">
             {mic.kind === 'done' ? (
-              <p className="diag-result" aria-live="polite">
+              <p className="diag-result">
                 {mic.result.pass ? t('diag.pass') : t('diag.fail')}
                 {mic.result.detail ? (
                   <span className="diag-detail">
@@ -173,6 +196,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             ) : mic.kind === 'running' ? (
               <p className="source">{t('diag.running')}</p>
             ) : null}
+            </div>
             <div className="modal-actions">
               <Button variant="ghost" onClick={finish}>
                 {t('action.skip')}
@@ -187,7 +211,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
         {step === 2 ? (
           <>
-            <h2>{t('onboard.dictation.title')}</h2>
+            <h2 ref={heading} tabIndex={-1}>{t('onboard.dictation.title')}</h2>
             <p>{t('onboard.dictation.body')}</p>
             {needsModel ? (
               <BundledModelSetup

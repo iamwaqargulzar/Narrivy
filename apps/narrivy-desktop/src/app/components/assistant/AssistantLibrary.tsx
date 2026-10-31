@@ -87,7 +87,7 @@ function ItemList<K extends LibraryKind>({
         <div className="assistant-item-form">
           {form(editing, setEditing)}
           {error ? (
-            <p className="assistant-meta assistant-error">
+            <p className="assistant-meta assistant-error" role="alert">
               {hasMessage(`assistant.lib.error.${error}`)
                 ? t(`assistant.lib.error.${error}`)
                 : t('assistant.error.other', { code: error })}
@@ -226,7 +226,7 @@ function SkillEditor() {
             <input
               type="text"
               value={item.name}
-              placeholder="email"
+              placeholder={t('assistant.lib.skill.namePlaceholder')}
               onChange={(event) => change({ ...item, name: event.target.value.replace(/[^\p{L}\p{N}_-]/gu, '') })}
             />
           </Field>

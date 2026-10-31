@@ -161,7 +161,7 @@ export function SessionDetails() {
         <div className="detail-cell">
           <dt>{t('home.language')}</dt>
           <dd title={engine.languages ?? undefined}>
-            {engine.languages ? reportedLanguages(engine.languages) : language === 'auto' ? 'Auto detect' : String(language)}
+            {engine.languages ? reportedLanguages(engine.languages) : language === 'auto' ? t('home.language.auto') : String(language)}
           </dd>
         </div>
         <div className="detail-cell">
