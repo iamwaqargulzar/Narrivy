@@ -73,6 +73,9 @@ sha2 = "0.10"
 hex = "0.4"
 libc = "0.2"
 tempfile = "3"
+# Property tests at the untrusted-input boundaries (dev-only). No default
+# features: no fork/timeout runner, no on-disk regression files.
+proptest = { version = "1", default-features = false, features = ["std"] }
 ashpd = { version = "=0.12.3", default-features = false, features = ["tokio"] }
 tokio = { version = "=1.54.1", features = ["net", "rt", "signal", "time"] }
 futures-util = "=0.3.34"

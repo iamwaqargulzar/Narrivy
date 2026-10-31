@@ -76,7 +76,7 @@ pub fn encode_frame(payload: &[u8]) -> Result<Vec<u8>, IpcError> {
 /// [`IpcErrorCode::PayloadTooLarge`] without allocating the payload.
 pub fn read_frame(reader: &mut impl Read) -> Result<Vec<u8>, IpcError> {
     let mut prefix = [0u8; FRAME_PREFIX_BYTES];
-    read_exact_bounded(reader, &mut prefix)?;
+    read_exact_bounded(reader, &mut prefix, true)?;
     let len = u32::from_le_bytes(prefix) as usize;
     if len > MAX_FRAME_PAYLOAD_BYTES {
         return Err(IpcError::new(
@@ -85,7 +85,9 @@ pub fn read_frame(reader: &mut impl Read) -> Result<Vec<u8>, IpcError> {
         ));
     }
     let mut payload = vec![0u8; len];
-    read_exact_bounded(reader, &mut payload)?;
+    // The prefix promised these bytes: an end here is a truncation, even
+    // before the first payload byte.
+    read_exact_bounded(reader, &mut payload, false)?;
     Ok(payload)
 }
 
@@ -101,13 +103,17 @@ pub fn write_frame(writer: &mut impl Write, payload: &[u8]) -> Result<(), IpcErr
 }
 
 /// Fill `buf` fully or fail with a typed error that distinguishes polite
-/// EOF from mid-frame truncation.
-fn read_exact_bounded(reader: &mut impl Read, buf: &mut [u8]) -> Result<(), IpcError> {
+/// EOF (nothing read at a frame boundary) from mid-frame truncation.
+fn read_exact_bounded(
+    reader: &mut impl Read,
+    buf: &mut [u8],
+    at_frame_start: bool,
+) -> Result<(), IpcError> {
     let mut filled = 0;
     while filled < buf.len() {
         match reader.read(&mut buf[filled..]) {
             Ok(0) => {
-                return if filled == 0 {
+                return if filled == 0 && at_frame_start {
                     Err(IpcError::new(
                         IpcErrorCode::Cancelled,
                         "peer closed connection",
@@ -179,6 +185,14 @@ mod tests {
         let err = match read_frame(&mut Cursor::new(vec![1u8, 2])) {
             Err(err) => err,
             Ok(bytes) => return Err(format!("short header decoded {bytes:?}").into()),
+        };
+        assert_eq!(err.code, IpcErrorCode::BadRequest);
+
+        // A header with none of its promised body is a truncation too, not
+        // a polite close.
+        let err = match read_frame(&mut Cursor::new(frame[..FRAME_PREFIX_BYTES].to_vec())) {
+            Err(err) => err,
+            Ok(bytes) => return Err(format!("bodiless header decoded {bytes:?}").into()),
         };
         assert_eq!(err.code, IpcErrorCode::BadRequest);
 

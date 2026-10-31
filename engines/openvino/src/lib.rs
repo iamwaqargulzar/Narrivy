@@ -236,18 +236,27 @@ pub fn parse_sha256(value: &str) -> Option<[u8; 32]> {
 }
 
 /// A relative path made only of ordinary names: no root, no `..`, no `.`,
-/// at most two levels deep.
+/// at most two levels deep, and written in exactly that form. Each name is
+/// checked as written, not as `Path` normalises it, because callers split
+/// the path on `/` themselves: `a//b` or `a/./b` would hand them an empty
+/// or `.` name, and `/b` joined to a directory replaces it.
 #[must_use]
 pub fn is_plain_relative(path: &str) -> bool {
     if path.is_empty() || path.len() > 255 || path.contains('\\') {
         return false;
     }
-    let components: Vec<Component<'_>> = Path::new(path).components().collect();
-    !components.is_empty()
-        && components.len() <= 2
-        && components
-            .iter()
-            .all(|component| matches!(component, Component::Normal(_)))
+    let names: Vec<&str> = path.split('/').collect();
+    names.len() <= 2
+        && names.iter().all(|name| {
+            !name.is_empty()
+                && *name != "."
+                && *name != ".."
+                && !name.chars().any(char::is_control)
+                && matches!(
+                    Path::new(name).components().collect::<Vec<_>>()[..],
+                    [Component::Normal(_)]
+                )
+        })
 }
 
 /// Where an installed runtime pack's libraries are.
@@ -352,7 +361,25 @@ mod tests {
 
     #[test]
     fn unsafe_paths_and_bad_digests_are_refused() {
-        for path in ["/etc/passwd", "../x", "a/../b", "./a", "a/b/c", "", "a\\b"] {
+        for path in [
+            "/etc/passwd",
+            "../x",
+            "a/../b",
+            "./a",
+            "a/b/c",
+            "",
+            "a\\b",
+            // `Path` normalises these to two plain names; the callers that
+            // split on `/` would not (`a//b` gave them `/b`, an absolute path).
+            "a//b",
+            "a/./b",
+            "a/",
+            "a/.",
+            "/",
+            "..",
+            "a\0b",
+            "a\nb",
+        ] {
             let text = manifest_for(&[(path, b"x")]);
             assert!(PackManifest::parse(text.as_bytes()).is_err(), "{path}");
         }
@@ -375,5 +402,97 @@ mod tests {
         assert_eq!(whisper_languages(config), ["en", "fr", "haw"]);
         assert!(whisper_languages(br#"{"no_table": 1}"#).is_empty());
         assert!(whisper_languages(b"not json").is_empty());
+    }
+
+    /// Pack entries that are not regular files are refused: a link, a
+    /// device and a socket, each with otherwise matching listings.
+    #[test]
+    fn links_devices_and_sockets_are_not_pack_files() -> TestResult {
+        let dir = tempfile::tempdir()?;
+        let listed = |path: &str| PackFile {
+            path: path.to_owned(),
+            sha256: "0".repeat(64),
+            size_bytes: 0,
+        };
+        std::os::unix::fs::symlink("/dev/null", dir.path().join("link"))?;
+        let _socket = std::os::unix::net::UnixListener::bind(dir.path().join("socket"))?;
+        std::fs::write(dir.path().join("real"), b"")?;
+        std::fs::hard_link(dir.path().join("real"), dir.path().join("hard"))?;
+        for name in ["link", "socket"] {
+            assert_eq!(
+                verify_file(&dir.path().join(name), &listed(name)),
+                Err(PackError::Missing),
+                "{name}"
+            );
+        }
+        assert_eq!(
+            verify_file(Path::new("/dev/null"), &listed("null")),
+            Err(PackError::Missing)
+        );
+        // A hard link is the file itself: it is held to the same digest.
+        assert_eq!(
+            verify_file(&dir.path().join("hard"), &listed("hard")),
+            Err(PackError::Digest)
+        );
+        Ok(())
+    }
+
+    /// Huge declared sizes neither overflow the total nor pass a check.
+    #[test]
+    fn huge_declared_sizes_saturate_and_fail_verification() -> TestResult {
+        let digest = "0".repeat(64);
+        let text = format!(
+            r#"{{"schema_version":1,"id":"x","files":[{{"path":"a","sha256":"{digest}","size_bytes":{max}}},{{"path":"b","sha256":"{digest}","size_bytes":{max}}}]}}"#,
+            max = u64::MAX
+        );
+        let manifest = PackManifest::parse(text.as_bytes())?;
+        assert_eq!(manifest.total_bytes(), u64::MAX);
+        let dir = tempfile::tempdir()?;
+        std::fs::write(dir.path().join("a"), b"x")?;
+        assert_eq!(manifest.verify(dir.path()), Err(PackError::Size));
+        Ok(())
+    }
+
+    /// `cases` per property, unless `PROPTEST_CASES` asks for more (see
+    /// `scripts/fuzz-untrusted-input.sh`). No regression files are written.
+    fn fuzz_config(cases: u32) -> proptest::prelude::ProptestConfig {
+        let mut config = proptest::prelude::ProptestConfig {
+            failure_persistence: None,
+            ..proptest::prelude::ProptestConfig::default()
+        };
+        if std::env::var_os("PROPTEST_CASES").is_none() {
+            config.cases = cases;
+        }
+        config
+    }
+
+    proptest::proptest! {
+        #![proptest_config(fuzz_config(512))]
+
+        /// Whatever passes `is_plain_relative` stays under the pack root,
+        /// both joined whole and split on `/` the way the installer does.
+        #[test]
+        fn plain_relative_paths_stay_under_the_root(path in r"[a./\\\x00\n-]{0,8}") {
+            if is_plain_relative(&path) {
+                let root = Path::new("/pack");
+                proptest::prop_assert!(root.join(&path).starts_with(root));
+                let (dir, name) = path.split_once('/').unwrap_or(("", path.as_str()));
+                for part in [dir, name] {
+                    proptest::prop_assert!(!part.starts_with('/'));
+                    proptest::prop_assert!(part != "." && part != "..");
+                }
+                proptest::prop_assert!(!name.is_empty());
+                proptest::prop_assert!(root.join(dir).join(name).starts_with(root));
+                proptest::prop_assert!(Path::new(&path)
+                    .components()
+                    .all(|c| matches!(c, Component::Normal(_))));
+            }
+        }
+
+        /// Any bytes as a manifest: parsed or refused, never a panic.
+        #[test]
+        fn manifest_parse_never_panics(bytes in proptest::collection::vec(proptest::prelude::any::<u8>(), 0..256)) {
+            let _ = PackManifest::parse(&bytes);
+        }
     }
 }

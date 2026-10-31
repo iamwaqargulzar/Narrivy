@@ -347,7 +347,19 @@ fn copy_local(
     let (final_path, part) = destination(dir, target);
     let _ = std::fs::remove_file(&part);
     prepare_partial(&part, target.size_bytes)?;
-    let mut input = std::fs::File::open(source).map_err(|_| "local_source_missing")?;
+    // Not through a link, and without waiting on a FIFO's writer: only a
+    // regular file can be the pack's file. A device or FIFO would never end.
+    let mut input = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+        .open(source)
+        .map_err(|error| match error.raw_os_error() {
+            Some(libc::ELOOP) => "integrity_mismatch",
+            _ => "local_source_missing",
+        })?;
+    if !input.metadata().is_ok_and(|metadata| metadata.is_file()) {
+        return Err("integrity_mismatch");
+    }
     let mut output = std::fs::OpenOptions::new()
         .write(true)
         .open(&part)
@@ -672,5 +684,134 @@ mod tests {
         assert_eq!(exit_reason(60), "tls_failed");
         assert_eq!(exit_reason(63), "too_large");
         assert_eq!(exit_reason(1), "download_failed");
+    }
+
+    fn pack(size: u64) -> PackTarget {
+        PackTarget {
+            id: "pack".to_owned(),
+            source_path: "src".to_owned(),
+            base_url: None,
+            manifest_name: "model-manifest.json",
+            manifest_sha256: "0".repeat(64),
+            manifest_size: 1,
+            size_bytes: size,
+        }
+    }
+
+    fn hex(bytes: &[u8]) -> String {
+        use sha2::Digest;
+        sha2::Sha256::digest(bytes)
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect()
+    }
+
+    /// A pack file named `a//b` passes a check that normalises paths, and
+    /// split on `/` it named `/b`: the copy went to the filesystem root.
+    /// Every unsafe entry name is refused before anything is written.
+    #[test]
+    fn unsafe_pack_entry_names_are_refused_before_any_write() -> TestResult {
+        let parent = tempfile::tempdir()?;
+        std::fs::set_permissions(parent.path(), std::fs::Permissions::from_mode(0o700))?;
+        let staging = parent.path().join("pack.partial");
+        std::fs::DirBuilder::new().mode(0o700).create(&staging)?;
+        let source = tempfile::tempdir()?;
+        let progress = AtomicU64::new(0);
+        for path in [
+            "a//b", "a/./b", "a/", "/abs", "../up", "a/../b", "a/b/c", "", "a\\b", "a\0b",
+        ] {
+            let outcome = pack_file(
+                &pack(1),
+                Some(source.path()),
+                &staging,
+                path,
+                &"0".repeat(64),
+                1,
+                &Progress {
+                    received: &progress,
+                    base: 0,
+                },
+                &CancelFlag::new(),
+            );
+            assert_eq!(outcome, Err("integrity_mismatch"), "{path:?}");
+        }
+        assert_eq!(std::fs::read_dir(&staging)?.count(), 0);
+        Ok(())
+    }
+
+    /// A local source that is a link, a FIFO, a device or the wrong bytes is
+    /// refused with a typed code, without blocking and without copying more
+    /// than the declared size.
+    #[test]
+    fn local_sources_must_be_regular_files_with_the_pinned_bytes() -> TestResult {
+        let dir = tempfile::tempdir()?;
+        std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o700))?;
+        let source = tempfile::tempdir()?;
+        let good = b"model bytes";
+        std::fs::write(source.path().join("real"), good)?;
+        std::os::unix::fs::symlink(source.path().join("real"), source.path().join("link"))?;
+        // The `mkfifo` tool keeps this crate free of `unsafe`.
+        let made = std::process::Command::new("mkfifo")
+            .arg(source.path().join("fifo"))
+            .status()
+            .is_ok_and(|status| status.success());
+        let target = |sha256: String, size: u64| DownloadTarget {
+            id: "m".to_owned(),
+            url: String::new(),
+            filename: "m.bin".to_owned(),
+            size_bytes: size,
+            sha256,
+        };
+        let progress = AtomicU64::new(0);
+        let copy = |name: &str, target: &DownloadTarget| {
+            copy_local(
+                &source.path().join(name),
+                target,
+                dir.path(),
+                &Progress {
+                    received: &progress,
+                    base: 0,
+                },
+                &CancelFlag::new(),
+            )
+        };
+        let pinned = target(hex(good), good.len() as u64);
+        assert_eq!(copy("link", &pinned), Err("integrity_mismatch"));
+        if made {
+            assert_eq!(copy("fifo", &pinned), Err("integrity_mismatch"));
+        }
+        assert_eq!(
+            copy_local(
+                Path::new("/dev/zero"),
+                &target(hex(good), u64::MAX),
+                dir.path(),
+                &Progress {
+                    received: &progress,
+                    base: 0,
+                },
+                &CancelFlag::new(),
+            ),
+            Err("integrity_mismatch")
+        );
+        assert_eq!(copy("missing", &pinned), Err("local_source_missing"));
+        // The hash or the size does not match the pin.
+        assert_eq!(
+            copy("real", &target(hex(b"other"), good.len() as u64)),
+            Err("integrity_mismatch")
+        );
+        assert_eq!(
+            copy("real", &target(hex(good), u64::MAX)),
+            Err("integrity_mismatch")
+        );
+        assert_eq!(
+            copy("real", &target(hex(good), 3)),
+            Err("integrity_mismatch")
+        );
+        assert!(!dir.path().join("m.bin").exists());
+        assert!(!dir.path().join("m.bin.part").exists());
+        // The real file with its pins is accepted.
+        assert_eq!(copy("real", &pinned), Ok(()));
+        assert_eq!(std::fs::read(dir.path().join("m.bin"))?, good);
+        Ok(())
     }
 }

@@ -946,16 +946,42 @@ fn write_shared(writer: &SharedWriter, bytes: &[u8]) -> Result<(), IpcError> {
     write_frame(&mut *lock_or_recover(writer), bytes)
 }
 
-/// Counts the bytes a frame read consumed, so a quiet timeout can be told
-/// apart from one that stopped mid-frame.
+/// Reads one frame from the stream. Counts the bytes it consumed, so a
+/// quiet timeout can be told apart from one that stopped mid-frame, and
+/// bounds the whole frame by [`CONNECTION_IDLE_TIMEOUT`] from its first
+/// byte: the socket timeout alone restarts on every byte, so a peer sending
+/// one byte at a time could otherwise hold a connection and its thread for
+/// as long as it liked.
 struct CountingRead<'a> {
     inner: &'a mut UnixStream,
     received: usize,
+    started: Option<Instant>,
+}
+
+impl<'a> CountingRead<'a> {
+    fn new(inner: &'a mut UnixStream) -> Self {
+        Self {
+            inner,
+            received: 0,
+            started: None,
+        }
+    }
 }
 
 impl Read for CountingRead<'_> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let timeout = match self.started {
+            None => CONNECTION_IDLE_TIMEOUT,
+            Some(started) => CONNECTION_IDLE_TIMEOUT
+                .checked_sub(started.elapsed())
+                .filter(|left| !left.is_zero())
+                .ok_or(ErrorKind::TimedOut)?,
+        };
+        self.inner.set_read_timeout(Some(timeout))?;
         let read = self.inner.read(buf)?;
+        if read > 0 && self.started.is_none() {
+            self.started = Some(Instant::now());
+        }
         self.received += read;
         Ok(read)
     }
@@ -1003,7 +1029,7 @@ fn handle_connection<H>(
     // Handshake phase (ipc.md "Handshake"): the FIRST frame must be a
     // versioned hello; anything else ends the connection with a typed
     // rejection. Major skew rejects before any command can be issued.
-    let hello_bytes = match read_frame(&mut stream) {
+    let hello_bytes = match read_frame(&mut CountingRead::new(&mut stream)) {
         Ok(bytes) => bytes,
         Err(err) => {
             if err.code != IpcErrorCode::Cancelled {
@@ -1063,10 +1089,7 @@ fn handle_connection<H>(
     }
 
     loop {
-        let mut reader = CountingRead {
-            inner: &mut stream,
-            received: 0,
-        };
+        let mut reader = CountingRead::new(&mut stream);
         let result = read_frame(&mut reader);
         let received = reader.received;
         let bytes = match result {
@@ -2309,3 +2332,7 @@ mod ipc_tests {
         assert_eq!(LOCK_FILE_NAME, "narrivyd.lock");
     }
 }
+
+#[cfg(test)]
+#[path = "untrusted_peer_tests.rs"]
+mod untrusted_peer_tests;
