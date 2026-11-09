@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "runtimes": [
+    {
+      "id": "native",
+      "description": "Built-in/native Rust/C/C++ execution",
+      "status": "base",
+      "devices": "CPU",
+      "notes": "Always available for core/test/fallback modules"
+    },
+    {
+      "id": "vulkan",
+      "description": "General GPU compute path",
+      "status": "base-capable",
+      "devices": "dGPU/iGPU",
+      "notes": "Qualified broad GPU path; hardware tier is GPU, not Vulkan"
+    },
+    {
+      "id": "openvino",
+      "description": "OpenVINO runtime pack",
+      "status": "optional",
+      "devices": "NPU/dGPU/iGPU/CPU",
+      "notes": "Preferred Intel NPU path when qualified"
+    },
+    {
+      "id": "onnxruntime",
+      "description": "ONNX Runtime pack",
+      "status": "optional",
+      "devices": "CPU/GPU/provider-dependent",
+      "notes": "Portable model execution"
+    },
+    {
+      "id": "llama.cpp",
+      "description": "Local LLM runtime",
+      "status": "optional",
+      "devices": "CPU/GPU backend-dependent",
+      "notes": "Post-processing/translation models"
+    },
+    {
+      "id": "wasm",
+      "description": "Sandboxed extension runtime",
+      "status": "roadmap",
+      "devices": "CPU",
+      "notes": "Safe third-party text/policy modules"
+    },
+    {
+      "id": "isolated-worker",
+      "description": "Out-of-process extension runtime",
+      "status": "roadmap",
+      "devices": "device-dependent",
+      "notes": "Heavy/experimental/Python modules"
+    },
+    {
+      "id": "transcribe.cpp",
+      "description": "GGUF multi-model STT inference library ('llama.cpp for STT'); runs ALL Whisper model variants (large-v3/large-v3-turbo/medium/small/base/tiny + distil) plus Parakeet/Moonshine/Vosk-class GGUF; Vulkan/CUDA/Metal + CPU backends",
+      "status": "linux-1.0",
+      "devices": "CPU, iGPU, dGPU (Vulkan)",
+      "notes": "REFERENCE ASR RUNTIME for CPU/iGPU/dGPU lanes per owner decision 2026-08-22. No NPU path (NPU lane = qwen3-asr-openvino). Immutable revision pin + license verification at P5 lock; never floating latest."
+    }
+  ]
+}

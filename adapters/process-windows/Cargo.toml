@@ -1,0 +1,39 @@
+[package]
+publish = false
+name = "narrivy-process-windows"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Trusted system-helper launching on Windows: identity checks, environment scrubbing and Job Object containment."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints.rust]
+unsafe_code = "allow"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "deny"
+
+# The whole adapter is Windows-only (`#![cfg(windows)]`).
+[target.'cfg(windows)'.dependencies]
+narrivy-types.workspace = true
+sha2.workspace = true
+tempfile.workspace = true
+windows-sys = { workspace = true, features = [
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_Security_Authorization",
+  "Win32_Storage_FileSystem",
+  "Win32_System_Diagnostics_Debug",
+  "Win32_System_Diagnostics_ToolHelp",
+  "Win32_System_JobObjects",
+  "Win32_System_Pipes",
+  "Win32_System_ProcessStatus",
+  "Win32_System_SystemInformation",
+  "Win32_System_SystemServices",
+  "Win32_System_Threading",
+] }

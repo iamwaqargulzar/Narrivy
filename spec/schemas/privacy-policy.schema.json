@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://narrivy.invalid/schema/privacy-policy-v1.json",
+  "title": "Narrivy Privacy Policy v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "default_processing",
+    "history",
+    "recovery",
+    "zones"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "default_processing": {
+      "enum": [
+        "local_only",
+        "local_preferred",
+        "remote_allowed"
+      ]
+    },
+    "history": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "retain_days",
+        "store_raw_variant",
+        "store_audio"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "retain_days": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 3650
+        },
+        "store_raw_variant": {
+          "type": "boolean"
+        },
+        "store_audio": {
+          "type": "boolean"
+        }
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "retain_hours"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "retain_hours": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 168
+        }
+      }
+    },
+    "zones": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "enabled",
+          "match",
+          "restrictions"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,79}$"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "match": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field",
+                "operator",
+                "value"
+              ],
+              "properties": {
+                "field": {
+                  "enum": [
+                    "app_id",
+                    "executable",
+                    "window_title"
+                  ]
+                },
+                "operator": {
+                  "enum": [
+                    "eq",
+                    "contains",
+                    "prefix",
+                    "regex"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            }
+          },
+          "restrictions": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "disable_dictation",
+                "no_context",
+                "no_history",
+                "no_remote",
+                "no_learning",
+                "no_actions"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+[package]
+publish = false
+name = "narrivy-cli"
+version = "1.0.0-rc.33"
+edition.workspace = true
+rust-version.workspace = true
+description = "Command-line client for narrivyd (toggle, status, support report)."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints]
+workspace = true
+[dependencies]
+narrivy-ipc.workspace = true
+# REL-008: the user-reachable support report is built, redacted and
+# content-checked by this crate's own diagnostics facility. Every value the
+# report carries is routed through `narrivy_diagnostics::Redactor`.
+narrivy-diagnostics.workspace = true
+
+# Daemon transport (`src/transport.rs`): the Unix socket on Unix, the
+# per-user named pipe on Windows (PORT-007).
+[target.'cfg(unix)'.dependencies]
+narrivy-ipc-unix.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+narrivy-ipc-windows.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

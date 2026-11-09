@@ -1,0 +1,35 @@
+#!/bin/sh
+set -e
+# narrivy postinst — per-user data is preserved on upgrade.
+# XDG: data ~/.local/share/narrivy  config ~/.config/narrivy
+#      state ~/.local/state/narrivy  cache ~/.cache/narrivy
+narrivy_user_managers() {
+  systemctl list-units --no-legend --plain --state=active 'user@*.service' 2>/dev/null \
+    | sed -n 's/^user@\([0-9][0-9]*\)\.service .*/\1/p'
+}
+case "$1" in
+  configure)
+    # The unit is not enabled for anyone (D5: off by default, opt-in in the
+    # app); the unprivileged desktop client starts it on first use. Running
+    # user managers reload the new unit, and a daemon that is running again
+    # restarts on the new build. Each call is bounded and never fails.
+    for uid in $(narrivy_user_managers); do
+      timeout 10s systemctl --user -M "$uid@" daemon-reload >/dev/null 2>&1 || true
+      timeout 10s systemctl --user -M "$uid@" try-restart narrivy-daemon.service >/dev/null 2>&1 || true
+    done
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database -q || true
+    fi
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
+    fi
+    ;;
+  abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+  *)
+    echo "postinst called with unknown argument \`$1'" >&2
+    exit 1
+    ;;
+esac
+#DEBHELPER#
+exit 0

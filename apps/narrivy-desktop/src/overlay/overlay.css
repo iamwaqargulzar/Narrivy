@@ -1,0 +1,78 @@
+/* The overlay window: transparent, with one card at its top or bottom edge.
+ * Colours come from the shell's palette (the same values as tokens.css). */
+html.overlay-window,
+html.overlay-window body,
+html.overlay-window #root {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: transparent !important;
+}
+
+.ov-stage {
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  height: 100%;
+  padding: 10px 16px;
+  font-family: "Inter Variable", system-ui, sans-serif;
+}
+.ov-stage.is-top { align-items: flex-start; }
+.ov-stage.is-bottom { align-items: flex-end; }
+
+.ov-card {
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--ov-border);
+  background: linear-gradient(var(--ov-top), var(--ov-bottom));
+  box-shadow: inset 0 1px 0 var(--ov-highlight), 0 6px 22px var(--ov-shadow);
+  color: var(--ov-text);
+  animation: ov-in 160ms ease-out;
+}
+.ov-card.has-text {
+  width: 100%;
+  border-radius: 16px;
+  padding: 8px 18px 10px;
+}
+.ov-card.is-listening {
+  border-color: color-mix(in srgb, var(--ov-live) 55%, var(--ov-border));
+  box-shadow: inset 0 1px 0 var(--ov-highlight), 0 0 18px color-mix(in srgb, var(--ov-live) 35%, transparent),
+    0 6px 22px var(--ov-shadow);
+}
+.ov-card.is-error { border-color: color-mix(in srgb, var(--ov-err) 60%, var(--ov-border)); }
+
+.ov-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 26px;
+}
+.ov-mark { width: 40px; height: 26px; flex: none; }
+.is-listening .ov-mark path { animation: ov-wave 1.1s ease-in-out infinite; transform-origin: 50% 53%; }
+.is-processing .ov-mark { animation: ov-pulse 1.4s ease-in-out infinite; }
+.ov-timer { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ov-muted); }
+.ov-label { font-size: 13px; color: var(--ov-muted); white-space: nowrap; }
+.is-error .ov-label { color: var(--ov-text); }
+.ov-text {
+  margin: 4px 0 0;
+  font-size: 15px;
+  line-height: 1.35;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@keyframes ov-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes ov-wave { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.7); } }
+@keyframes ov-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ov-card,
+  .is-listening .ov-mark path,
+  .is-processing .ov-mark { animation: none; }
+}

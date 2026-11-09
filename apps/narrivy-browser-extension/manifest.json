@@ -1,0 +1,62 @@
+{
+  "manifest_version": 3,
+  "name": "Narrivy Writing",
+  "short_name": "Narrivy",
+  "version": "0.1.1",
+  "description": "Private grammar, spelling and AI rewriting that runs on your own computer through Narrivy. Nothing you type leaves your device.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAo3gOhFxQIDSbJ0CNfc/pN4B1OHwD0iE1dOTyd/fHjM36lYnLhAuzyaBKOu4T1ZArbQOyUdyQGNBRIsznmPxU43CccK5dM52NzlGz5wXB1midty9LIK8aS9Dx8GsgUKndIX6RGKwL8Rcozufcgd0l/OA13Og0QmX20Y5YMNZwbsmSBKnARYZokG3r25Bs5ruiRdKeZq8mmwRKlZmnotM7f1T8RKcvhsmtxGodSiHznnvauQ7ROppNw27P52EVP+L2qwHPIwdm+Mj6KUVu21i9BmRVBezRqv1V4GIUJbITc0Sx8Ftxfq0qyScC7isKNTBZYaK+q/p/bJP8AOBdiix1xQIDAQAB",
+  "minimum_chrome_version": "120",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "Narrivy Writing",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "nativeMessaging",
+    "storage",
+    "contextMenus",
+    "activeTab",
+    "scripting"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "all_frames": true,
+      "match_about_blank": true,
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "highlights.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "open-actions": {
+      "suggested_key": {
+        "default": "Alt+Shift+G"
+      },
+      "description": "Open Narrivy's writing actions for the selection or the field"
+    }
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ]
+}

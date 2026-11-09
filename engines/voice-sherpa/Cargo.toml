@@ -1,0 +1,51 @@
+[package]
+name = "narrivy-voice-sherpa"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+description = "Voice mode's listening and speaking worker: Silero voice detection and Kokoro speech through sherpa-onnx, in its own process."
+license.workspace = true
+repository.workspace = true
+
+# sherpa-onnx 2 (Apache-2.0) is linked statically with its ONNX Runtime. It
+# no longer contains eSpeak NG (GPL-3.0), so speech is read from the voice's
+# own word lists; see src/text.rs for numbers. Its foreign-function code is
+# inside the sherpa-onnx crate: this crate has no `unsafe`.
+[lints.rust]
+unsafe_code = "forbid"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "deny"
+
+[features]
+default = []
+# The worker binary (links sherpa-onnx). The library alone (text, cues,
+# protocol) builds and tests without it.
+worker = ["dep:sherpa-onnx", "dep:cpal"]
+
+[dependencies]
+serde_json.workspace = true
+regex = "1.13"
+base64 = "=0.23.1"
+sherpa-onnx = { version = "=2.0.1", optional = true }
+
+# Windows records and plays through WASAPI. Linux uses PipeWire's own
+# pw-record and pw-play, which can name the echo-cancelled source.
+[target.'cfg(windows)'.dependencies]
+cpal = { version = "=0.18.2", optional = true }
+
+[[bin]]
+name = "narrivy-voice-worker"
+path = "src/bin/narrivy-voice-worker.rs"
+required-features = ["worker"]
+
+[[example]]
+name = "speak_probe"
+required-features = ["worker"]
+
+[dev-dependencies]
+tempfile.workspace = true
