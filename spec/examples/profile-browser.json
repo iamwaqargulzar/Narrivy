@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"browser-clean","name":"Browser Clean","enabled":true,"priority":10,"match":[{"field":"app_id","operator":"contains","value":"firefox"}],"mode_id":"clean","overrides":{"audio_policy":"leave"}}

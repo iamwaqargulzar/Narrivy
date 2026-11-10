@@ -1,0 +1,18 @@
+name: Bug report
+description: Report a reproducible Narrivy defect.
+title: "bug: "
+body:
+  - type: textarea
+    id: summary
+    attributes: { label: Summary }
+    validations: { required: true }
+  - type: textarea
+    id: reproduce
+    attributes: { label: Steps to reproduce }
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes: { label: Expected behavior }
+  - type: textarea
+    id: environment
+    attributes: { label: Environment, description: "OS/distro, desktop/session, Narrivy version. Do not paste sensitive transcript/audio." }

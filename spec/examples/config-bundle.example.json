@@ -1,0 +1,177 @@
+{
+  "$schema": "https://narrivy.local/schema/config-bundle-v1.json",
+  "schema_version": 1,
+  "bundle_type": "selected_pipelines",
+  "exported_at": "2026-08-22T00:00:00+05:00",
+  "settings": {
+    "language": "auto",
+    "compute": "auto"
+  },
+  "pipelines": [
+    {
+      "$schema": "https://narrivy.local/schema/pipeline-v1.json",
+      "schema_version": 1,
+      "id": "fast-dictation",
+      "name": "Fast Dictation",
+      "description": "Lean local default pipeline.",
+      "extends": null,
+      "triggers": [
+        {
+          "id": "default-toggle",
+          "kind": "hotkey_toggle",
+          "binding": "Ctrl+Space",
+          "enabled": true
+        },
+        {
+          "id": "optional-hold",
+          "kind": "hotkey_hold",
+          "binding": "Ctrl+Shift+Space",
+          "enabled": false
+        }
+      ],
+      "nodes": [
+        {
+          "id": "capture",
+          "capability": "audio.capture",
+          "selection": "auto",
+          "module_id": null,
+          "optional": false,
+          "execution": "local_required",
+          "device_preference": [
+            "cpu"
+          ],
+          "failure": "fail_pipeline",
+          "fallback_modules": [],
+          "config": {}
+        },
+        {
+          "id": "denoise",
+          "capability": "audio.noise_suppressor",
+          "selection": "auto",
+          "module_id": null,
+          "optional": true,
+          "execution": "local_required",
+          "device_preference": [
+            "cpu"
+          ],
+          "failure": "skip",
+          "fallback_modules": [],
+          "config": {
+            "profile": "lean"
+          }
+        },
+        {
+          "id": "vad",
+          "capability": "audio.vad",
+          "selection": "auto",
+          "module_id": null,
+          "optional": false,
+          "execution": "local_required",
+          "device_preference": [
+            "cpu"
+          ],
+          "failure": "fail_pipeline",
+          "fallback_modules": [],
+          "config": {}
+        },
+        {
+          "id": "asr",
+          "capability": "speech.asr",
+          "selection": "auto",
+          "module_id": null,
+          "optional": false,
+          "execution": "local_required",
+          "device_preference": [
+            "npu",
+            "dgpu",
+            "igpu",
+            "cpu"
+          ],
+          "failure": "fallback",
+          "fallback_modules": [
+            "reference-cpu-asr"
+          ],
+          "config": {
+            "gpu_api_preference": "vulkan"
+          }
+        },
+        {
+          "id": "correct",
+          "capability": "text.deterministic_corrector",
+          "selection": "auto",
+          "module_id": null,
+          "optional": false,
+          "execution": "local_required",
+          "device_preference": [
+            "cpu"
+          ],
+          "failure": "fallback",
+          "fallback_modules": [
+            "builtin-minimal-corrector"
+          ],
+          "config": {
+            "mode": "faithful"
+          }
+        },
+        {
+          "id": "deliver",
+          "capability": "text.delivery",
+          "selection": "auto",
+          "module_id": null,
+          "optional": false,
+          "execution": "local_required",
+          "device_preference": [
+            "cpu"
+          ],
+          "failure": "fallback",
+          "fallback_modules": [
+            "inbox"
+          ],
+          "config": {}
+        }
+      ],
+      "edges": [
+        {
+          "from": "capture",
+          "to": "denoise",
+          "stream": "audio"
+        },
+        {
+          "from": "denoise",
+          "to": "vad",
+          "stream": "audio"
+        },
+        {
+          "from": "vad",
+          "to": "asr",
+          "stream": "speech"
+        },
+        {
+          "from": "asr",
+          "to": "correct",
+          "stream": "transcript"
+        },
+        {
+          "from": "correct",
+          "to": "deliver",
+          "stream": "text"
+        }
+      ],
+      "policy": {
+        "privacy": "local_only",
+        "network": "deny",
+        "fallback": "safe_local",
+        "send_transcript_remote": false,
+        "send_context_remote": false
+      }
+    }
+  ],
+  "profiles": [],
+  "dictionaries": [],
+  "resource_requirements": [
+    "capability:audio.noise_suppressor",
+    "capability:speech.asr",
+    "capability:text.deterministic_corrector"
+  ],
+  "credentials_policy": "excluded"
+}

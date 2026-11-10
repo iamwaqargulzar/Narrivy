@@ -1,0 +1,34 @@
+#!/bin/sh
+set -e
+case "$1" in
+  remove)
+    # Ordinary uninstall removes program files/service registrations but PRESERVES user data
+    # per docs/08-operations/release-packaging.md — purge is explicit
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database -q || true
+    fi
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
+    fi
+    # Per-user service registration is removed with the package; running
+    # user managers forget the unit (bounded, never fails).
+    for uid in $(systemctl list-units --no-legend --plain --state=active 'user@*.service' 2>/dev/null \
+        | sed -n 's/^user@\([0-9][0-9]*\)\.service .*/\1/p'); do
+      timeout 10s systemctl --user -M "$uid@" daemon-reload >/dev/null 2>&1 || true
+    done
+    ;;
+  purge)
+    # Explicit purge — user data removal is opt-in and documented
+    # Product data: ~/.local/share/narrivy ~/.config/narrivy
+    # ~/.local/state/narrivy (journal and History) ~/.cache/narrivy
+    echo "narrivy purge requested — user data removal is explicit (rm -rf ~/.local/share/narrivy ~/.config/narrivy ~/.local/state/narrivy ~/.cache/narrivy)" >&2
+    ;;
+  upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+    ;;
+  *)
+    echo "postrm called with unknown argument \`$1'" >&2
+    exit 1
+    ;;
+esac
+#DEBHELPER#
+exit 0

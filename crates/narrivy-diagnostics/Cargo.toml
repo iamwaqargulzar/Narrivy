@@ -1,0 +1,18 @@
+[package]
+publish = false
+name = "narrivy-diagnostics"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Content-safe diagnostics primitives: redaction, health facts and latency summaries."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

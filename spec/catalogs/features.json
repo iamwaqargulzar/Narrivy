@@ -1,0 +1,281 @@
+{
+  "schema_version": 1,
+  "features": [
+    {
+      "id": "activation",
+      "name": "Activation & triggers",
+      "description": "Hotkey hold/toggle and future triggers",
+      "requirements": [
+        "FUN-001",
+        "FUN-030"
+      ]
+    },
+    {
+      "id": "capture",
+      "name": "Capture & audio lifecycle",
+      "description": "Microphone capture/device/playback policy",
+      "requirements": [
+        "FUN-002",
+        "FUN-007",
+        "FUN-011",
+        "FUN-012"
+      ]
+    },
+    {
+      "id": "asr",
+      "name": "Speech recognition",
+      "description": "ASR, language and transcript production",
+      "requirements": [
+        "FUN-003",
+        "FUN-004",
+        "FUN-005",
+        "FUN-029"
+      ]
+    },
+    {
+      "id": "delivery",
+      "name": "Text delivery & target handling",
+      "description": "Insertion, clipboard, Inbox and target-aware behavior",
+      "requirements": [
+        "FUN-006",
+        "FUN-008",
+        "FUN-009",
+        "FUN-010",
+        "FUN-013"
+      ]
+    },
+    {
+      "id": "modes",
+      "name": "Modes, pipelines & profiles",
+      "description": "Raw/Clean and first-class pipeline/profile behavior",
+      "requirements": [
+        "FUN-020",
+        "FUN-021",
+        "FUN-022",
+        "FUN-023",
+        "FUN-027",
+        "FUN-028",
+        "FUN-031",
+        "FUN-032",
+        "FUN-033"
+      ]
+    },
+    {
+      "id": "editing",
+      "name": "Text editing & correction",
+      "description": "Selected-text, correction, formatting",
+      "requirements": [
+        "FUN-024",
+        "FUN-025",
+        "FUN-026"
+      ]
+    },
+    {
+      "id": "personalization",
+      "name": "Dictionary, learning & reusable knowledge",
+      "description": "Dictionary, learning, snippets and reusable knowledge",
+      "requirements": [
+        "FUN-040",
+        "FUN-041",
+        "FUN-042",
+        "FUN-043",
+        "FUN-044",
+        "FUN-045",
+        "FUN-046",
+        "FUN-047",
+        "FUN-048",
+        "FUN-049"
+      ]
+    },
+    {
+      "id": "context",
+      "name": "Context fabric & privacy-aware context",
+      "description": "Permission-scoped app/project/selection context",
+      "requirements": [
+        "FUN-060",
+        "FUN-061",
+        "FUN-062",
+        "FUN-063",
+        "FUN-064"
+      ]
+    },
+    {
+      "id": "voice-workflows",
+      "name": "Voice commands & workflow modes",
+      "description": "Commands, spell, hybrid and anchored workflows",
+      "requirements": [
+        "FUN-080",
+        "FUN-081",
+        "FUN-082",
+        "FUN-083",
+        "FUN-084",
+        "FUN-085",
+        "FUN-086"
+      ]
+    },
+    {
+      "id": "meetings",
+      "name": "Meeting/caption workflows",
+      "description": "Long-running capture, diarization, captions, summaries and companion mic",
+      "requirements": [
+        "FUN-100",
+        "FUN-101",
+        "FUN-102",
+        "FUN-103",
+        "FUN-104",
+        "FUN-105",
+        "FUN-106"
+      ]
+    },
+    {
+      "id": "ecosystem",
+      "name": "Extensions, compute nodes, portable resources",
+      "description": "Extension SDK, compute nodes, resource/pipeline portability",
+      "requirements": [
+        "FUN-120",
+        "FUN-121",
+        "FUN-122",
+        "FUN-123",
+        "FUN-124"
+      ]
+    },
+    {
+      "id": "rel",
+      "name": "Reliability",
+      "description": "Reliability & recovery",
+      "requirements": [
+        "REL-001",
+        "REL-002",
+        "REL-003",
+        "REL-004",
+        "REL-005",
+        "REL-006",
+        "REL-007",
+        "REL-008",
+        "REL-009"
+      ]
+    },
+    {
+      "id": "priv",
+      "name": "Privacy",
+      "description": "Privacy & data handling",
+      "requirements": [
+        "PRIV-001",
+        "PRIV-002",
+        "PRIV-003",
+        "PRIV-004",
+        "PRIV-005",
+        "PRIV-006",
+        "PRIV-007"
+      ]
+    },
+    {
+      "id": "sec",
+      "name": "Security",
+      "description": "Security & supply chain",
+      "requirements": [
+        "SEC-001",
+        "SEC-002",
+        "SEC-003",
+        "SEC-004",
+        "SEC-005",
+        "SEC-006",
+        "SEC-007"
+      ]
+    },
+    {
+      "id": "perf",
+      "name": "Performance",
+      "description": "Performance & resource budgets",
+      "requirements": [
+        "PERF-001",
+        "PERF-002",
+        "PERF-003",
+        "PERF-004",
+        "PERF-005",
+        "PERF-006",
+        "PERF-007",
+        "PERF-008",
+        "PERF-009",
+        "PERF-010"
+      ]
+    },
+    {
+      "id": "port",
+      "name": "Portability",
+      "description": "Platform/runtime portability",
+      "requirements": [
+        "PORT-001",
+        "PORT-002",
+        "PORT-003",
+        "PORT-004",
+        "PORT-005",
+        "PORT-006",
+        "PORT-007",
+        "PORT-008"
+      ]
+    },
+    {
+      "id": "acc",
+      "name": "Accessibility",
+      "description": "Accessibility",
+      "requirements": [
+        "ACC-001",
+        "ACC-002",
+        "ACC-003",
+        "ACC-004",
+        "ACC-005",
+        "ACC-006",
+        "ACC-007"
+      ]
+    },
+    {
+      "id": "ux",
+      "name": "Ux",
+      "description": "Desktop UX and usability",
+      "requirements": [
+        "UX-001",
+        "UX-002",
+        "UX-003",
+        "UX-004",
+        "UX-005",
+        "UX-006",
+        "UX-007",
+        "UX-008",
+        "UX-009",
+        "UX-010",
+        "UX-011"
+      ]
+    },
+    {
+      "id": "ops",
+      "name": "Operations",
+      "description": "Packaging, updates and operational lifecycle",
+      "requirements": [
+        "OPS-001",
+        "OPS-002",
+        "OPS-003",
+        "OPS-004",
+        "OPS-005",
+        "OPS-006"
+      ]
+    },
+    {
+      "id": "test",
+      "name": "Verification",
+      "description": "Testing, evidence and qualification",
+      "requirements": [
+        "TEST-001",
+        "TEST-002",
+        "TEST-003",
+        "TEST-004",
+        "TEST-005",
+        "TEST-006",
+        "TEST-007",
+        "TEST-008",
+        "TEST-009",
+        "TEST-010"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://narrivy.invalid/schema/plugin-manifest-v2.json",
+  "title": "Narrivy Extension Manifest v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "version",
+    "api",
+    "kind",
+    "execution",
+    "publisher",
+    "artifact",
+    "permissions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{1,127}$"
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "api": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "major"
+      ],
+      "properties": {
+        "major": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "min_minor": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "kind": {
+      "enum": [
+        "processor",
+        "audio-processor",
+        "vad",
+        "noise-suppressor",
+        "mode-pack",
+        "dictionary-pack",
+        "context-provider",
+        "action-provider",
+        "asr-engine",
+        "compute-runtime",
+        "model-source",
+        "delivery-backend",
+        "activation-provider",
+        "platform-adapter",
+        "aec",
+        "beamformer",
+        "dereverb",
+        "source-separator",
+        "target-speaker-extractor",
+        "endpoint-detector",
+        "keyword-spotter",
+        "speaker-diarizer",
+        "speaker-identifier",
+        "language-id",
+        "audio-tagger",
+        "text-normalizer",
+        "punctuator",
+        "spell-checker",
+        "grammar-checker",
+        "translator",
+        "llm-postprocessor",
+        "semantic-guard",
+        "inference-provider",
+        "trigger-provider",
+        "pipeline-pack"
+      ]
+    },
+    "execution": {
+      "enum": [
+        "data-only",
+        "wasm-wasi",
+        "native-sidecar",
+        "built-in-trusted"
+      ]
+    },
+    "publisher": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "key_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 200
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entry",
+        "sha256"
+      ],
+      "properties": {
+        "entry": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "signature": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "permissions": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 48,
+      "items": {
+        "enum": [
+          "audio.read",
+          "audio.process",
+          "transcript.read",
+          "app_identity.read",
+          "selection.read",
+          "surrounding_text.read",
+          "clipboard.read",
+          "clipboard.write",
+          "project_metadata.read",
+          "history.read",
+          "history.write",
+          "filesystem.read",
+          "filesystem.write",
+          "network.connect",
+          "notification.show",
+          "text_delivery.request",
+          "model.use",
+          "dictionary.read",
+          "secrets.use",
+          "playback_reference.read",
+          "speaker_profile.read",
+          "provider.invoke",
+          "pipeline.read",
+          "pipeline.write"
+        ]
+      }
+    },
+    "network_allowlist": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 32,
+      "items": {
+        "type": "string",
+        "maxLength": 253
+      }
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "id": "qwen3.5-4b-openvino",
+      "name": "Qwen3.5 4B",
+      "publisher": "Qwen (Alibaba Cloud), converted by OpenVINO",
+      "tasks": [
+        "chat",
+        "refine"
+      ],
+      "languages": [
+        "en"
+      ],
+      "size_bytes": 3577365101,
+      "license": "Apache-2.0",
+      "source_repo": "narrivy/store",
+      "source_path": "models/llm/qwen3.5-4b-int4-ov",
+      "source_revision": "639761c26596bb6c03024d28665aacf2aa820112",
+      "manifest_sha256": "2ca588ee2320e685b431cde2f495374b94548b2b3c7d558f0627164d2be41d82",
+      "manifest_size": 6359,
+      "devices": [
+        "NPU",
+        "GPU",
+        "CPU"
+      ]
+    },
+    {
+      "id": "s1-mini-openvino",
+      "name": "S1-mini",
+      "publisher": "Superwhisper",
+      "tasks": [
+        "refine"
+      ],
+      "languages": [
+        "en"
+      ],
+      "size_bytes": 623460012,
+      "license": "Apache-2.0 with the S1-mini naming term",
+      "source_repo": "narrivy/store",
+      "source_path": "models/llm/s1-mini-int8-cw-ov",
+      "source_revision": "639761c26596bb6c03024d28665aacf2aa820112",
+      "manifest_sha256": "d5bd99f21992351250ad2bef6899def95a1136f4491c1932310a6bd34a581f00",
+      "manifest_size": 4788,
+      "devices": [
+        "NPU",
+        "GPU",
+        "CPU"
+      ]
+    }
+  ]
+}

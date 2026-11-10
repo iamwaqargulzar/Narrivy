@@ -1,0 +1,6 @@
+narrivy (0.1.0) noble; urgency=medium
+
+  * Initial packaging skeleton for 0.1.0 — builder baseline TBD (Ubuntu 22.04 glibc 2.35 compatible).
+    See docs/08-operations/reproducible-builder.md for immutable builder digest.
+
+ -- Narrivy <release@narrivy.local>  Mon, 25 Aug 2026 00:00:00 +0000

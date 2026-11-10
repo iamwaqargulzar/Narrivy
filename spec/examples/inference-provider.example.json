@@ -1,0 +1,17 @@
+{
+  "$schema": "https://narrivy.local/schema/inference-provider-v1.json",
+  "schema_version": 1,
+  "id": "local-openai-compatible",
+  "name": "Local OpenAI-compatible Provider",
+  "transport": "openai_compatible",
+  "location": "local",
+  "endpoint": "http://127.0.0.1:1234/v1",
+  "auth": {
+    "method": "none"
+  },
+  "data_capabilities": [
+    "transcript"
+  ],
+  "cost_policy": "local",
+  "model_discovery": "provider_api"
+}

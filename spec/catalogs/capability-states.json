@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "states": [
+    {
+      "capability": "mock.asr",
+      "state": "asr-local"
+    },
+    {
+      "capability": "asr.transcribe-cpp",
+      "state": "asr-local"
+    },
+    {
+      "capability": "null.delivery",
+      "state": "delivery-inbox"
+    },
+    {
+      "capability": "platform.delivery.router",
+      "state": "delivery-direct"
+    },
+    {
+      "capability": "portal.globalshortcuts",
+      "state": "trigger-portal"
+    },
+    {
+      "capability": "x11.hotkey",
+      "state": "trigger-x11-fallback"
+    }
+  ]
+}

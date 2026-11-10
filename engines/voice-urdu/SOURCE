@@ -1,0 +1,9 @@
+narrivy-urdu-speaker is free software under the GNU General Public
+License, version 3 or (at your option) any later version (COPYING).
+It links eSpeak NG (GPL-3.0-or-later) through sherpa-onnx 1.13.8.
+
+Its complete source is engines/voice-urdu in Narrivy's repository,
+https://github.com/iamwaqargulzar/narrivy, at the commit the installed
+build names (build-info.json on Linux, the app's About page on both).
+eSpeak NG's source: https://github.com/espeak-ng/espeak-ng
+sherpa-onnx's source: https://github.com/k2-fsa/sherpa-onnx (tag v1.13.8)

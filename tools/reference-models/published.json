@@ -1,0 +1,13 @@
+{
+  "schema_version": 2,
+  "repository": "narrivy/store",
+  "revision": "1fa31d318fe6a7c36d3b71134e26dd9c14c11d0b",
+  "published": "2026-10-01",
+  "superseded_repositories": {
+    "narrivy/whisper-large-v3-turbo-gguf-q8-0": "4b27e85dc1da4758c83a7631c69ff4a3cfa8fb0e",
+    "narrivy/whisper-large-v3-gguf-q5-k-m": "1e21d1d2907d0e2a4498a9d0568b1f47c25e9067",
+    "narrivy/parakeet-unified-en-0.6b-gguf-q8-0": "de136a374ab39c0a595c1bf81fbcd5500238bee2",
+    "narrivy/whisper-large-v3-turbo-openvino-int8": "5b806cf0060e01d894ba0bebcaf8e2375c8c3127",
+    "narrivy/whisper-large-v3-openvino-int8": "574819094364bce86488dbe1587ea1ba79e65dc3"
+  }
+}

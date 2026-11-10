@@ -1,0 +1,448 @@
+{
+  "schema_version": 1,
+  "pack_revision": "2026-09-30.1",
+  "packs": [
+    {
+      "id": "narrivy/whisper-large-v3-turbo-gguf-q8-0",
+      "store_path": "models/gguf/whisper-large-v3-turbo-q8-0",
+      "display_name": "Whisper large-v3 turbo (GGUF, Q8_0, 8-bit)",
+      "quantization": "Q8_0 (8-bit)",
+      "local": {
+        "kind": "hf_cache",
+        "repo": "handy-computer/whisper-large-v3-turbo-gguf",
+        "revision": "5eaf945c7978e564bae5b28a5b1639dd93c2bfb1"
+      },
+      "source": {
+        "provider": "huggingface",
+        "locator": "handy-computer/whisper-large-v3-turbo-gguf",
+        "immutable_revision": "5eaf945c7978e564bae5b28a5b1639dd93c2bfb1",
+        "publisher": "handy-computer"
+      },
+      "base_model": "openai/whisper-large-v3-turbo",
+      "engine": {
+        "id": "asr.transcribe-cpp",
+        "min_version": "0.2.3",
+        "max_version": null
+      },
+      "format": {
+        "family": "whisper",
+        "precision": "Q8_0",
+        "conversion_recipe": null
+      },
+      "tasks": [
+        "transcribe"
+      ],
+      "languages": [
+        "multilingual"
+      ],
+      "devices": [
+        "CPU",
+        "GPU"
+      ],
+      "streaming": false,
+      "license": {
+        "spdx_or_name": "Apache-2.0",
+        "source": "https://huggingface.co/handy-computer/whisper-large-v3-turbo-gguf",
+        "redistribution": "allowed",
+        "notice": "Whisper large-v3 turbo by OpenAI; GGUF conversion by handy-computer. Redistributed unmodified."
+      },
+      "files": [
+        {
+          "path": "whisper-large-v3-turbo-Q8_0.gguf",
+          "sha256": "b2e30cc286bc9f3aba4db9099fc7403543497c05ce7100d0d83091ddfd25a183",
+          "size_bytes": 886381760
+        }
+      ]
+    },
+    {
+      "id": "narrivy/whisper-large-v3-gguf-q5-k-m",
+      "store_path": "models/gguf/whisper-large-v3-q5-k-m",
+      "display_name": "Whisper large-v3 (GGUF, Q5_K_M, 5-bit)",
+      "quantization": "Q5_K_M (5-bit, mixed)",
+      "local": {
+        "kind": "hf_cache",
+        "repo": "handy-computer/whisper-large-v3-gguf",
+        "revision": "e3e29bee6389c7da4a141406f07bb80ddac5337c"
+      },
+      "source": {
+        "provider": "huggingface",
+        "locator": "handy-computer/whisper-large-v3-gguf",
+        "immutable_revision": "e3e29bee6389c7da4a141406f07bb80ddac5337c",
+        "publisher": "handy-computer"
+      },
+      "base_model": "openai/whisper-large-v3",
+      "engine": {
+        "id": "asr.transcribe-cpp",
+        "min_version": "0.2.3",
+        "max_version": null
+      },
+      "format": {
+        "family": "whisper",
+        "precision": "Q5_K_M",
+        "conversion_recipe": null
+      },
+      "tasks": [
+        "transcribe",
+        "translate"
+      ],
+      "languages": [
+        "multilingual"
+      ],
+      "devices": [
+        "CPU",
+        "GPU"
+      ],
+      "streaming": false,
+      "license": {
+        "spdx_or_name": "Apache-2.0",
+        "source": "https://huggingface.co/handy-computer/whisper-large-v3-gguf",
+        "redistribution": "allowed",
+        "notice": "Whisper large-v3 by OpenAI; GGUF conversion by handy-computer. Redistributed unmodified."
+      },
+      "files": [
+        {
+          "path": "whisper-large-v3-Q5_K_M.gguf",
+          "sha256": "6053d0fd69a0fd48b8fea5ea7a52b9e0cde389343566fa30e453a1b2b258dc38",
+          "size_bytes": 1161143008
+        }
+      ]
+    },
+    {
+      "id": "narrivy/parakeet-unified-en-0.6b-gguf-q8-0",
+      "store_path": "models/gguf/parakeet-unified-en-0.6b-q8-0",
+      "display_name": "Parakeet Unified EN 0.6B (GGUF, Q8_0, 8-bit, streaming)",
+      "quantization": "Q8_0 (8-bit)",
+      "local": {
+        "kind": "hf_cache",
+        "repo": "handy-computer/parakeet-unified-en-0.6b-gguf",
+        "revision": "7e948f21b7bdbac698d3318db9d350f1096f3b6c"
+      },
+      "source": {
+        "provider": "huggingface",
+        "locator": "handy-computer/parakeet-unified-en-0.6b-gguf",
+        "immutable_revision": "7e948f21b7bdbac698d3318db9d350f1096f3b6c",
+        "publisher": "handy-computer"
+      },
+      "base_model": "nvidia/parakeet-unified-en-0.6b",
+      "engine": {
+        "id": "asr.transcribe-cpp",
+        "min_version": "0.2.3",
+        "max_version": null
+      },
+      "format": {
+        "family": "parakeet",
+        "precision": "Q8_0",
+        "conversion_recipe": null
+      },
+      "tasks": [
+        "transcribe"
+      ],
+      "languages": [
+        "en"
+      ],
+      "devices": [
+        "CPU",
+        "GPU"
+      ],
+      "streaming": true,
+      "license": {
+        "spdx_or_name": "CC-BY-4.0",
+        "source": "https://huggingface.co/handy-computer/parakeet-unified-en-0.6b-gguf",
+        "redistribution": "allowed",
+        "notice": "Parakeet Unified EN 0.6B by NVIDIA, licensed CC-BY-4.0; GGUF conversion by handy-computer. Redistributed unmodified. Attribution is required."
+      },
+      "files": [
+        {
+          "path": "parakeet-unified-en-0.6b-Q8_0.gguf",
+          "sha256": "4b50b6dd862bf6e346929aaf4f5eaacec003bfa3f56462d6c874b41ef2f38795",
+          "size_bytes": 731357568
+        }
+      ]
+    },
+    {
+      "id": "narrivy/whisper-large-v3-turbo-openvino-int8",
+      "store_path": "models/openvino/whisper-large-v3-turbo-int8",
+      "display_name": "Whisper large-v3 turbo (OpenVINO IR, INT8, 8-bit)",
+      "quantization": "INT8 (8-bit weights)",
+      "local": {
+        "kind": "directory",
+        "path": "~/.local/share/com.pais.handy/models/openvino-whisper-large-v3-turbo-int8"
+      },
+      "source": {
+        "provider": "huggingface",
+        "locator": "OpenVINO/whisper-large-v3-turbo-int8-ov",
+        "immutable_revision": "b568445dd5dc8c695bde596f8acbb4694fd6ba64",
+        "publisher": "OpenVINO"
+      },
+      "base_model": "openai/whisper-large-v3-turbo",
+      "engine": {
+        "id": "asr-openvino",
+        "min_version": "2026.4",
+        "max_version": null
+      },
+      "format": {
+        "family": "whisper",
+        "precision": "INT8",
+        "conversion_recipe": null
+      },
+      "tasks": [
+        "transcribe"
+      ],
+      "languages": [
+        "multilingual"
+      ],
+      "devices": [
+        "CPU",
+        "GPU",
+        "NPU"
+      ],
+      "streaming": false,
+      "license": {
+        "spdx_or_name": "MIT",
+        "source": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov",
+        "redistribution": "allowed",
+        "notice": "Whisper large-v3 turbo by OpenAI; OpenVINO IR conversion and INT8 compression by Intel (OpenVINO). Redistributed unmodified."
+      },
+      "files": [
+        {
+          "path": "added_tokens.json",
+          "sha256": "3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0",
+          "size_bytes": 34648
+        },
+        {
+          "path": "config.json",
+          "sha256": "bfd92c097547ab12cb42abae8008be5a59a91fdc5ab39acce24489eb8a3e8a86",
+          "size_bytes": 1192
+        },
+        {
+          "path": "generation_config.json",
+          "sha256": "4617fcca458af3b91a103143aaac919c1ab6680b552d7abd10811b7248bd77b4",
+          "size_bytes": 3767
+        },
+        {
+          "path": "merges.txt",
+          "sha256": "2df2990a395e35e8dfbc7511e08c12d56018d8d04691e0133e5d63b21e154dc6",
+          "size_bytes": 493869
+        },
+        {
+          "path": "normalizer.json",
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size_bytes": 52666
+        },
+        {
+          "path": "openvino_config.json",
+          "sha256": "9da38e88cec069ad54699d627f1c59d36c36a3dfb54b5e1bb5cfdf5832efaf03",
+          "size_bytes": 622
+        },
+        {
+          "path": "openvino_decoder_model.bin",
+          "sha256": "c064991cbafc4381567d29972b7013dc24026de9c326d03eb1e6e4fc44aa959f",
+          "size_bytes": 172534710
+        },
+        {
+          "path": "openvino_decoder_model.xml",
+          "sha256": "aeb09fafbf1c0cbf84baf30f46763436005822faf3b365359b8de0aa04f03047",
+          "size_bytes": 391642
+        },
+        {
+          "path": "openvino_detokenizer.bin",
+          "sha256": "f2b3c47825a1089525ff65c0c8e49271e1dee69a401a04fc827ac2de5b7766e4",
+          "size_bytes": 736198
+        },
+        {
+          "path": "openvino_detokenizer.xml",
+          "sha256": "6e106a14f14b0771b46b7948a99b1d819ff93b2455b7da8f47761ab9dba9dc56",
+          "size_bytes": 9779
+        },
+        {
+          "path": "openvino_encoder_model.bin",
+          "sha256": "0590a8f35f96d57801c55990028d917821ac721026e34b7f3f59d7561fc908e6",
+          "size_bytes": 645332592
+        },
+        {
+          "path": "openvino_encoder_model.xml",
+          "sha256": "60713d4ed3a8ac8ee020e11c4737ec276d14cabc6a082537bddf2c00ba6ce070",
+          "size_bytes": 1518660
+        },
+        {
+          "path": "openvino_tokenizer.bin",
+          "sha256": "adfa3d9a2920d0f314121270a960ab331ec0f05838544bb8ecaaa422282a6fd4",
+          "size_bytes": 1898973
+        },
+        {
+          "path": "openvino_tokenizer.xml",
+          "sha256": "cba304e7bad54773b9d2cbccfbc8501117ecf2e3c0f4f5331742a0a3c9feed93",
+          "size_bytes": 27091
+        },
+        {
+          "path": "preprocessor_config.json",
+          "sha256": "654cf18d3e163b948ceaf9766da56ce0b52de265d58673cf61c9376f126bd499",
+          "size_bytes": 357
+        },
+        {
+          "path": "special_tokens_map.json",
+          "sha256": "baea4ea09372eb4fca86b4e4346139fd73cb807d5087e9de0948e971739c3e74",
+          "size_bytes": 2186
+        },
+        {
+          "path": "tokenizer.json",
+          "sha256": "5c1bf30c9e716e1477bedef846b01be0013daecb89e9e3ef7ab89b23c178df1b",
+          "size_bytes": 3930645
+        },
+        {
+          "path": "tokenizer_config.json",
+          "sha256": "3c75940dfce3a294fca7041a5faff011677f1b68fa85e47511bb8cf6dccaded6",
+          "size_bytes": 282873
+        },
+        {
+          "path": "vocab.json",
+          "sha256": "6788c80b082e9b0d1393147d3a3e62ba19285ac0c82ace8e5ef00f37ead58971",
+          "size_bytes": 835528
+        }
+      ]
+    },
+    {
+      "id": "narrivy/whisper-large-v3-openvino-int8",
+      "store_path": "models/openvino/whisper-large-v3-int8",
+      "display_name": "Whisper large-v3 (OpenVINO IR, INT8, 8-bit)",
+      "quantization": "INT8 (8-bit weights)",
+      "local": {
+        "kind": "directory",
+        "path": "~/.local/share/com.pais.handy/models/openvino-whisper-large-v3-int8"
+      },
+      "source": {
+        "provider": "huggingface",
+        "locator": "OpenVINO/whisper-large-v3-int8-ov",
+        "immutable_revision": "e197310d1fe6d5b40d0ce84c2614a547de21cb62",
+        "publisher": "OpenVINO"
+      },
+      "base_model": "openai/whisper-large-v3",
+      "engine": {
+        "id": "asr-openvino",
+        "min_version": "2026.4",
+        "max_version": null
+      },
+      "format": {
+        "family": "whisper",
+        "precision": "INT8",
+        "conversion_recipe": null
+      },
+      "tasks": [
+        "transcribe",
+        "translate"
+      ],
+      "languages": [
+        "multilingual"
+      ],
+      "devices": [
+        "CPU",
+        "GPU",
+        "NPU"
+      ],
+      "streaming": false,
+      "license": {
+        "spdx_or_name": "Apache-2.0",
+        "source": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov",
+        "redistribution": "allowed",
+        "notice": "Whisper large-v3 by OpenAI; OpenVINO IR conversion and INT8 compression by Intel (OpenVINO). Redistributed unmodified."
+      },
+      "files": [
+        {
+          "path": "added_tokens.json",
+          "sha256": "3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0",
+          "size_bytes": 34648
+        },
+        {
+          "path": "config.json",
+          "sha256": "2efba1fd9d65450929e2d917a32cf9dec2fd5682d29baa6ff48d31d3a61fb501",
+          "size_bytes": 1195
+        },
+        {
+          "path": "generation_config.json",
+          "sha256": "041bb1619064440f4cb37a53326f5394de3df380f52ca1e2bfae599535414a7b",
+          "size_bytes": 3898
+        },
+        {
+          "path": "merges.txt",
+          "sha256": "2df2990a395e35e8dfbc7511e08c12d56018d8d04691e0133e5d63b21e154dc6",
+          "size_bytes": 493869
+        },
+        {
+          "path": "normalizer.json",
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size_bytes": 52666
+        },
+        {
+          "path": "openvino_config.json",
+          "sha256": "ac8140917e9fae6585bf5a937d4a76fa83015fbaaa1000db434a5d8e39e774f5",
+          "size_bytes": 451
+        },
+        {
+          "path": "openvino_decoder_model.bin",
+          "sha256": "fdf13685d5a9c427b9aa5893c2baef362f1e4dddfbf5bf8a47fc03acb35a45ea",
+          "size_bytes": 910372790
+        },
+        {
+          "path": "openvino_decoder_model.xml",
+          "sha256": "cc4b29bb1fc4afb6dcc59db2cf3d149fe5847a7215ca66b4944cb36390b17805",
+          "size_bytes": 2869528
+        },
+        {
+          "path": "openvino_detokenizer.bin",
+          "sha256": "f2b3c47825a1089525ff65c0c8e49271e1dee69a401a04fc827ac2de5b7766e4",
+          "size_bytes": 736198
+        },
+        {
+          "path": "openvino_detokenizer.xml",
+          "sha256": "ac37fdd9b044a04130747c6773b85f395e5910e0cfb132a2c937fb533d69b4da",
+          "size_bytes": 9699
+        },
+        {
+          "path": "openvino_encoder_model.bin",
+          "sha256": "fffcbf47a4cfd5a1e3f57c0569f5ef706245b798ef626db5ffea7b84166ed865",
+          "size_bytes": 645332592
+        },
+        {
+          "path": "openvino_encoder_model.xml",
+          "sha256": "2a19e0ae9b77b5fbf2928793aa232eb84b0554a29fd4f16e190617583bdefcfc",
+          "size_bytes": 1518681
+        },
+        {
+          "path": "openvino_tokenizer.bin",
+          "sha256": "adfa3d9a2920d0f314121270a960ab331ec0f05838544bb8ecaaa422282a6fd4",
+          "size_bytes": 1898973
+        },
+        {
+          "path": "openvino_tokenizer.xml",
+          "sha256": "dad2092c08510c043acabeae952cdbd381bc7b9c3272eaef524fa4fbea2f9dc4",
+          "size_bytes": 27011
+        },
+        {
+          "path": "preprocessor_config.json",
+          "sha256": "654cf18d3e163b948ceaf9766da56ce0b52de265d58673cf61c9376f126bd499",
+          "size_bytes": 357
+        },
+        {
+          "path": "special_tokens_map.json",
+          "sha256": "baea4ea09372eb4fca86b4e4346139fd73cb807d5087e9de0948e971739c3e74",
+          "size_bytes": 2186
+        },
+        {
+          "path": "tokenizer.json",
+          "sha256": "5c1bf30c9e716e1477bedef846b01be0013daecb89e9e3ef7ab89b23c178df1b",
+          "size_bytes": 3930645
+        },
+        {
+          "path": "tokenizer_config.json",
+          "sha256": "3c75940dfce3a294fca7041a5faff011677f1b68fa85e47511bb8cf6dccaded6",
+          "size_bytes": 282873
+        },
+        {
+          "path": "vocab.json",
+          "sha256": "6788c80b082e9b0d1393147d3a3e62ba19285ac0c82ace8e5ef00f37ead58971",
+          "size_bytes": 835528
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+# The Urdu speaker is GPL-3.0-or-later: it links sherpa-onnx 1.13.8, whose
+# static library contains eSpeak NG (GPL-3.0), which Piper's Urdu voice needs
+# (D51, ADR-0082). It is its own workspace so no GPL code can enter the main
+# (MIT) workspace's programs: the voice worker starts it and talks to it over
+# a pipe.
+[workspace]
+
+[package]
+name = "narrivy-urdu-speaker"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+description = "Voice mode's Urdu speaker: Piper's Urdu voice through sherpa-onnx with eSpeak NG, in its own process."
+license = "GPL-3.0-or-later"
+repository = "https://github.com/iamwaqargulzar/narrivy"
+
+[lints.rust]
+unsafe_code = "forbid"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "deny"
+
+[dependencies]
+serde_json = "1"
+base64 = "=0.23.1"
+sherpa-onnx = "=1.13.8"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

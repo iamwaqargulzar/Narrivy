@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "pipelines": [
+    {
+      "id": "fast-dictation",
+      "name": "Fast Dictation",
+      "status": "linux-1.0-default",
+      "trigger": "toggle or hold",
+      "privacy": "local-only",
+      "stages": [
+        "audio.capture",
+        "audio.normalize",
+        "audio.denoise",
+        "speech.vad",
+        "speech.endpoint",
+        "speech.asr",
+        "text.punctuation",
+        "text.itn",
+        "text.semantic-guard",
+        "delivery.direct|delivery.clipboard|delivery.inbox"
+      ]
+    },
+    {
+      "id": "clean-mic",
+      "name": "Clean Mic",
+      "status": "optional",
+      "trigger": "user binding",
+      "privacy": "local-only",
+      "stages": [
+        "audio.capture",
+        "audio.normalize",
+        "speech.vad",
+        "speech.endpoint",
+        "speech.asr",
+        "text.punctuation",
+        "text.itn",
+        "text.semantic-guard",
+        "delivery.direct|delivery.clipboard|delivery.inbox"
+      ]
+    },
+    {
+      "id": "smart-local",
+      "name": "Smart Local",
+      "status": "optional",
+      "trigger": "user binding",
+      "privacy": "local-only",
+      "stages": [
+        "audio.capture",
+        "audio.denoise",
+        "speech.vad",
+        "speech.asr",
+        "text.punctuation",
+        "text.itn",
+        "text.llm-postprocess",
+        "text.semantic-guard",
+        "delivery.direct|delivery.clipboard|delivery.inbox"
+      ]
+    },
+    {
+      "id": "cloud-polish",
+      "name": "Cloud Polish",
+      "status": "optional",
+      "trigger": "user binding",
+      "privacy": "cloud-text-explicit",
+      "stages": [
+        "audio.capture",
+        "audio.denoise",
+        "speech.vad",
+        "speech.asr",
+        "text.punctuation",
+        "text.itn",
+        "text.llm-postprocess",
+        "text.semantic-guard",
+        "delivery.direct|delivery.clipboard|delivery.inbox"
+      ]
+    },
+    {
+      "id": "speaker-safe",
+      "name": "Speaker-safe",
+      "status": "optional",
+      "trigger": "user binding",
+      "privacy": "local-default",
+      "stages": [
+        "audio.capture",
+        "audio.aec",
+        "audio.denoise",
+        "speech.vad",
+        "speech.asr",
+        "text.itn",
+        "delivery.direct|delivery.clipboard|delivery.inbox"
+      ]
+    },
+    {
+      "id": "noisy-office",
+      "name": "Noisy Office",
+      "status": "optional",
+      "trigger": "user binding",
+      "privacy": "local-default",
+      "stages": [
+        "audio.capture",
+        "audio.denoise",
+        "speech.vad",
+        "speech.asr",
+        "text.itn",
+        "text.semantic-guard",
+        "delivery.direct|delivery.clipboard|delivery.inbox"
+      ]
+    },
+    {
+      "id": "far-field",
+      "name": "Far-field",
+      "status": "roadmap",
+      "trigger": "user binding",
+      "privacy": "local-default",
+      "stages": [
+        "audio.capture",
+        "audio.beamform",
+        "audio.dereverb",
+        "audio.denoise",
+        "speech.vad",
+        "speech.asr",
+        "delivery.direct|delivery.clipboard|delivery.inbox"
+      ]
+    },
+    {
+      "id": "focus-on-me",
+      "name": "Focus on Me",
+      "status": "roadmap",
+      "trigger": "user binding",
+      "privacy": "local-default",
+      "stages": [
+        "audio.capture",
+        "audio.target-speaker",
+        "audio.denoise",
+        "speech.vad",
+        "speech.asr",
+        "delivery.direct|delivery.clipboard|delivery.inbox"
+      ]
+    },
+    {
+      "id": "coding",
+      "name": "Coding",
+      "status": "roadmap",
+      "trigger": "user binding",
+      "privacy": "profile-defined",
+      "stages": [
+        "audio.capture",
+        "audio.denoise",
+        "speech.vad",
+        "speech.asr",
+        "text.itn",
+        "text.llm-postprocess?",
+        "text.semantic-guard",
+        "delivery.direct|delivery.clipboard|delivery.inbox"
+      ]
+    },
+    {
+      "id": "translate",
+      "name": "Translate",
+      "status": "roadmap",
+      "trigger": "user binding",
+      "privacy": "profile-defined",
+      "stages": [
+        "audio.capture",
+        "audio.denoise",
+        "speech.vad",
+        "speech.asr",
+        "text.translate",
+        "text.semantic-guard",
+        "delivery.direct|delivery.clipboard|delivery.inbox"
+      ]
+    },
+    {
+      "id": "meeting",
+      "name": "Meeting",
+      "status": "roadmap",
+      "trigger": "toggle/session",
+      "privacy": "profile-defined",
+      "stages": [
+        "audio.capture",
+        "audio.denoise",
+        "speech.vad",
+        "speech.asr",
+        "speech.diarization",
+        "text.llm-postprocess?"
+      ]
+    },
+    {
+      "id": "hands-free",
+      "name": "Hands-free Accessibility",
+      "status": "roadmap",
+      "trigger": "wake-word/command",
+      "privacy": "local-default",
+      "stages": [
+        "activation.wake-word",
+        "audio.capture",
+        "speech.vad",
+        "speech.asr",
+        "text.semantic-guard",
+        "delivery.direct|delivery.clipboard|delivery.inbox"
+      ]
+    }
+  ]
+}

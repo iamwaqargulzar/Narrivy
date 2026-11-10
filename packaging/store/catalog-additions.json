@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "language_models": [
+    {
+      "id": "speakoflow-mini-openvino",
+      "name": "SpeakoFlow Mini",
+      "publisher": "SpeakoFlow",
+      "tasks": [
+        "refine"
+      ],
+      "languages": [
+        "en"
+      ],
+      "size_bytes": 790635586,
+      "license": "Apache-2.0",
+      "source_repo": "narrivy/store",
+      "source_path": "models/llm/speakoflow-mini-int8-cw-ov",
+      "source_revision": "e82414d15889723837544fef47eb21b76b3a47e5",
+      "manifest_sha256": "7e0ede6457d27bbc684ec2ce79cf74435199ceb52cd1d4c3d1d93656764d5cb2",
+      "manifest_size": 3760,
+      "devices": [
+        "NPU",
+        "GPU",
+        "CPU"
+      ]
+    },
+    {
+      "id": "s1-mini-npu",
+      "name": "S1-mini (NPU)",
+      "publisher": "Superwhisper",
+      "tasks": [
+        "refine"
+      ],
+      "languages": [
+        "en"
+      ],
+      "size_bytes": 616583354,
+      "license": "Apache-2.0 with the S1-mini naming term",
+      "source_repo": "narrivy/store",
+      "source_path": "models/llm/s1-mini-npu-int8",
+      "source_revision": "e82414d15889723837544fef47eb21b76b3a47e5",
+      "manifest_sha256": "ac9d44b543cae65bbb7f0d8707d4b6d200a4dbf1ef06e2c92c7c721f9064f532",
+      "manifest_size": 2809,
+      "devices": [
+        "NPU",
+        "GPU",
+        "CPU"
+      ]
+    },
+    {
+      "id": "speakoflow-mini-npu",
+      "name": "SpeakoFlow Mini (NPU)",
+      "publisher": "SpeakoFlow",
+      "tasks": [
+        "refine"
+      ],
+      "languages": [
+        "en"
+      ],
+      "size_bytes": 780767894,
+      "license": "Apache-2.0",
+      "source_repo": "narrivy/store",
+      "source_path": "models/llm/speakoflow-mini-npu-int8",
+      "source_revision": "e82414d15889723837544fef47eb21b76b3a47e5",
+      "manifest_sha256": "5d5b832067a4e4af8dcfc2993587fb26dc5092e83c1b9797872774055755e0cf",
+      "manifest_size": 2721,
+      "devices": [
+        "NPU",
+        "GPU",
+        "CPU"
+      ]
+    },
+    {
+      "id": "qwen3.5-4b-npu",
+      "name": "Qwen3.5 4B (NPU)",
+      "publisher": "Qwen (Alibaba Cloud), converted by Narrivy",
+      "tasks": [
+        "chat",
+        "refine"
+      ],
+      "languages": [
+        "en"
+      ],
+      "size_bytes": 2267182933,
+      "license": "Apache-2.0",
+      "source_repo": "narrivy/store",
+      "source_path": "models/llm/qwen3.5-4b-npu-mtp",
+      "source_revision": "e82414d15889723837544fef47eb21b76b3a47e5",
+      "manifest_sha256": "e8ec5d53a5d227c9f5125059c4cb6e389f29b382f479ee6623d20ed6949186c3",
+      "manifest_size": 2674,
+      "devices": [
+        "NPU",
+        "GPU",
+        "CPU"
+      ]
+    }
+  ],
+  "runtimes": [
+    {
+      "id": "voice-kokoro-v1.0-en",
+      "runtime": "voice",
+      "name": "Kokoro (English, 54 voices)",
+      "version": "1.0",
+      "platform": "any",
+      "size_bytes": 359730794,
+      "license": "Apache-2.0",
+      "source_repo": "narrivy/store",
+      "source_path": "voices/kokoro-v1.0-en",
+      "source_revision": null,
+      "manifest_sha256": "90fd3b05499fee9886ba938fa120c8a4d0a458e817a8a975166c0608a645022d",
+      "manifest_size": 1562,
+      "devices": [
+        "CPU"
+      ]
+    },
+    {
+      "id": "voice-piper-ur-fasih-medium",
+      "runtime": "voice",
+      "name": "Piper Urdu (fasih)",
+      "version": "1.0",
+      "platform": "any",
+      "size_bytes": 64339429,
+      "license": "MIT AND GPL-3.0-or-later",
+      "source_repo": "narrivy/store",
+      "source_path": "voices/piper-ur-fasih-medium",
+      "source_revision": null,
+      "manifest_sha256": "61e64e0ea6a41ad6306e5bdc54b016ff2d7c358624750481fb50c33bbe47bfae",
+      "manifest_size": 2704,
+      "devices": [
+        "CPU"
+      ]
+    }
+  ]
+}
