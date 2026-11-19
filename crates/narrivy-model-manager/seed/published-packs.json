@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "packs": [
+    {
+      "id": "whisper-large-v3-turbo-openvino-int8",
+      "family": "whisper",
+      "variant": "large-v3-turbo",
+      "quant": "INT8",
+      "size_bytes": 828087998,
+      "license": "MIT",
+      "engine": "openvino",
+      "source_repo": "narrivy/store",
+      "source_path": "models/openvino/whisper-large-v3-turbo-int8",
+      "source_revision": "1fa31d318fe6a7c36d3b71134e26dd9c14c11d0b",
+      "languages": [
+        "multilingual"
+      ],
+      "streaming": false,
+      "devices": [
+        "CPU",
+        "GPU",
+        "NPU"
+      ],
+      "manifest_sha256": "9f4e2d527600cde526f68bf2542f05695cc64fc810110227b89c90b5f9a207a3",
+      "manifest_size": 5005
+    },
+    {
+      "id": "whisper-large-v3-openvino-int8",
+      "family": "whisper",
+      "variant": "large-v3",
+      "quant": "INT8",
+      "size_bytes": 1568403788,
+      "license": "Apache-2.0",
+      "engine": "openvino",
+      "source_repo": "narrivy/store",
+      "source_path": "models/openvino/whisper-large-v3-int8",
+      "source_revision": "1fa31d318fe6a7c36d3b71134e26dd9c14c11d0b",
+      "languages": [
+        "multilingual"
+      ],
+      "streaming": false,
+      "devices": [
+        "CPU",
+        "GPU",
+        "NPU"
+      ],
+      "manifest_sha256": "a2d2de1320c1e0b40575c290e2d803771a5bfd799b497e6ebc72b639b2c52c77",
+      "manifest_size": 5000
+    }
+  ]
+}

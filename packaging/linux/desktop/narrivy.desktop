@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Narrivy
+Comment=Local-first voice dictation
+Exec=narrivy-desktop
+Icon=narrivy
+Terminal=false
+Type=Application
+Categories=Utility;AudioVideo;
+StartupWMClass=narrivy-desktop
+Keywords=dictation;voice;stt;whisper;asr;
+X-GNOME-UsesNotifications=true

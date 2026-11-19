@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://narrivy.local/schema/config-bundle-v1.json",
+  "title": "Narrivy Portable Configuration Bundle v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "bundle_type",
+    "exported_at",
+    "credentials_policy",
+    "pipelines",
+    "settings"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "bundle_type": {
+      "enum": [
+        "full_settings",
+        "selected_pipelines",
+        "profile_pack"
+      ]
+    },
+    "exported_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "settings": {
+      "type": "object"
+    },
+    "pipelines": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "profiles": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "dictionaries": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "resource_requirements": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "maxLength": 200
+      }
+    },
+    "$schema": {
+      "const": "https://narrivy.local/schema/config-bundle-v1.json"
+    },
+    "credentials_policy": {
+      "const": "excluded"
+    }
+  }
+}

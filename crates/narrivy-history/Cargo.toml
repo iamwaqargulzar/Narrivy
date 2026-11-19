@@ -1,0 +1,27 @@
+[package]
+name = "narrivy-history"
+publish = false
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Retained user History store, dictionary aliases and privacy-zone evaluation."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints]
+workspace = true
+
+[dependencies]
+narrivy-types.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+rusqlite.workspace = true
+hex.workspace = true
+sha2.workspace = true
+tempfile.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+serde_json.workspace = true

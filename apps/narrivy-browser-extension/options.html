@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Narrivy Writing settings</title>
+  <link rel="stylesheet" href="ui.css" />
+  <style>
+    main { max-width: 720px; margin: 0 auto; padding: 28px 16px 60px; display: flex; flex-direction: column; gap: 16px; }
+    header p { margin-top: 4px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 16px; }
+    .check { display: flex; align-items: center; gap: 8px; min-height: 30px; }
+    .rules { max-height: 420px; overflow: auto; margin-top: 8px; }
+    .rule { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--border); }
+    .rule:first-child { border-top: 0; }
+    .rule-body { flex: 1; min-width: 0; }
+    .rule-name { font-weight: 600; }
+    .rule-desc { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+    .add { display: flex; gap: 8px; margin: 8px 0; }
+    .add input { flex: 1; }
+    .tags { margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1><img src="icons/icon-32.png" alt="" />Narrivy Writing</h1>
+      <p class="muted">Grammar, spelling and AI rewriting from Narrivy on this computer. Your text never leaves your device.</p>
+    </header>
+
+    <section class="card">
+      <h2>Connection</h2>
+      <div class="status"><span class="light" id="light"></span><span id="status">Checking…</span></div>
+      <p class="muted" id="model"></p>
+    </section>
+
+    <section class="card">
+      <h2>General</h2>
+      <div class="row"><label for="enabled">Check writing while I type</label><label class="switch"><input type="checkbox" id="enabled" /><span></span></label></div>
+      <div class="row"><label for="fieldBadge">Show the suggestion count in the corner of a field</label><label class="switch"><input type="checkbox" id="fieldBadge" /><span></span></label></div>
+      <div class="row"><label for="aiActions">AI writing actions (Fix, Improve, Rewrite…)</label><label class="switch"><input type="checkbox" id="aiActions" /><span></span></label></div>
+      <div class="row"><label for="selectionButton">Show the Narrivy button next to selected text</label><label class="switch"><input type="checkbox" id="selectionButton" /><span></span></label></div>
+      <div class="row"><label for="dialect">Language</label><select id="dialect"></select></div>
+      <div class="row"><label for="delayMs">Check after a pause of</label><span><input type="number" id="delayMs" min="150" max="3000" step="50" style="width:90px" /> ms</span></div>
+      <div class="row"><span>Keyboard shortcut for writing actions</span><button class="link" id="shortcuts">Change in the browser</button></div>
+    </section>
+
+    <section class="card">
+      <h2>What to check</h2>
+      <div class="grid">
+        <label class="check"><input type="checkbox" data-category="spelling" /> Spelling</label>
+        <label class="check"><input type="checkbox" data-category="grammar" /> Grammar</label>
+        <label class="check"><input type="checkbox" data-category="punctuation" /> Punctuation</label>
+        <label class="check"><input type="checkbox" data-category="style" /> Clarity and style</label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Rules</h2>
+      <p class="muted">Every rule of the checker. Changed rules are marked.</p>
+      <div class="add"><input type="search" id="rule-search" placeholder="Search rules" aria-label="Search rules" /><button class="button" id="rules-reset">Reset all</button></div>
+      <div class="rules" id="rules"><p class="muted">Loading rules from Narrivy…</p></div>
+    </section>
+
+    <section class="card">
+      <h2>Personal dictionary</h2>
+      <p class="muted">Words that are never marked as misspelled.</p>
+      <form class="add" id="word-form"><input type="text" id="word" placeholder="Add a word" maxlength="64" aria-label="Word" /><button class="button" type="submit">Add</button></form>
+      <div class="tags" id="words"></div>
+    </section>
+
+    <section class="card">
+      <h2>Sites</h2>
+      <p class="muted">Sites where checking is off. Banking, payment, health and sign-in pages are off unless you turn them on from the toolbar button.</p>
+      <div class="tags" id="sites"></div>
+      <h2 style="margin-top:12px">Sensitive sites turned on</h2>
+      <div class="tags" id="sensitive"></div>
+    </section>
+
+    <section class="card">
+      <h2>Privacy</h2>
+      <p class="muted">Narrivy Writing has no internet access of its own. It reads only the field you are typing in, never password, payment or one-time-code fields, and sends the text only to Narrivy on this computer. Nothing is logged or saved to History.</p>
+    </section>
+  </main>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

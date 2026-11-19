@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "runtimes": [
+    {
+      "id": "openvino-runtime-2026.4-linux-x86_64",
+      "runtime": "openvino",
+      "name": "OpenVINO 2026.4",
+      "version": "2026.4.0",
+      "platform": "linux-x86_64",
+      "size_bytes": 292096824,
+      "license": "Apache-2.0 AND MIT",
+      "source_repo": "narrivy/store",
+      "source_path": "runtimes/openvino/2026.4-linux-x86_64",
+      "source_revision": "1fa31d318fe6a7c36d3b71134e26dd9c14c11d0b",
+      "manifest_sha256": "e4183401b65f1e6425991f5f8ca2ed7028e78510ce2ce0fda3d6015c5f2bc5aa",
+      "manifest_size": 7631,
+      "devices": [
+        "CPU",
+        "GPU",
+        "NPU"
+      ]
+    },
+    {
+      "id": "openvino-runtime-2026.4-windows-x86_64",
+      "runtime": "openvino",
+      "name": "OpenVINO 2026.4",
+      "version": "2026.4.0",
+      "platform": "windows-x86_64",
+      "size_bytes": 218964742,
+      "license": "Apache-2.0 AND LicenseRef-Microsoft-VC-Redistributable",
+      "source_repo": "narrivy/store",
+      "source_path": "runtimes/openvino/2026.4-windows-x86_64",
+      "source_revision": null,
+      "manifest_sha256": "9644d77fdbba1618f7949b97d8f7bdab9e749ada8cbb6fdb2864f5263f078d81",
+      "manifest_size": 8925,
+      "devices": [
+        "CPU",
+        "GPU",
+        "NPU"
+      ]
+    },
+    {
+      "id": "browser-chromium-153.0.8010.12-linux-x86_64",
+      "runtime": "browser",
+      "name": "Chromium for the assistant",
+      "version": "153.0.8010.12",
+      "platform": "linux-x86_64",
+      "size_bytes": 272530165,
+      "license": "BSD-3-Clause",
+      "source_repo": "narrivy/store",
+      "source_path": "runtimes/browser/153.0.8010.12-linux-x86_64",
+      "source_revision": null,
+      "manifest_sha256": "bec0e32eb6283247ccefafd0279b8eb044ffd48f854e0e534e18437e0829ee13",
+      "manifest_size": 69937,
+      "devices": [
+        "CPU"
+      ]
+    },
+    {
+      "id": "voice-kokoro-v1.0-en",
+      "runtime": "voice",
+      "name": "Kokoro (English, 54 voices)",
+      "version": "1.0",
+      "platform": "any",
+      "size_bytes": 359730794,
+      "license": "Apache-2.0",
+      "source_repo": "narrivy/store",
+      "source_path": "voices/kokoro-v1.0-en",
+      "source_revision": null,
+      "manifest_sha256": "90fd3b05499fee9886ba938fa120c8a4d0a458e817a8a975166c0608a645022d",
+      "manifest_size": 1562,
+      "devices": [
+        "CPU"
+      ]
+    },
+    {
+      "id": "voice-piper-ur-fasih-medium",
+      "runtime": "voice",
+      "name": "Piper Urdu (fasih)",
+      "version": "1.0",
+      "platform": "any",
+      "size_bytes": 64339429,
+      "license": "MIT AND GPL-3.0-or-later",
+      "source_repo": "narrivy/store",
+      "source_path": "voices/piper-ur-fasih-medium",
+      "source_revision": null,
+      "manifest_sha256": "61e64e0ea6a41ad6306e5bdc54b016ff2d7c358624750481fb50c33bbe47bfae",
+      "manifest_size": 2704,
+      "devices": [
+        "CPU"
+      ]
+    }
+  ]
+}

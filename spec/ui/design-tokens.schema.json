@@ -1,0 +1,18 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://narrivy.invalid/schema/design-tokens-v1.json",
+  "type":"object","additionalProperties":false,
+  "required":["version","layout","spacing","radius","typography","control","motion","overlay","semantic"],
+  "properties":{
+    "$schema":{"type":"string"},
+    "version":{"const":1},
+    "layout":{"type":"object","additionalProperties":{"type":"integer","minimum":1}},
+    "spacing":{"type":"object","additionalProperties":{"type":"integer","minimum":0}},
+    "radius":{"type":"object","additionalProperties":{"type":"integer","minimum":0}},
+    "typography":{"type":"object","additionalProperties":{"type":"object","required":["size","lineHeight","weight"],"properties":{"size":{"type":"integer","minimum":10},"lineHeight":{"type":"integer","minimum":10},"weight":{"type":"integer","minimum":100,"maximum":900}},"additionalProperties":false}},
+    "control":{"type":"object","additionalProperties":{"type":"integer","minimum":1}},
+    "motion":{"type":"object","additionalProperties":{"type":"integer","minimum":0}},
+    "overlay":{"type":"object","additionalProperties":{"type":"integer","minimum":0}},
+    "semantic":{"type":"object","required":["colorKeys","themes"],"properties":{"colorKeys":{"type":"array","minItems":8,"uniqueItems":true,"items":{"type":"string"}},"themes":{"type":"array","minItems":3,"uniqueItems":true,"items":{"type":"string"}}},"additionalProperties":false}
+  }
+}

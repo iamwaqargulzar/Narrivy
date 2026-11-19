@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://narrivy.local/schema/inference-provider-v1.json",
+  "title": "Narrivy Inference Provider v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "id",
+    "transport",
+    "location",
+    "auth",
+    "data_capabilities"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://narrivy.local/schema/inference-provider-v1.json"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "transport": {
+      "enum": [
+        "openai_compatible",
+        "native_api",
+        "local_runtime",
+        "local_ipc"
+      ]
+    },
+    "location": {
+      "enum": [
+        "local",
+        "remote"
+      ]
+    },
+    "endpoint": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 500
+    },
+    "auth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "none",
+            "api_key",
+            "oauth_pkce",
+            "device_code",
+            "browser_login",
+            "external_managed"
+          ]
+        },
+        "secret_reference": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 160
+        }
+      }
+    },
+    "data_capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "transcript",
+          "surrounding_context",
+          "selected_text",
+          "app_identity",
+          "audio"
+        ]
+      }
+    },
+    "cost_policy": {
+      "enum": [
+        "local",
+        "free_tier_possible",
+        "metered",
+        "unknown"
+      ]
+    },
+    "model_discovery": {
+      "enum": [
+        "static",
+        "provider_api",
+        "manual"
+      ]
+    }
+  }
+}

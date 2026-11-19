@@ -1,0 +1,29 @@
+[package]
+publish = false
+name = "narrivy-ipc-windows"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Authenticated per-user named-pipe transport for the Narrivy IPC protocol on Windows."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints.rust]
+unsafe_code = "allow"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "deny"
+
+[dependencies]
+narrivy-ipc.workspace = true
+# Portable shutdown budget so connection cleanup shares the service deadline.
+narrivy-types.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys.workspace = true

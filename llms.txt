@@ -1,0 +1,24 @@
+# Narrivy
+
+> Narrivy is a free, open-source (MIT) desktop app for offline voice typing and speech-to-text on Linux and Windows. A keyboard shortcut starts dictation, and the recognised text is typed into the focused app. It also records meetings, runs a local AI assistant and provides a grammar and writing assistant for Chrome and Brave. All speech recognition and language models run locally on the user's NPU, GPU or CPU; there is no account, no telemetry and no cloud processing.
+
+Key facts:
+
+- Platforms: Pop!_OS 24.04 (COSMIC, Wayland) and 64-bit Windows 11. Current version: 1.0.0-rc.33 (release candidate). Packages: `.deb` and `.msi`.
+- Speech models: Whisper (about 100 languages, including English and Urdu) and Parakeet. Models are downloaded on first run and verified by SHA-256.
+- Hardware: Intel Core Ultra NPU through an optional OpenVINO add-on; Intel, AMD and NVIDIA GPUs through Vulkan; any modern x86-64 CPU.
+- Dictation features: live overlay, local clean-up of filler words and punctuation, echo cancellation, noise suppression, custom vocabulary, pipelines with their own shortcut and model, History.
+- Built with Rust and Tauri; React interface.
+
+## Docs
+
+- [README](https://github.com/iamwaqargulzar/Narrivy/blob/main/README.md): features, install steps, supported hardware and FAQ
+- [Releases](https://github.com/iamwaqargulzar/Narrivy/releases/latest): Linux and Windows downloads
+- [Architecture overview](https://github.com/iamwaqargulzar/Narrivy/blob/main/docs/architecture/README.md)
+- [Documentation index](https://github.com/iamwaqargulzar/Narrivy/blob/main/docs/README.md)
+
+## Optional
+
+- [Roadmap](https://github.com/iamwaqargulzar/Narrivy/blob/main/docs/roadmap/README.md)
+- [Security policy](https://github.com/iamwaqargulzar/Narrivy/blob/main/SECURITY.md)
+- [Licence (MIT)](https://github.com/iamwaqargulzar/Narrivy/blob/main/LICENSE)

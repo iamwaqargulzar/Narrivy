@@ -1,0 +1,32 @@
+{
+  "$schema": "./design-tokens.schema.json",
+  "version": 1,
+  "layout": {
+    "windowMinWidth": 720,
+    "windowMinHeight": 560,
+    "contentMaxWidth": 1120,
+    "settingsMaxWidth": 820,
+    "sidebarWidth": 232,
+    "sidebarCompactWidth": 64,
+    "breakpointCompact": 820,
+    "breakpointWide": 1180
+  },
+  "spacing": {"1":4,"2":8,"3":12,"4":16,"5":20,"6":24,"8":32,"10":40,"12":48,"16":64},
+  "radius": {"small":6,"medium":10,"large":14,"pill":999},
+  "typography": {
+    "caption":{"size":12,"lineHeight":16,"weight":400},
+    "bodySmall":{"size":13,"lineHeight":18,"weight":400},
+    "body":{"size":14,"lineHeight":20,"weight":400},
+    "bodyStrong":{"size":14,"lineHeight":20,"weight":600},
+    "titleSmall":{"size":16,"lineHeight":22,"weight":600},
+    "title":{"size":20,"lineHeight":26,"weight":650},
+    "display":{"size":28,"lineHeight":34,"weight":650}
+  },
+  "control": {"heightSmall":32,"heightDefault":40,"heightLarge":48,"minHitTarget":40,"icon":18,"iconLarge":22},
+  "motion": {"fastMs":100,"standardMs":160,"slowMs":240,"reducedMotionMs":0},
+  "overlay": {"minWidth":180,"maxWidth":420,"heightCompact":44,"statusDismissDelayMs":1200},
+  "semantic": {
+    "colorKeys":["surface.canvas","surface.primary","surface.secondary","content.primary","content.secondary","content.muted","border.default","border.strong","accent.default","accent.hover","status.success","status.warning","status.error","status.info","focus.ring","selection.background"],
+    "themes":["system","light","dark","high-contrast-compatible"]
+  }
+}

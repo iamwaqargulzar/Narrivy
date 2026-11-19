@@ -1,0 +1,73 @@
+[package]
+publish = false
+name = "narrivy-platform-windows"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+
+# Scoped unsafe override (ADR-0014 invariant): the ONLY unsafe in this crate
+# is Win32/COM FFI inside the `os` module tree (compiled on Windows only),
+# each call carrying a SAFETY comment. Every portable module declares
+# `#![forbid(unsafe_code)]` and builds and tests on Linux too.
+description = "Windows platform adapter: WASAPI capture, SendInput/clipboard text delivery, foreground target and global shortcuts."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints.rust]
+unsafe_code = "allow"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "deny"
+
+[dependencies]
+narrivy-types.workspace = true
+narrivy-platform-api.workspace = true
+# Content-free payload digests for the commit-once replay record.
+sha2.workspace = true
+# Exclusive random temporary files for the atomic recovery-Inbox write.
+tempfile.workspace = true
+# Echo cancellation, noise suppression and gain in-process (voice_processing).
+sonora.workspace = true
+# Screen pictures in meetings (screen_keeper), the files the Linux helper writes.
+png.workspace = true
+serde_json.workspace = true
+
+# Installed runtime (MSI, per machine): the manifest and the build's model
+# registry, bound through the Windows trust-anchored artifacts.
+[target.'cfg(windows)'.dependencies]
+narrivy-model-manager.workspace = true
+narrivy-process-windows.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+# The version already locked in the workspace (through the desktop host), so
+# no second copy of the bindings is built.
+[target.'cfg(windows)'.dependencies.windows]
+version = "0.61.3"
+features = [
+  "Win32_Devices_FunctionDiscovery",
+  "Win32_Foundation",
+  "Win32_Graphics_DXCore",
+  "Win32_Graphics_Gdi",
+  "Win32_Media_Audio",
+  "Win32_Security",
+  "Win32_Security_Credentials",
+  "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage",
+  "Win32_System_DataExchange",
+  "Win32_System_LibraryLoader",
+  "Win32_System_Memory",
+  "Win32_System_Performance",
+  "Win32_System_Recovery",
+  "Win32_System_Registry",
+  "Win32_System_Threading",
+  "Win32_System_Variant",
+  "Win32_UI_HiDpi",
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_Shell_PropertiesSystem",
+  "Win32_UI_WindowsAndMessaging",
+]

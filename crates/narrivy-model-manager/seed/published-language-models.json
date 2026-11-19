@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "id": "qwen3.5-4b-openvino",
+      "name": "Qwen3.5 4B",
+      "publisher": "Qwen (Alibaba Cloud), converted by OpenVINO",
+      "tasks": [
+        "chat",
+        "refine"
+      ],
+      "languages": [
+        "en"
+      ],
+      "size_bytes": 3577365101,
+      "license": "Apache-2.0",
+      "source_repo": "narrivy/store",
+      "source_path": "models/llm/qwen3.5-4b-int4-ov",
+      "source_revision": "639761c26596bb6c03024d28665aacf2aa820112",
+      "manifest_sha256": "2ca588ee2320e685b431cde2f495374b94548b2b3c7d558f0627164d2be41d82",
+      "manifest_size": 6359,
+      "devices": [
+        "GPU",
+        "CPU"
+      ]
+    },
+    {
+      "id": "s1-mini-openvino",
+      "name": "S1-mini",
+      "publisher": "Superwhisper",
+      "tasks": [
+        "refine"
+      ],
+      "languages": [
+        "en"
+      ],
+      "size_bytes": 623460012,
+      "license": "Apache-2.0 with the S1-mini naming term",
+      "source_repo": "narrivy/store",
+      "source_path": "models/llm/s1-mini-int8-cw-ov",
+      "source_revision": "639761c26596bb6c03024d28665aacf2aa820112",
+      "manifest_sha256": "d5bd99f21992351250ad2bef6899def95a1136f4491c1932310a6bd34a581f00",
+      "manifest_size": 4788,
+      "devices": [
+        "GPU",
+        "CPU"
+      ]
+    },
+    {
+      "id": "gemma-4-e4b-openvino",
+      "name": "Gemma 4 E4B",
+      "publisher": "Google, converted by OpenVINO",
+      "tasks": [
+        "chat",
+        "refine"
+      ],
+      "languages": [
+        "en",
+        "ur"
+      ],
+      "size_bytes": 6537246441,
+      "license": "Apache-2.0",
+      "source_repo": "OpenVINO/gemma-4-E4B-it-int4-ov",
+      "source_path": "",
+      "source_revision": "c157bc8d31bae5041874d4378667bc19ae0ee5c6",
+      "manifest_sha256": "2dbf21c43ce0cc4bfe29fdc2b1bb1aa4eab0c671e9e125b060a1e608a3bc6228",
+      "manifest_size": 5422,
+      "devices": [
+        "GPU",
+        "CPU"
+      ]
+    },
+    {
+      "id": "qwen3.5-9b-openvino",
+      "name": "Qwen3.5 9B",
+      "publisher": "Qwen (Alibaba Cloud), converted by OpenVINO",
+      "tasks": [
+        "chat",
+        "refine"
+      ],
+      "languages": [
+        "en",
+        "ur"
+      ],
+      "size_bytes": 6280230676,
+      "license": "Apache-2.0",
+      "source_repo": "OpenVINO/Qwen3.5-9B-int4-ov",
+      "source_path": "",
+      "source_revision": "ee5a3761d4524966dd6c1f1037694ebc581cb196",
+      "manifest_sha256": "ad2dd867ae2f032e61dab651f8db0e49047be094a802f8857ecaefec04dd813b",
+      "manifest_size": 6247,
+      "devices": [
+        "GPU",
+        "CPU"
+      ]
+    }
+  ]
+}

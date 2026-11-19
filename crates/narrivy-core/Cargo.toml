@@ -1,0 +1,31 @@
+[package]
+publish = false
+name = "narrivy-core"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Portable application core: session machine, recovery tail, worker supervision and correction orchestration."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints]
+workspace = true
+
+[dependencies]
+narrivy-types.workspace = true
+narrivy-platform-api.workspace = true
+narrivy-asr-api.workspace = true
+narrivy-policy.workspace = true
+narrivy-journal-api.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+rusqlite.workspace = true
+sha2.workspace = true
+hex.workspace = true
+
+[dev-dependencies]
+narrivy-asr-mock = { path = "../../engines/asr-mock" }
+narrivy-platform-null = { path = "../../adapters/platform-null" }
+tempfile.workspace = true

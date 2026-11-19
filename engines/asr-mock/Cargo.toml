@@ -1,0 +1,17 @@
+[package]
+publish = false
+name = "narrivy-asr-mock"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Deterministic mock ASR engine for tests and development (never used for release behaviour)."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lints]
+workspace = true
+[dependencies]
+narrivy-types.workspace = true
+narrivy-asr-api.workspace = true
+

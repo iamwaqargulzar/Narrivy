@@ -1,0 +1,15 @@
+name: Feature request
+description: Propose a user problem or capability.
+title: "feat: "
+body:
+  - type: textarea
+    id: problem
+    attributes: { label: User problem, description: "Describe the problem before proposing implementation." }
+    validations: { required: true }
+  - type: textarea
+    id: outcome
+    attributes: { label: Desired outcome }
+    validations: { required: true }
+  - type: textarea
+    id: privacy
+    attributes: { label: Privacy / platform considerations }

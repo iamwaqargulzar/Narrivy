@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "id": "narrivy/whisper-large-v3-gguf-q5-k-m",
+  "revision": "2026-09-30.1",
+  "display_name": "Whisper large-v3 (GGUF, Q5_K_M, 5-bit)",
+  "source": {
+    "provider": "huggingface",
+    "locator": "handy-computer/whisper-large-v3-gguf",
+    "immutable_revision": "e3e29bee6389c7da4a141406f07bb80ddac5337c",
+    "publisher": "handy-computer"
+  },
+  "engine": {
+    "id": "asr.transcribe-cpp",
+    "min_version": "0.2.3",
+    "max_version": null
+  },
+  "format": {
+    "family": "whisper",
+    "precision": "Q5_K_M",
+    "conversion_recipe": null
+  },
+  "tasks": [
+    "transcribe",
+    "translate"
+  ],
+  "languages": [
+    "multilingual"
+  ],
+  "files": [
+    {
+      "path": "whisper-large-v3-Q5_K_M.gguf",
+      "sha256": "6053d0fd69a0fd48b8fea5ea7a52b9e0cde389343566fa30e453a1b2b258dc38",
+      "size_bytes": 1161143008,
+      "optional_signature": null
+    }
+  ],
+  "devices": [
+    "CPU",
+    "GPU"
+  ],
+  "runtime_constraints": {
+    "notes": "Quantization: Q5_K_M (5-bit, mixed). Returns text after you stop. May run on CPU, GPU; a device is used only after this exact model, runtime, driver and device pass qualification on the user's computer."
+  },
+  "license": {
+    "spdx_or_name": "Apache-2.0",
+    "source": "https://huggingface.co/handy-computer/whisper-large-v3-gguf",
+    "redistribution": "allowed",
+    "notice": "Whisper large-v3 by OpenAI; GGUF conversion by handy-computer. Redistributed unmodified."
+  }
+}
